@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alunos — Chamada QR</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/turmas.css" />
+  <link rel="stylesheet" href="/src/cadastro.css" />
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ═══════ SIDEBAR ═══════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+          <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+        </svg>
+      </div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-title">Chamada QR</span>
+        <span class="sidebar-subtitle">Sistema de Presença</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        Turmas
+      </a>
+      <a href="cadastro.html" class="sidebar-link active">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        Alunos
+      </a>
+      <a href="chamada.html" class="sidebar-link">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+            <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+          </svg>
+        </div>
+        Chamada
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ═══════ CONTEÚDO ═══════ -->
+  <div class="main-content">
+
+      <!-- ─── Painel único: Lista de alunos ────────────────────────────────── -->
+      <main class="alunos-panel" style="height:100%">
+
+        <div class="alunos-head">
+          <div class="panel-heading">
+            <div class="panel-heading-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <h2>
+              Alunos Cadastrados
+              <span class="count-badge" id="count-badge">0</span>
+            </h2>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <button class="btn-novo-aluno" id="btn-novo-aluno">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Novo Aluno
+          </button>
+          <button class="btn-dl-all" id="btn-dl-all" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Baixar todos os QR Codes
+          </button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <!-- Instituição -->
+          <div class="filter-group">
+            <span class="filter-group-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </span>
+            <select id="filter-inst" class="filter-select">
+              <option value="">Todas as instituições</option>
+            </select>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Turma -->
+          <div class="filter-group">
+            <span class="filter-group-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+            </span>
+            <select id="filter-turma" class="filter-select" disabled>
+              <option value="">Todas as turmas</option>
+            </select>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Busca -->
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" class="search-icon">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="filter-busca" placeholder="Buscar por nome ou matrícula..." class="search-input" />
+          </div>
+        </div>
+
+        <div class="alunos-list" id="alunos-list">
+          <div class="list-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            <p>Carregando alunos...</p>
+          </div>
+        </div>
+
+      </main>
+
+  </div>
+</div>
+
+<!-- ─── Modal: Novo Aluno ────────────────────────────────────────────────────── -->
+<div class="form-modal" id="modal-novo-aluno">
+  <div class="form-modal-card">
+    <div class="form-modal-header">
+      <div class="form-modal-title">
+        <div class="form-modal-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        <h3>Novo Aluno</h3>
+      </div>
+      <button class="form-modal-close" id="btn-fechar-modal-aluno">✕</button>
+    </div>
+    <div class="form-modal-body">
+      <form id="form-cadastro" novalidate>
+
+        <!-- Linha 1: Nome + Matrícula -->
+        <div class="fld-row">
+          <div class="fld fld-grow">
+            <label class="required">Nome completo</label>
+            <input type="text" id="nome" placeholder="Ex: Ana Beatriz Souza" autocomplete="off" />
+            <span class="fld-err" id="err-nome"></span>
+          </div>
+          <div class="fld fld-fixed">
+            <label class="required">Matrícula</label>
+            <input type="text" id="matricula" placeholder="Ex: 2024001" autocomplete="off" />
+            <span class="fld-err" id="err-matricula"></span>
+          </div>
+        </div>
+
+        <!-- Linha 2: Telefone + Data de nascimento -->
+        <div class="fld-row">
+          <div class="fld fld-half">
+            <label>Telefone</label>
+            <input type="tel" id="telefone" placeholder="Ex: (11) 99999-0000" autocomplete="off" />
+          </div>
+          <div class="fld fld-half">
+            <label>Data de nascimento</label>
+            <input type="date" id="data_nascimento" />
+          </div>
+        </div>
+
+        <!-- Linha 3: ID Estadual -->
+        <div class="fld">
+          <label>ID Estadual / RG</label>
+          <input type="text" id="id_estadual" placeholder="Ex: 12.345.678-9" autocomplete="off" />
+        </div>
+
+        <!-- Linha 4: Endereço -->
+        <div class="fld">
+          <label>Endereço</label>
+          <input type="text" id="endereco" placeholder="Ex: Rua das Flores, 123 — São Paulo/SP" autocomplete="off" />
+        </div>
+
+        <!-- Linha 5: Instituição + Turma -->
+        <div class="fld-row">
+          <div class="fld fld-half">
+            <label class="required">Instituição</label>
+            <select id="instituicao"><option value="">Carregando...</option></select>
+            <span class="fld-err" id="err-instituicao"></span>
+          </div>
+          <div class="fld fld-half">
+            <label class="required">Turma</label>
+            <select id="turma" disabled><option value="">Selecione a instituição</option></select>
+            <span class="fld-err" id="err-turma"></span>
+          </div>
+        </div>
+
+        <!-- Linha 6: Foto upload -->
+        <div class="fld">
+          <label>Foto do aluno (opcional)</label>
+          <div class="foto-upload-area" id="foto-upload-area">
+            <div class="foto-upload-preview" id="foto-preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div class="foto-upload-info">
+              <span class="foto-upload-label">Clique para selecionar foto</span>
+              <span class="foto-upload-hint">JPG, PNG ou WEBP • max 2MB</span>
+            </div>
+            <input type="file" id="foto_file" accept="image/*" style="display:none" />
+          </div>
+        </div>
+
+        <a href="turmas.html" class="btn-ger" style="margin-top:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Gerenciar turmas
+        </a>
+        <div class="form-feedback" id="feedback" style="margin-top:8px"></div>
+      </form>
+    </div>
+    <div class="form-modal-footer">
+      <button class="fmb-cancel" id="btn-aluno-cancel">Cancelar</button>
+      <button class="fmb-submit" id="btn-submit" type="submit" form="form-cadastro">
+        <span class="spinner" id="spinner"></span>
+        <span id="btn-label">Cadastrar Aluno</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: Gerenciar (mantido para compatibilidade) ──────────────────────── -->
+<div class="modal-overlay" id="modal-gerenciar">
+  <div class="modal modal-gerenciar">
+    <div class="modal-header">
+      <h2>Gerenciar Turmas</h2>
+      <button class="close-btn" id="btn-fechar-gerenciar">✕</button>
+    </div>
+    <div class="modal-gerenciar-body">
+      <div class="ger-section">
+        <div class="ger-section-title">Nova Instituição</div>
+        <div class="ger-row">
+          <input type="text" id="ger-inst-nome" placeholder="Nome da instituição" />
+          <button class="ger-btn-add" id="ger-btn-add-inst">Adicionar</button>
+        </div>
+        <div id="ger-inst-feedback" class="ger-feedback"></div>
+        <div class="ger-list" id="ger-inst-list"></div>
+      </div>
+      <div class="ger-section">
+        <div class="ger-section-title">Nova Turma</div>
+        <div class="ger-col">
+          <select id="ger-turma-inst"><option value="">Selecione a instituição</option></select>
+          <input type="text" id="ger-turma-nome" placeholder="Nome da turma" />
+          <input type="text" id="ger-turma-prof" placeholder="Professor (opcional)" />
+          <input type="text" id="ger-turma-horario" placeholder="Horário (opcional)" />
+          <button class="ger-btn-add" id="ger-btn-add-turma">Adicionar Turma</button>
+        </div>
+        <div id="ger-turma-feedback" class="ger-feedback"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="/src/cadastro.js"></script>
+</body>
+</html>

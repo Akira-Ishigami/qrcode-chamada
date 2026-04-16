@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chamada — Chamada QR</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ═══════ SIDEBAR ═══════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+          <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+        </svg>
+      </div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-title">Chamada QR</span>
+        <span class="sidebar-subtitle">Sistema de Presença</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        Turmas
+      </a>
+      <a href="cadastro.html" class="sidebar-link">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        Alunos
+      </a>
+      <a href="chamada.html" class="sidebar-link active" id="sidebar-chamada-link">
+        <div class="sidebar-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+            <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+          </svg>
+        </div>
+        Chamada
+        <span class="sidebar-badge" id="sidebar-status-badge" style="display:none">Em andamento</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ═══════ CONTEÚDO ═══════ -->
+  <div class="main-content">
+
+    <!-- Topbar da chamada ativa (oculto por padrão) -->
+    <div class="content-topbar" id="content-topbar" style="display:none">
+      <div class="topbar-left">
+        <span class="topbar-badge">Em andamento</span>
+        <span class="topbar-title" id="topbar-titulo"></span>
+        <span class="topbar-meta" id="topbar-sub"></span>
+      </div>
+      <span class="topbar-horario" id="topbar-horario"></span>
+    </div>
+
+    <!-- ─── View: Seletor de turma ──────────────────────────────────────────── -->
+    <div id="view-selector" class="view" style="display:flex; flex-direction:column;">
+      <div class="selector-wrapper">
+        <div class="selector-card">
+
+          <div class="selector-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+              <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+              <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+            </svg>
+          </div>
+          <h2 class="selector-title">Iniciar Chamada</h2>
+          <p class="selector-sub">Selecione a instituição e turma para começar</p>
+
+          <div class="selector-fields">
+            <div class="sel-group">
+              <label for="sel-inst">Instituição</label>
+              <select id="sel-inst"><option value="">Carregando...</option></select>
+            </div>
+            <div class="sel-group">
+              <label for="sel-turma">Turma</label>
+              <select id="sel-turma" disabled><option value="">Selecione a instituição</option></select>
+            </div>
+          </div>
+
+          <button class="btn-iniciar" id="btn-iniciar" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+              <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+              <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+            </svg>
+            Iniciar Chamada
+          </button>
+
+          <div id="sel-feedback" class="sel-feedback"></div>
+
+          <!-- Empty state sem turmas -->
+          <div class="setup-hint" id="setup-hint" style="display:none">
+            <div class="setup-hint-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <p>Você ainda não tem turmas cadastradas.</p>
+            <a href="index.html" class="btn-setup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              Configurar turmas
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── View: Chamada ativa ─────────────────────────────────────────────── -->
+    <div id="view-chamada" class="view" style="display:none">
+      <div class="container">
+
+        <div class="stats">
+          <div class="stat-card">
+            <div class="number" id="count-total">0</div>
+            <div class="label">Total</div>
+          </div>
+          <div class="stat-card present">
+            <div class="number" id="count-present">0</div>
+            <div class="label">Presentes</div>
+          </div>
+          <div class="stat-card absent">
+            <div class="number" id="count-absent">0</div>
+            <div class="label">Ausentes</div>
+          </div>
+        </div>
+
+        <button class="scan-btn" id="btn-scan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+            <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+          </svg>
+          Escanear QR Code
+        </button>
+
+        <div class="section-title">Lista de alunos</div>
+        <div class="student-list" id="student-list"></div>
+
+        <div class="chamada-actions">
+          <button class="btn-exportar" id="btn-exportar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Exportar Planilha
+          </button>
+          <button class="btn-encerrar" id="btn-encerrar">Encerrar chamada</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<!-- ─── Modal scanner ────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Escanear QR Code</h2>
+      <button class="close-btn" id="btn-fechar-modal">✕</button>
+    </div>
+    <div class="video-wrapper">
+      <video id="video" playsinline muted></video>
+      <div class="scan-overlay"><div class="scan-frame"></div></div>
+    </div>
+    <div class="modal-status" id="modal-status">Iniciando câmera...</div>
+  </div>
+</div>
+
+<!-- ─── Modal confirmação encerrar ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-encerrar">
+  <div class="modal modal-confirm">
+    <div class="confirm-icon">⚠️</div>
+    <h3>Encerrar chamada?</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="btn-confirm-cancel" id="btn-confirm-cancel">Cancelar</button>
+      <button class="btn-confirm-ok" id="btn-confirm-ok">Encerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: Gerenciar turmas ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-gerenciar">
+  <div class="modal modal-gerenciar">
+    <div class="modal-header">
+      <h2>Gerenciar Turmas</h2>
+      <button class="close-btn" id="btn-fechar-gerenciar">✕</button>
+    </div>
+    <div class="modal-gerenciar-body">
+      <div class="ger-section">
+        <div class="ger-section-title">Instituição</div>
+        <div class="ger-row">
+          <input type="text" id="ger-inst-nome" placeholder="Nome da instituição" />
+          <button class="ger-btn-add" id="ger-btn-add-inst">Adicionar</button>
+        </div>
+        <div id="ger-inst-feedback" class="ger-feedback"></div>
+        <div class="ger-list" id="ger-inst-list"></div>
+      </div>
+      <div class="ger-section">
+        <div class="ger-section-title">Nova Turma</div>
+        <div class="ger-col">
+          <select id="ger-turma-inst"><option value="">Selecione a instituição</option></select>
+          <input type="text" id="ger-turma-nome" placeholder="Nome da turma" />
+          <input type="text" id="ger-turma-prof" placeholder="Professor (opcional)" />
+          <input type="text" id="ger-turma-horario" placeholder="Horário (Ex: Seg 19h–21h)" />
+          <button class="ger-btn-add" id="ger-btn-add-turma">Adicionar Turma</button>
+        </div>
+        <div id="ger-turma-feedback" class="ger-feedback"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvas" style="display:none"></canvas>
+<div class="toast" id="toast"></div>
+<script type="module" src="/src/app.js"></script>
+</body>
+</html>

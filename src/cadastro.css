@@ -1,0 +1,399 @@
+/* ─── Layout principal ───────────────────────────────────────────── */
+.page-layout { display: flex; height: 100%; flex: 1; overflow: hidden; }
+
+/* ─── Cabeçalho ──────────────────────────────────────────────────── */
+.panel-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+
+.panel-heading-icon {
+  width: 36px; height: 36px;
+  background: #e0e7ff;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: var(--acc);
+}
+
+.panel-heading h2 {
+  font-size: 1rem; font-weight: 800; color: var(--text);
+  display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em;
+}
+
+/* ─── Campos ─────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+label {
+  font-size: 0.72rem; font-weight: 800; color: var(--text-2);
+  letter-spacing: 0.07em; text-transform: uppercase;
+}
+
+.required::after { content: ' *'; color: var(--red); }
+
+input[type="text"],
+input[type="tel"],
+input[type="date"],
+select {
+  border: 2px solid var(--border); border-radius: 9px;
+  padding: 10px 12px; font-size: 0.92rem; color: var(--text);
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  background: var(--surface-2); width: 100%; font-family: inherit; font-weight: 500;
+}
+
+input:focus, select:focus {
+  border-color: var(--acc); background: white;
+  box-shadow: 0 0 0 4px var(--acc-sub);
+}
+
+input.error, select.error { border-color: var(--red); background: #fff5f5; }
+select:disabled { opacity: 0.4; cursor: not-allowed; }
+input::placeholder { color: var(--text-3); font-weight: 400; }
+
+.ferr { font-size: 0.73rem; color: var(--red); min-height: 15px; font-weight: 600; }
+
+/* ─── btn-ger ────────────────────────────────────────────────────── */
+.btn-ger {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: 2px solid var(--border-2); border-radius: 9px;
+  padding: 9px 12px; font-size: 0.82rem; color: var(--text-2);
+  cursor: pointer; font-family: inherit; font-weight: 600;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
+  width: 100%; margin-bottom: 16px; justify-content: center; text-decoration: none;
+}
+.btn-ger:hover { border-color: var(--acc); color: var(--acc); background: #eef2ff; }
+
+/* ─── Botão submit ───────────────────────────────────────────────── */
+.btn-submit {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white; border: none; border-radius: 10px;
+  font-size: 0.96rem; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: filter 0.18s, transform 0.15s, box-shadow 0.18s;
+  font-family: inherit; margin-bottom: 12px;
+  box-shadow: 0 4px 14px var(--acc-glow);
+}
+.btn-submit:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 8px 20px var(--acc-glow); }
+.btn-submit:disabled { background: var(--surface-4); color: var(--text-3); box-shadow: none; cursor: not-allowed; }
+
+.spinner {
+  width: 15px; height: 15px;
+  border: 2.5px solid rgba(255,255,255,0.35); border-top-color: white;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  display: none; flex-shrink: 0;
+}
+.btn-submit.loading .spinner { display: block; }
+
+.form-feedback { text-align: center; font-size: 0.86rem; min-height: 18px; font-weight: 600; }
+.form-feedback.success { color: var(--green); }
+.form-feedback.error   { color: var(--red); }
+
+/* ─── Painel de alunos ───────────────────────────────────────────── */
+.alunos-panel {
+  flex: 1; display: flex; flex-direction: column;
+  background: var(--bg); overflow: hidden;
+  animation: fadeIn 0.3s ease both;
+}
+
+.alunos-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 26px 16px;
+  background: var(--surface); border-bottom: 2px solid var(--border);
+  gap: 12px; flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.alunos-head .panel-heading { margin-bottom: 0; }
+
+/* ─── Badge contador ─────────────────────────────────────────────── */
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; padding: 0 7px;
+  background: #e0e7ff; color: var(--acc);
+  border-radius: 20px; font-size: 0.71rem; font-weight: 800;
+  border: 1.5px solid #c7d2fe;
+}
+
+/* ─── Botão baixar todos ─────────────────────────────────────────── */
+.btn-dl-all {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 18px;
+  background: var(--surface-2); color: var(--text);
+  border: 2px solid var(--border-2); border-radius: 9px;
+  font-size: 0.86rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn-dl-all:hover:not(:disabled) {
+  background: #eef2ff; border-color: var(--acc); color: var(--acc);
+  transform: translateY(-1px);
+}
+.btn-dl-all:disabled { background: var(--surface-2); cursor: not-allowed; opacity: 0.4; }
+.btn-dl-all.loading { opacity: 0.6; cursor: wait; }
+
+/* ─── Barra de filtro ────────────────────────────────────────────── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 28px;
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* Wrapper com ícone + select integrado */
+.filter-group {
+  position: relative; display: flex; align-items: center;
+  flex: 1; min-width: 140px; max-width: 220px;
+}
+.filter-group-icon {
+  position: absolute; left: 11px; top: 50%;
+  transform: translateY(-50%); color: var(--text-3); pointer-events: none;
+  display: flex; align-items: center;
+}
+
+.filter-select {
+  width: 100%;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 9px 12px 9px 34px;
+  font-size: 0.83rem; color: var(--text);
+  background: var(--surface-2); outline: none;
+  font-family: inherit; font-weight: 600;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  appearance: none; cursor: pointer;
+}
+.filter-select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  background: var(--surface);
+}
+.filter-select:disabled { opacity: 0.38; cursor: not-allowed; }
+
+/* Divisor vertical */
+.filter-divider {
+  width: 1px; height: 22px;
+  background: var(--border); flex-shrink: 0;
+}
+
+/* Busca */
+.search-wrap {
+  position: relative; flex: 2; min-width: 160px; max-width: 340px;
+}
+.search-icon {
+  position: absolute; left: 12px; top: 50%;
+  transform: translateY(-50%); color: var(--text-3); pointer-events: none;
+}
+.search-input {
+  width: 100%; box-sizing: border-box;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 9px 12px 9px 36px; font-size: 0.83rem; color: var(--text);
+  background: var(--surface-2); outline: none;
+  font-family: inherit; font-weight: 500;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.search-input:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  background: var(--surface);
+}
+.search-input::placeholder { color: var(--text-3); font-weight: 400; }
+
+/* ─── Lista de alunos ────────────────────────────────────────────── */
+.alunos-list {
+  flex: 1; overflow-y: auto;
+  padding: 24px 28px 36px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+
+/* Modo grid — sobrescreve o flex acima */
+.alunos-list.tv-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  gap: 16px !important;
+  flex-direction: unset !important;
+  align-items: start;
+  overflow-y: auto;
+  padding: 24px 28px 36px;
+}
+
+.list-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; color: var(--text-3); padding: 56px 24px; text-align: center;
+  animation: fadeInUp 0.4s ease both;
+}
+.list-empty p { font-size: 0.92rem; color: var(--text-2); font-weight: 500; }
+
+.list-err { color: var(--red); font-size: 0.9rem; padding: 16px; text-align: center; font-weight: 600; }
+
+/* ─── Card de aluno ──────────────────────────────────────────────── */
+.aluno-row {
+  display: flex; align-items: center; gap: 13px;
+  background: var(--surface); border-radius: var(--r);
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+  animation: slideInLeft 0.3s ease both;
+}
+
+.aluno-row:hover {
+  border-color: #c7d2fe;
+  background: #fafbff;
+  transform: translateX(3px);
+  box-shadow: var(--shadow);
+}
+
+.aluno-row.new-entry { animation: fadeInUp 0.4s ease; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.aluno-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #e0e7ff; color: var(--acc); font-weight: 800; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; border: 2px solid #c7d2fe; overflow: hidden;
+}
+.aluno-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.aluno-info { flex: 1; min-width: 0; }
+
+.aluno-nome {
+  font-weight: 700; font-size: 0.9rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.aluno-meta {
+  font-size: 0.75rem; color: var(--text-2); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;
+}
+
+.aluno-mat {
+  font-size: 0.76rem; font-weight: 800; color: var(--text-2);
+  background: var(--surface-3); border: 1.5px solid var(--border);
+  padding: 4px 10px; border-radius: 6px;
+  white-space: nowrap; flex-shrink: 0;
+  font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+}
+
+.btn-dl-qr {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border: 2px solid var(--border-2); border-radius: 8px;
+  background: var(--surface-2); color: var(--acc); cursor: pointer; flex-shrink: 0;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+.btn-dl-qr:hover { background: #e0e7ff; border-color: var(--acc); transform: scale(1.08); }
+.btn-dl-qr svg { width: 15px; height: 15px; }
+
+
+/* ─── Card de aluno no estilo turmas ─────────────────────────────── */
+.aluno-card-tv::before {
+  background: radial-gradient(circle at top right, rgba(199,210,254,.35), transparent 70%);
+}
+.aluno-card-tv:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 8px 30px rgba(79,70,229,.12);
+  transform: translateY(-3px);
+}
+
+.tvc-avatar-aluno {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #4338ca;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-weight: 800; font-size: 1rem;
+  overflow: hidden; transition: transform 0.2s;
+}
+.aluno-card-tv:hover .tvc-avatar-aluno { transform: scale(1.08) rotate(-5deg); }
+.tvc-avatar-aluno img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Download btn reutiliza .tvc-del mas com cor de accent */
+.aluno-card-tv .tvc-del { opacity: 1 !important; color: var(--acc); }
+.aluno-card-tv .tvc-del:hover { background: #eef2ff; color: var(--acc); }
+
+/* Botões de ação do card */
+.ac-actions {
+  display: flex; gap: 5px;
+  opacity: 0; transition: opacity .18s;
+}
+.aluno-card-tv:hover .ac-actions { opacity: 1; }
+
+.ac-btn-edit, .ac-btn-qr {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: background .14s, color .14s;
+}
+.ac-btn-edit { color: var(--acc); }
+.ac-btn-edit:hover { background: #eef2ff; }
+.ac-btn-qr { color: var(--text-3); }
+.ac-btn-qr:hover { background: var(--surface-2); color: var(--text); }
+
+/* Modal editar — avatar com botão de câmera */
+.ed-avatar-row {
+  display: flex; align-items: flex-start; gap: 16px; margin-bottom: 4px;
+}
+.ed-avatar-wrap { position: relative; flex-shrink: 0; }
+.ed-avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #4338ca;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.3rem; overflow: hidden;
+  border: 2.5px solid #c7d2fe;
+}
+.ed-foto-btn {
+  position: absolute; bottom: 0; right: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--acc); color: #fff;
+  border: 2px solid white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.ed-foto-btn:hover { transform: scale(1.12); }
+
+.ed-btn-excluir {
+  color: var(--red) !important; border-color: #fca5a5 !important;
+  background: #fff5f5 !important;
+}
+.ed-btn-excluir:hover { background: #fee2e2 !important; }
+
+/* Chips de info extra */
+.tvc-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1.5px solid var(--border);
+  color: var(--text-3); font-size: .7rem; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.tvc-chip svg { flex-shrink: 0; }
+.tvc-chip-wide { flex: 1 1 100%; }
+
+/* ─── Upload de foto ─────────────────────────────────────────────── */
+.foto-upload-area {
+  display: flex; align-items: center; gap: 14px;
+  border: 2px dashed var(--border-2); border-radius: 12px;
+  padding: 12px 16px; cursor: pointer;
+  transition: border-color .18s, background .18s;
+}
+.foto-upload-area:hover { border-color: var(--acc); background: #f5f3ff; }
+.foto-upload-area.has-foto { border-style: solid; border-color: #c7d2fe; }
+
+.foto-upload-preview {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: #e0e7ff; color: #a5b4fc;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; overflow: hidden; border: 2px solid #c7d2fe;
+}
+
+.foto-upload-info { display: flex; flex-direction: column; gap: 3px; }
+.foto-upload-label { font-size: .83rem; font-weight: 700; color: var(--acc); }
+.foto-upload-hint  { font-size: .73rem; color: var(--text-3); }
+
+/* ─── Responsivo ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .alunos-panel { height: auto; min-height: 400px; }
+  .alunos-list  { overflow: visible; max-height: none; }
+  .filter-bar    { gap: 6px; }
+  .filter-group  { max-width: 100%; min-width: 0; flex: 1 1 130px; }
+  .filter-divider { display: none; }
+  .search-wrap   { max-width: 100%; min-width: 0; flex: 1 1 100%; }
+}
