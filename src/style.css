@@ -118,19 +118,22 @@ body {
 }
 
 /* ══════════════════════════════════════════════
-   LAYOUT
+   LAYOUT — MOBILE FIRST
 ══════════════════════════════════════════════ */
 .app-layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-top: 56px; /* altura da topbar mobile */
 }
 
 /* ══════════════════════════════════════════════
-   SIDEBAR — Escura (índigo profundo)
+   SIDEBAR — Mobile: oculta e fixa
 ══════════════════════════════════════════════ */
 .sidebar {
-  width: var(--sidebar-w);
+  position: fixed;
+  top: 0; left: 0;
+  width: 280px;
   height: 100vh;
   background: linear-gradient(180deg, #1e1b4b 0%, #2d2869 100%);
   display: flex;
@@ -138,7 +141,14 @@ body {
   flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 100;
+  z-index: 250;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+  box-shadow: 4px 0 32px rgba(15,23,42,0.22);
 }
 
 /* ── Brand ───────────────────────────────── */
@@ -256,12 +266,12 @@ body {
 }
 
 /* ══════════════════════════════════════════════
-   CONTEÚDO PRINCIPAL
+   CONTEÚDO PRINCIPAL — Mobile: full width
 ══════════════════════════════════════════════ */
 .main-content {
   flex: 1;
-  height: 100vh;
-  overflow-y: auto;
+  width: 100%;
+  min-height: calc(100vh - 56px);
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
@@ -1089,7 +1099,7 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
    MOBILE TOPBAR
 ══════════════════════════════════════════════ */
 .mobile-topbar {
-  display: none;
+  display: flex;
   position: fixed;
   top: 0; left: 0; right: 0;
   height: 56px;
@@ -1150,71 +1160,87 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 
 /* ── Overlay ─────────────────────────────── */
 .sidebar-overlay {
-  display: none;
+  display: block;
   position: fixed; inset: 0;
   background: rgba(15,23,42,0.52);
   z-index: 200;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.28s;
   backdrop-filter: blur(2px);
 }
 
-.sidebar-overlay.visible { opacity: 1; }
+.sidebar-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
 
 /* ══════════════════════════════════════════════
-   RESPONSIVO — HAMBÚRGUER
+   MOBILE — ajustes de componentes
 ══════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .mobile-topbar { display: flex; }
-  .sidebar-overlay { display: block; }
+.view { height: auto !important; }
 
+.container { padding: 20px 16px 48px; }
+
+.stats { gap: 8px; }
+.stat-card { padding: 16px 10px; }
+.stat-card .number { font-size: 2rem; }
+
+.chamada-actions { flex-direction: column; }
+.btn-exportar, .btn-encerrar { min-width: unset; }
+
+.selector-card { padding: 32px 20px; }
+
+/* Sidebar estreita em telas muito pequenas */
+@media (max-width: 360px) {
+  .sidebar { width: 85vw; }
+  .confirm-btns { flex-direction: column; }
+  .modal-confirm { padding: 28px 20px; }
+}
+
+/* ══════════════════════════════════════════════
+   DESKTOP — sidebar fixa no layout (≥769px)
+══════════════════════════════════════════════ */
+@media (min-width: 769px) {
   .app-layout {
-    height: auto;
-    min-height: 100vh;
-    padding-top: 56px;
-    overflow: visible;
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+    padding-top: 0;
   }
 
   .sidebar {
-    position: fixed;
-    top: 0; left: 0;
+    position: relative;
+    top: auto; left: auto;
+    width: var(--sidebar-w);
     height: 100vh;
-    width: 260px;
-    z-index: 250;
-    transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    transform: none;
+    transition: none;
     box-shadow: none;
+    z-index: 100;
+    flex-shrink: 0;
   }
 
-  .sidebar.open {
-    transform: translateX(0);
-    box-shadow: 4px 0 32px rgba(15,23,42,0.22);
-  }
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
 
   .main-content {
-    height: auto;
-    overflow-y: visible;
-    overflow-x: hidden;
-    min-height: calc(100vh - 56px);
+    height: 100vh;
+    overflow-y: auto;
+    min-height: unset;
+    width: auto;
   }
 
   .view { height: auto !important; }
 
-  .container { padding: 20px 16px 48px; }
+  .container { padding: 28px 24px 56px; }
 
-  .stats { gap: 8px; }
+  .stats { gap: 14px; }
+  .stat-card { padding: 22px 16px; }
+  .stat-card .number { font-size: 2.6rem; }
 
-  .stat-card { padding: 16px 10px; }
-  .stat-card .number { font-size: 2rem; }
+  .chamada-actions { flex-direction: row; }
+  .btn-exportar, .btn-encerrar { min-width: 150px; }
 
-  .chamada-actions { flex-direction: column; }
-  .btn-exportar, .btn-encerrar { min-width: unset; }
-
-  .selector-card { padding: 32px 20px; }
-}
-
-@media (max-width: 480px) {
-  .sidebar { width: 80vw; max-width: 280px; }
-  .confirm-btns { flex-direction: column; }
-  .modal-confirm { padding: 28px 20px; }
+  .selector-card { padding: 44px 40px; }
 }

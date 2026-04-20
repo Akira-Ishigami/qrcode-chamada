@@ -388,12 +388,20 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 .foto-upload-label { font-size: .83rem; font-weight: 700; color: var(--acc); }
 .foto-upload-hint  { font-size: .73rem; color: var(--text-3); }
 
-/* ─── Responsivo ─────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .alunos-panel { height: auto; min-height: 400px; }
-  .alunos-list  { overflow: visible; max-height: none; }
-  .filter-bar    { gap: 6px; }
-  .filter-group  { max-width: 100%; min-width: 0; flex: 1 1 130px; }
-  .filter-divider { display: none; }
-  .search-wrap   { max-width: 100%; min-width: 0; flex: 1 1 100%; }
+/* ─── Mobile first ───────────────────────────────────────────────── */
+.alunos-panel { height: auto; min-height: calc(100vh - 56px); }
+.alunos-list  { overflow: visible; max-height: none; }
+.filter-bar    { gap: 6px; }
+.filter-group  { max-width: 100%; min-width: 0; flex: 1 1 130px; }
+.filter-divider { display: none; }
+.search-wrap   { max-width: 100%; min-width: 0; flex: 1 1 100%; }
+
+/* ─── Desktop ────────────────────────────────────────────────────── */
+@media (min-width: 769px) {
+  .alunos-panel { height: 100%; min-height: unset; }
+  .alunos-list  { overflow-y: auto; max-height: unset; }
+  .filter-bar    { gap: 8px; }
+  .filter-group  { max-width: 220px; }
+  .filter-divider { display: block; }
+  .search-wrap   { max-width: 340px; flex: 2; }
 }
