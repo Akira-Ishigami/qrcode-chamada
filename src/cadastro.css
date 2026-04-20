@@ -389,18 +389,67 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 .foto-upload-hint  { font-size: .73rem; color: var(--text-3); }
 
 /* ─── Mobile first ───────────────────────────────────────────────── */
-.alunos-panel { height: auto; min-height: calc(100vh - 56px); }
-.alunos-list  { overflow: visible; max-height: none; }
-.filter-bar    { gap: 6px; }
-.filter-group  { max-width: 100%; min-width: 0; flex: 1 1 130px; }
+/* Painel principal: cresce com conteúdo, sem prender scroll */
+.alunos-panel {
+  height: auto !important;
+  min-height: calc(100vh - 56px);
+  overflow: visible !important; /* remove o overflow:hidden que prende o conteúdo */
+  flex: none !important;        /* não deixa o flex travar a altura */
+}
+
+/* Lista: scroll pelo page, não pelo container */
+.alunos-list {
+  overflow: visible !important;
+  max-height: none !important;
+  flex: none !important;
+}
+
+/* Cabeçalho: permite quebrar linha quando estreito */
+.alunos-head { padding: 14px 16px 12px; }
+.alunos-head > div:last-child { flex-wrap: wrap; }
+.btn-dl-all { font-size: 0.78rem; padding: 8px 12px; }
+
+/* Filtros: empilham no mobile */
+.filter-bar    { gap: 8px; padding: 10px 16px; }
+.filter-group  { max-width: 100%; min-width: 0; flex: 1 1 120px; }
 .filter-divider { display: none; }
 .search-wrap   { max-width: 100%; min-width: 0; flex: 1 1 100%; }
 
+/* Lista de cards: coluna única */
+.alunos-list.tv-grid {
+  grid-template-columns: 1fr !important;
+  padding: 16px !important;
+}
+
+.alunos-list { padding: 16px !important; }
+
 /* ─── Desktop ────────────────────────────────────────────────────── */
 @media (min-width: 769px) {
-  .alunos-panel { height: 100%; min-height: unset; }
-  .alunos-list  { overflow-y: auto; max-height: unset; }
-  .filter-bar    { gap: 8px; }
+  .alunos-panel {
+    height: 100% !important;
+    min-height: unset !important;
+    overflow: hidden !important;
+    flex: 1 !important;
+  }
+
+  .alunos-list {
+    overflow-y: auto !important;
+    max-height: unset !important;
+    flex: 1 !important;
+  }
+
+  .alunos-list.tv-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+    padding: 24px 28px 36px !important;
+  }
+
+  .alunos-list { padding: 24px 28px 36px !important; }
+
+  .alunos-head { padding: 20px 26px 16px; }
+  .alunos-head > div:last-child { flex-wrap: nowrap; }
+  .btn-dl-all { font-size: 0.86rem; padding: 10px 18px; }
+
+  .filter-bar    { gap: 8px; padding: 12px 28px; }
   .filter-group  { max-width: 220px; }
   .filter-divider { display: block; }
   .search-wrap   { max-width: 340px; flex: 2; }

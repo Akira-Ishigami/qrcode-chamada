@@ -117,6 +117,9 @@ body {
   line-height: 1.5;
 }
 
+/* Trava scroll do body quando sidebar mobile está aberta */
+body.sidebar-open { overflow: hidden; }
+
 /* ══════════════════════════════════════════════
    LAYOUT — MOBILE FIRST
 ══════════════════════════════════════════════ */
@@ -1160,48 +1163,50 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 
 /* ── Overlay ─────────────────────────────── */
 .sidebar-overlay {
-  display: block;
   position: fixed; inset: 0;
   background: rgba(15,23,42,0.52);
   z-index: 200;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s;
+  visibility: hidden;              /* remove da interação sem quebrar transição */
+  transition: opacity 0.28s, visibility 0.28s;
   backdrop-filter: blur(2px);
 }
 
 .sidebar-overlay.visible {
   opacity: 1;
+  visibility: visible;
   pointer-events: all;
 }
 
 /* ══════════════════════════════════════════════
-   MOBILE — ajustes de componentes
+   MOBILE — ajustes de componentes (base)
 ══════════════════════════════════════════════ */
-.view { height: auto !important; }
 
+/* Selector de chamada: ocupa a tela no mobile */
+.selector-wrapper {
+  min-height: calc(100vh - 56px);
+}
+
+/* Container da chamada ativa */
 .container { padding: 20px 16px 48px; }
 
+/* Stats */
 .stats { gap: 8px; }
-.stat-card { padding: 16px 10px; }
-.stat-card .number { font-size: 2rem; }
+.stat-card { padding: 14px 8px; }
+.stat-card .number { font-size: 1.8rem; }
 
+/* Ações da chamada: empilhadas no mobile */
 .chamada-actions { flex-direction: column; }
 .btn-exportar, .btn-encerrar { min-width: unset; }
 
-.selector-card { padding: 32px 20px; }
-
-/* Sidebar estreita em telas muito pequenas */
-@media (max-width: 360px) {
-  .sidebar { width: 85vw; }
-  .confirm-btns { flex-direction: column; }
-  .modal-confirm { padding: 28px 20px; }
-}
+/* Selector card */
+.selector-card { padding: 28px 18px; }
 
 /* ══════════════════════════════════════════════
-   DESKTOP — sidebar fixa no layout (≥769px)
+   DESKTOP — sidebar no layout (≥769px)
 ══════════════════════════════════════════════ */
 @media (min-width: 769px) {
+  /* Layout: row com sidebar fixa */
   .app-layout {
     flex-direction: row;
     height: 100vh;
@@ -1209,21 +1214,24 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
     padding-top: 0;
   }
 
+  /* Sidebar: volta ao fluxo normal */
   .sidebar {
     position: relative;
     top: auto; left: auto;
     width: var(--sidebar-w);
     height: 100vh;
-    transform: none;
+    transform: none !important;
     transition: none;
     box-shadow: none;
     z-index: 100;
     flex-shrink: 0;
   }
 
-  .mobile-topbar { display: none; }
-  .sidebar-overlay { display: none; }
+  /* Oculta elementos mobile */
+  .mobile-topbar { display: none !important; }
+  .sidebar-overlay { display: none !important; }
 
+  /* Main content com scroll interno */
   .main-content {
     height: 100vh;
     overflow-y: auto;
@@ -1231,8 +1239,10 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
     width: auto;
   }
 
-  .view { height: auto !important; }
+  /* Selector wrapper: ocupa área de conteúdo */
+  .selector-wrapper { min-height: 100%; }
 
+  /* Restaura tamanhos desktop */
   .container { padding: 28px 24px 56px; }
 
   .stats { gap: 14px; }
@@ -1243,4 +1253,12 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
   .btn-exportar, .btn-encerrar { min-width: 150px; }
 
   .selector-card { padding: 44px 40px; }
+}
+
+/* Telas muito pequenas (≤360px) */
+@media (max-width: 360px) {
+  .sidebar { width: 88vw; }
+  .confirm-btns { flex-direction: column; }
+  .modal-confirm { padding: 24px 16px; }
+  .stat-card .number { font-size: 1.5rem; }
 }
