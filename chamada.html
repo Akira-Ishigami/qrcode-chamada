@@ -9,6 +9,27 @@
 </head>
 <body>
 
+<!-- ═══════ TOPBAR MOBILE ═══════ -->
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menu">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+  <div class="mobile-topbar-brand">
+    <div class="mobile-topbar-logo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+        <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+      </svg>
+    </div>
+    <span class="mobile-topbar-title">Chamada QR</span>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <div class="app-layout">
 
   <!-- ═══════ SIDEBAR ═══════ -->
@@ -252,5 +273,18 @@
 <canvas id="canvas" style="display:none"></canvas>
 <div class="toast" id="toast"></div>
 <script type="module" src="/src/app.js"></script>
+<script>
+(function(){
+  var btn=document.getElementById('hamburger-btn');
+  var sidebar=document.querySelector('.sidebar');
+  var overlay=document.getElementById('sidebar-overlay');
+  if(!btn)return;
+  function open(){sidebar.classList.add('open');overlay.classList.add('visible');document.body.classList.add('sidebar-open');}
+  function close(){sidebar.classList.remove('open');overlay.classList.remove('visible');document.body.classList.remove('sidebar-open');}
+  btn.addEventListener('click',function(){sidebar.classList.contains('open')?close():open();});
+  overlay.addEventListener('click',close);
+  sidebar.querySelectorAll('.sidebar-link').forEach(function(l){l.addEventListener('click',close);});
+})();
+</script>
 </body>
 </html>

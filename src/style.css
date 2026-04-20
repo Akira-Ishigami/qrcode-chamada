@@ -1086,20 +1086,135 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 .btn-novo-aluno:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 16px var(--acc-glow); }
 
 /* ══════════════════════════════════════════════
-   RESPONSIVO
+   MOBILE TOPBAR
 ══════════════════════════════════════════════ */
-@media (max-width: 768px) { .sidebar { width: 200px; } }
+.mobile-topbar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: linear-gradient(90deg, #1e1b4b 0%, #2d2869 100%);
+  z-index: 300;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  box-shadow: 0 2px 16px rgba(15,23,42,0.25);
+  flex-shrink: 0;
+}
 
-@media (max-width: 600px) {
-  .app-layout { flex-direction: column; height: auto; overflow: visible; }
-  .sidebar { width: 100%; height: auto; }
-  .sidebar-nav { flex-direction: row; flex-wrap: wrap; padding: 8px; }
-  .sidebar-link {
-    flex: 1; min-width: 80px; justify-content: center;
-    border-left: none; border-bottom: 3px solid transparent;
-    padding: 8px; border-radius: 8px;
+.mobile-topbar-brand {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+}
+
+.mobile-topbar-logo {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(99,102,241,0.4);
+}
+
+.mobile-topbar-logo svg { color: white; }
+
+.mobile-topbar-title {
+  font-size: 0.92rem; font-weight: 800; color: #ffffff;
+  letter-spacing: -0.01em; line-height: 1; white-space: nowrap;
+}
+
+/* ── Botão hambúrguer ────────────────────── */
+.hamburger-btn {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; padding: 0; flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.hamburger-btn:hover { background: rgba(255,255,255,0.15); }
+
+.hamburger-line {
+  width: 18px; height: 2px;
+  background: white; border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s;
+  display: block;
+}
+
+.sidebar-open .hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.sidebar-open .hamburger-line:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.sidebar-open .hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Overlay ─────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.52);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.28s;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.visible { opacity: 1; }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVO — HAMBÚRGUER
+══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .mobile-topbar { display: flex; }
+  .sidebar-overlay { display: block; }
+
+  .app-layout {
+    height: auto;
+    min-height: 100vh;
+    padding-top: 56px;
+    overflow: visible;
   }
-  .sidebar-link.active { border-left-color: transparent; border-bottom-color: #818cf8; }
-  .sidebar-brand-text { display: none; }
-  .main-content { height: auto; overflow: visible; }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    width: 260px;
+    z-index: 250;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: none;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(15,23,42,0.22);
+  }
+
+  .main-content {
+    height: auto;
+    overflow-y: visible;
+    overflow-x: hidden;
+    min-height: calc(100vh - 56px);
+  }
+
+  .view { height: auto !important; }
+
+  .container { padding: 20px 16px 48px; }
+
+  .stats { gap: 8px; }
+
+  .stat-card { padding: 16px 10px; }
+  .stat-card .number { font-size: 2rem; }
+
+  .chamada-actions { flex-direction: column; }
+  .btn-exportar, .btn-encerrar { min-width: unset; }
+
+  .selector-card { padding: 32px 20px; }
+}
+
+@media (max-width: 480px) {
+  .sidebar { width: 80vw; max-width: 280px; }
+  .confirm-btns { flex-direction: column; }
+  .modal-confirm { padding: 28px 20px; }
 }
