@@ -1,0 +1,213 @@
+.hor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.hor-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.hor-subtitle { font-size: 0.85rem; color: var(--text-3); margin-top: 2px; }
+
+/* Seletor de turma */
+.hor-select-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.hor-select-wrap label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.hor-select-wrap select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  min-width: 220px;
+}
+.hor-select-wrap select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-sub);
+}
+
+/* Tabela de horários */
+.hor-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: visible;
+  margin-bottom: 20px;
+}
+.hor-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.hor-table th {
+  background: var(--surface-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.hor-table th:first-child { border-radius: 14px 0 0 0; }
+.hor-table th:last-child  { border-radius: 0 14px 0 0; }
+.hor-table td {
+  padding: 13px 16px;
+  font-size: 0.875rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.hor-table tr:last-child td { border-bottom: none; }
+.hor-table tr:hover td { background: var(--surface-2); }
+
+/* Dia pill */
+.dia-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--acc-sub);
+  color: var(--acc-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* Btn excluir linha */
+.btn-del-row {
+  width: 30px; height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-del-row:hover { background: var(--red-sub); color: var(--red); border-color: var(--red); }
+
+/* Formulário de adicionar */
+.hor-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.hor-form-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.hor-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.hor-form-grid label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+  margin-bottom: 5px;
+}
+.hor-form-grid select,
+.hor-form-grid input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  box-sizing: border-box;
+}
+.hor-form-grid select:focus,
+.hor-form-grid input:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-sub);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--acc); color: #fff; }
+.btn-ghost   { background: var(--surface-3); color: var(--text-2); }
+
+.hor-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  color: var(--text-3);
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+/* Matéria */
+.hor-materia-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--acc-2);
+  background: var(--acc-sub);
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.hor-turma-block {
+  margin-bottom: 24px;
+}
+
+.hor-turma-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.hor-inst-tag {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  background: var(--surface-3);
+  padding: 2px 8px;
+  border-radius: 20px;
+}

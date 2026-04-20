@@ -356,4 +356,6 @@ async function deletarTurma(id, nome) {
 }
 
 // ─── Iniciar ──────────────────────────────────────────────────────────────────
-renderInstituicoes();
+renderInstituicoes().catch(err => {
+  root.innerHTML = `<div class="tv-error">Erro inesperado: ${err?.message ?? err}</div>`;
+});

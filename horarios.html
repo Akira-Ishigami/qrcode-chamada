@@ -2,22 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Turmas — Chamada QR</title>
+  <title>Horários — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
-  <link rel="stylesheet" href="/src/turmas.css" />
+  <link rel="stylesheet" href="/src/horarios.css" />
 </head>
 <body>
 
-<!-- ═══════ TOPBAR MOBILE ═══════ -->
 <div class="mobile-topbar">
   <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menu">
-    <span class="hamburger-line"></span>
-    <span class="hamburger-line"></span>
-    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span>
   </button>
   <div class="mobile-topbar-brand">
     <div class="mobile-topbar-logo">
@@ -34,7 +30,6 @@
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
 <div class="app-layout">
-
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-logo">
@@ -51,7 +46,7 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <a href="turmas.html" class="sidebar-link active" data-admin-only>
+      <a href="turmas.html" class="sidebar-link" data-admin-only>
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         Turmas
       </a>
@@ -71,7 +66,7 @@
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         Relatório
       </a>
-      <a href="horarios.html" class="sidebar-link" data-admin-only>
+      <a href="horarios.html" class="sidebar-link active" data-admin-only>
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
         Horários
       </a>
@@ -82,30 +77,18 @@
     </nav>
     <div class="sidebar-footer">
       <button class="sidebar-logout-btn" id="logout-btn">
-        <div class="sidebar-link-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </div>
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
         Sair
       </button>
     </div>
   </aside>
-
   <div class="main-content">
-    <!-- TUDO gerado pelo JS aqui -->
     <div id="page-root" style="flex:1;display:flex;flex-direction:column;padding:36px 40px;overflow-y:auto;"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
-<script type="module" src="/src/turmas.js"></script>
-<script type="module">
-import { applyNavRole } from '/src/nav-role.js';
-applyNavRole();
-</script>
+<script type="module" src="/src/horarios.js"></script>
 <script type="module">
 import { supabase } from '/src/supabase.js';
 document.getElementById('logout-btn').addEventListener('click', async () => {

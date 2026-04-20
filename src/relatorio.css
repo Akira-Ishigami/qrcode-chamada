@@ -1,0 +1,203 @@
+.rel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.rel-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.rel-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* Filtros */
+.rel-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.rel-filters label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+.rel-filters input[type="date"],
+.rel-filters select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  cursor: pointer;
+}
+.rel-filters input[type="date"]:focus,
+.rel-filters select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-sub);
+}
+
+/* Stats bar */
+.rel-stats-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.rel-stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  min-width: 110px;
+}
+.rel-stat-box .num {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+.rel-stat-box .lbl {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+.rel-stat-box.green .num { color: var(--green); }
+.rel-stat-box.red   .num { color: var(--red); }
+
+/* Chamada cards */
+.rel-chamada-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rel-chamada-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rel-chamada-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rel-chamada-header:hover { background: var(--surface-2); }
+
+.rel-ch-info { flex: 1; min-width: 0; }
+.rel-ch-nome {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rel-ch-meta {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.rel-ch-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.badge-presente {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: #d1fae5;
+  color: var(--green-text);
+}
+.badge-ausente {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--red-sub);
+  color: var(--red-text);
+}
+.badge-aberta {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--amber-sub);
+  color: var(--amber-text);
+}
+.badge-encerrada {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  color: var(--text-3);
+}
+
+.rel-ch-chevron {
+  color: var(--text-3);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.rel-chamada-card.open .rel-ch-chevron { transform: rotate(90deg); }
+
+/* Alunos expandidos */
+.rel-alunos {
+  display: none;
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+}
+.rel-chamada-card.open .rel-alunos { display: block; }
+
+.rel-aluno-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px;
+  font-size: 0.875rem;
+  gap: 10px;
+}
+.rel-aluno-row:hover { background: var(--surface-2); }
+.rel-aluno-nome { color: var(--text); font-weight: 500; flex: 1; }
+.rel-aluno-mat  { color: var(--text-3); font-size: 0.78rem; }
+.dot-presente { color: var(--green); font-weight: 700; }
+.dot-ausente  { color: var(--red);   font-weight: 700; }
+
+.rel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  color: var(--text-3);
+  gap: 12px;
+}

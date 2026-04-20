@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Chamada QR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.07), 0 8px 32px rgba(15,23,42,0.08);
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 360px;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(2,132,199,0.35);
+    }
+
+    .logo-icon svg { color: #fff; }
+
+    .logo-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-sub {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: #0f172a;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      margin-bottom: 16px;
+    }
+
+    input:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2,132,199,0.12);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      margin-top: 4px;
+    }
+
+    .btn:hover  { background: #0369a1; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      font-size: 0.8rem;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+        <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="3" height="3"/>
+        <rect x="14" y="7" width="3" height="3"/>
+        <rect x="7" y="14" width="3" height="3"/>
+        <rect x="14" y="14" width="3" height="3"/>
+      </svg>
+    </div>
+    <p class="logo-title">Chamada QR</p>
+    <p class="logo-sub">Sistema de Presença</p>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <form id="login-form">
+    <label for="email">Email</label>
+    <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+
+    <label for="password">Senha</label>
+    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+
+    <button type="submit" class="btn" id="submit-btn">
+      <span id="btn-text">Entrar</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+  </form>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL  = 'https://jazshbcbhuipekmmmzzj.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphenNoYmNiaHVpcGVrbW1tenpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjMwOTQsImV4cCI6MjA5MTMzOTA5NH0.uEHQoNUaUm2B9CANNuD0sSIPNMQfpSkNFz0l2j99gp8';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// Se já tem sessão, redireciona por role
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+  window.location.replace(profile?.role === 'professor' ? '/minhas-turmas.html' : '/turmas.html');
+}
+
+const form      = document.getElementById('login-form');
+const errorEl   = document.getElementById('error-msg');
+const submitBtn = document.getElementById('submit-btn');
+const btnText   = document.getElementById('btn-text');
+const spinner   = document.getElementById('spinner');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorEl.style.display = 'none';
+  submitBtn.disabled = true;
+  btnText.style.display = 'none';
+  spinner.style.display = 'block';
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errorEl.textContent = error.message === 'Invalid login credentials'
+      ? 'Email ou senha incorretos.'
+      : error.message;
+    errorEl.style.display = 'block';
+    submitBtn.disabled = false;
+    btnText.style.display = 'block';
+    spinner.style.display = 'none';
+  } else {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', s.user.id).single();
+    window.location.replace(profile?.role === 'professor' ? '/minhas-turmas.html' : '/turmas.html');
+  }
+});
+</script>
+
+</body>
+</html>

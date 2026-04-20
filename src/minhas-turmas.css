@@ -1,0 +1,165 @@
+.mt-header {
+  margin-bottom: 28px;
+}
+.mt-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.mt-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+
+.mt-group { margin-bottom: 32px; }
+
+.mt-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-3);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mt-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.mt-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.mt-card:hover {
+  border-color: var(--border-acc);
+  box-shadow: 0 4px 16px var(--acc-glow);
+}
+
+.mt-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mt-card-nome {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.mt-card-inst {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.mt-card-horario {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+.mt-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mt-badge-open { background: #d1fae5; color: var(--green-text); }
+.mt-badge-done { background: var(--surface-3); color: var(--text-3); }
+
+.mt-card-actions { display: flex; gap: 8px; }
+
+.mt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.mt-btn:hover { opacity: 0.82; }
+.mt-btn-primary { background: var(--acc); color: #fff; }
+.mt-btn-ghost   { background: var(--surface-3); color: var(--text-2); }
+
+/* Relatório do dia */
+.mt-section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 32px 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.rel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rel-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.rel-row-nome {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-width: 140px;
+}
+.rel-row-stats {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.rel-stat {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.rel-stat.presente { background: #d1fae5; color: var(--green-text); }
+.rel-stat.ausente  { background: var(--red-sub); color: var(--red-text); }
+.rel-stat.total    { background: var(--surface-3); color: var(--text-2); }
+
+.mt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  color: var(--text-3);
+  gap: 14px;
+  text-align: center;
+  line-height: 1.6;
+}
