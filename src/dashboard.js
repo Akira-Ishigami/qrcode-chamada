@@ -111,35 +111,38 @@ async function renderDashboard() {
       const na = alunosPorInst[inst.id] ?? 0;
       const np = profsPorInst [inst.id] ?? 0;
       const nc = chamPorInst  [inst.id] ?? 0;
+      const since = inst.criado_em
+        ? new Date(inst.criado_em).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
+        : "";
       const card = document.createElement("div");
       card.className = "dash-inst-card";
       card.style.animationDelay = `${i * 0.05}s`;
       card.innerHTML = `
         <div class="dic-header">
-          <div class="dic-name">${esc(inst.nome)}</div>
-          <button class="tvc-del" title="Excluir instituição" data-id="${inst.id}" data-nome="${esc(inst.nome)}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
+          <div class="dic-avatar">${iconInst()}</div>
+          <div class="dic-info">
+            <div class="dic-name">${esc(inst.nome)}</div>
+            ${since ? `<div class="dic-since">Desde ${since}</div>` : ""}
+          </div>
         </div>
         <div class="dic-stats">
           <div class="dic-stat"><span class="dic-num">${na}</span><span class="dic-lbl">alunos</span></div>
-          <div class="dic-stat" style="border-left:1px solid var(--border)"><span class="dic-num">${np}</span><span class="dic-lbl">profs</span></div>
-          <div class="dic-stat" style="border-left:1px solid var(--border)"><span class="dic-num">${nc}</span><span class="dic-lbl">chamadas</span></div>
+          <div class="dic-stat"><span class="dic-num">${np}</span><span class="dic-lbl">profs</span></div>
+          <div class="dic-stat"><span class="dic-num">${nc}</span><span class="dic-lbl">chamadas</span></div>
         </div>
-        <div class="dic-footer" style="display:flex;gap:8px;margin-top:12px">
-          <button class="tv-btn-add green" style="font-size:.75rem;padding:7px 12px" data-action="reset-senha" data-id="${inst.id}" data-nome="${esc(inst.nome)}">
+        <div class="dic-actions">
+          <button class="dic-btn-reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             Redefinir senha
+          </button>
+          <button class="dic-btn-del" title="Excluir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         </div>
       `;
-      card.querySelector("[data-action='reset-senha']").addEventListener("click", () =>
+      card.querySelector(".dic-btn-reset").addEventListener("click", () =>
         abrirModalResetSenha(inst.id, inst.nome));
-      card.querySelector(".tvc-del").addEventListener("click", () =>
+      card.querySelector(".dic-btn-del").addEventListener("click", () =>
         confirmarExcluir(inst.id, inst.nome));
       grid.appendChild(card);
     });
