@@ -99,7 +99,10 @@
         Sair
       </button>
     </div>
-  </aside>
+  
+<script>
+(function(){var r=localStorage.getItem('qr_role');if(!r)return;document.querySelectorAll('[data-role]').forEach(function(e){if(!e.dataset.role.split(' ').includes(r))e.style.display='none';});})();
+</script>
 
   <!-- ═══════ CONTEÚDO ═══════ -->
   <div class="main-content">
@@ -298,6 +301,7 @@ applyNavRole();
 import { supabase } from '/src/supabase.js';
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await supabase.auth.signOut();
+  localStorage.removeItem('qr_role');
   window.location.href = '/login.html';
 });
 </script>
