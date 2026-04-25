@@ -322,6 +322,15 @@ body.sidebar-open { overflow: hidden; }
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   position: relative;
   border-left: 2px solid transparent;
+  /* suporte a <button> */
+  background: transparent;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Outfit', system-ui, sans-serif;
 }
 
 .sidebar-link:hover {
