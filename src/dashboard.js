@@ -59,20 +59,26 @@ async function renderDashboard() {
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 
   const [
-    { data: instituicoes },
-    { data: alunos },
-    { data: profs },
-    { data: chamadas },
+    { data: instituicoes, error: e1 },
+    { data: alunos,       error: e2 },
+    { data: profs,        error: e3 },
+    { data: chamadas,     error: e4 },
   ] = await Promise.all([
-    supabase.from("instituicoes").select("id, nome"),
-    supabase.from("alunos").select("id"),
-    supabase.from("profiles").select("id").eq("role", "professor"),
-    supabase.from("chamadas")
+    supabaseAdmin.from("instituicoes").select("id, nome"),
+    supabaseAdmin.from("alunos").select("id"),
+    supabaseAdmin.from("profiles").select("id").eq("role", "professor"),
+    supabaseAdmin.from("chamadas")
       .select("id, aberta, turmas(nome, instituicoes(nome))")
       .eq("data", hoje)
       .order("criado_em", { ascending: false })
       .limit(15),
   ]);
+
+  const fetchErr = e1 || e2 || e3 || e4;
+  if (fetchErr) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar dados: ${fetchErr.message}</div>`;
+    return;
+  }
 
   const nInst   = (instituicoes ?? []).length;
   const nAlunos = (alunos ?? []).length;
@@ -137,16 +143,22 @@ async function renderInstituicoes() {
   const hoje = new Date().toISOString().split("T")[0];
 
   const [
-    { data: instituicoes },
-    { data: alunos },
-    { data: profs },
-    { data: chamadas },
+    { data: instituicoes, error: e1 },
+    { data: alunos,       error: e2 },
+    { data: profs,        error: e3 },
+    { data: chamadas,     error: e4 },
   ] = await Promise.all([
-    supabase.from("instituicoes").select("id, nome, criado_em").order("nome"),
-    supabase.from("alunos").select("id, instituicao_id"),
-    supabase.from("profiles").select("id, instituicao_id").eq("role", "professor"),
-    supabase.from("chamadas").select("id, aberta, turmas(instituicao_id)").eq("data", hoje),
+    supabaseAdmin.from("instituicoes").select("id, nome, criado_em").order("nome"),
+    supabaseAdmin.from("alunos").select("id, instituicao_id"),
+    supabaseAdmin.from("profiles").select("id, instituicao_id").eq("role", "professor"),
+    supabaseAdmin.from("chamadas").select("id, aberta, turmas(instituicao_id)").eq("data", hoje),
   ]);
+
+  const fetchErr = e1 || e2 || e3 || e4;
+  if (fetchErr) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar dados: ${fetchErr.message}</div>`;
+    return;
+  }
 
   const insts = instituicoes ?? [];
   const alunosPorInst = {};
@@ -239,20 +251,26 @@ async function renderInstDetalhe(instId, instNome) {
   const hoje = new Date().toISOString().split("T")[0];
 
   const [
-    { data: turmas },
-    { data: alunos },
-    { data: profs },
-    { data: chamadas },
+    { data: turmas,   error: e1 },
+    { data: alunos,   error: e2 },
+    { data: profs,    error: e3 },
+    { data: chamadas, error: e4 },
   ] = await Promise.all([
-    supabase.from("turmas").select("id, nome, materia").eq("instituicao_id", instId).order("nome"),
-    supabase.from("alunos").select("id, nome, matricula, turma_id").eq("instituicao_id", instId).order("nome"),
-    supabase.from("profiles").select("id, nome, email").eq("instituicao_id", instId).eq("role", "professor").order("nome"),
-    supabase.from("chamadas")
+    supabaseAdmin.from("turmas").select("id, nome, materia").eq("instituicao_id", instId).order("nome"),
+    supabaseAdmin.from("alunos").select("id, nome, matricula, turma_id").eq("instituicao_id", instId).order("nome"),
+    supabaseAdmin.from("profiles").select("id, nome, email").eq("instituicao_id", instId).eq("role", "professor").order("nome"),
+    supabaseAdmin.from("chamadas")
       .select("id, aberta, data, turmas!inner(nome, instituicao_id)")
       .eq("turmas.instituicao_id", instId)
       .order("data", { ascending: false })
       .limit(20),
   ]);
+
+  const fetchErr = e1 || e2 || e3 || e4;
+  if (fetchErr) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar detalhes: ${fetchErr.message}</div>`;
+    return;
+  }
 
   const chamHoje = (chamadas ?? []).filter(c => c.data === hoje);
   const abertas  = chamHoje.filter(c => c.aberta).length;

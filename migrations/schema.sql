@@ -73,11 +73,19 @@ ALTER TABLE chamadas     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presencas    ENABLE ROW LEVEL SECURITY;
 
 -- Acesso total para anon (sem autenticação)
-CREATE POLICY "anon_all_instituicoes" ON instituicoes FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "anon_all_turmas"       ON turmas       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "anon_all_alunos"       ON alunos       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "anon_all_chamadas"     ON chamadas     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "anon_all_presencas"    ON presencas    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_instituicoes" ON instituicoes FOR ALL TO anon        USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_turmas"       ON turmas       FOR ALL TO anon        USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_alunos"       ON alunos       FOR ALL TO anon        USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_chamadas"     ON chamadas     FOR ALL TO anon        USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_presencas"    ON presencas    FOR ALL TO anon        USING (true) WITH CHECK (true);
+
+-- Acesso total para usuários autenticados (authenticated)
+-- IMPORTANTE: execute este bloco no SQL Editor do Supabase se as queries retornarem vazio
+CREATE POLICY "auth_all_instituicoes" ON instituicoes FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_turmas"       ON turmas       FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_alunos"       ON alunos       FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_chamadas"     ON chamadas     FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_presencas"    ON presencas    FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 --  STORAGE (foto de perfil dos alunos — opcional)
