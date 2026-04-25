@@ -156,13 +156,143 @@
     }
     .dash-empty p { font-size: .875rem; line-height: 1.65; max-width: 280px; margin: 0; }
 
+    /* ── Ver detalhes button ── */
+    .dic-btn-detail {
+      flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--acc); border: none;
+      color: white; font-family: inherit; font-size: .78rem; font-weight: 600;
+      padding: 8px 12px; border-radius: 9px; cursor: pointer;
+      transition: background .13s, transform .12s;
+    }
+    .dic-btn-detail:hover { background: var(--acc-2); transform: translateY(-1px); }
+
+    /* ── Detail view ── */
+    .det-breadcrumb {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .det-btn-back {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text-2); font-size: .8rem; font-weight: 600;
+      padding: 6px 12px 6px 9px; border-radius: 20px; cursor: pointer;
+      font-family: inherit; transition: all .15s;
+    }
+    .det-btn-back:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--acc); transform: translateX(-2px); }
+    .det-bc-sep { color: var(--border-2); font-size: .8rem; }
+    .det-bc-name { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+
+    .det-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+    }
+    .det-header-left { display: flex; align-items: center; gap: 14px; }
+    .det-avatar {
+      width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0;
+      background: #eff6ff; color: #2563eb;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #bfdbfe;
+    }
+    .det-title {
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 1.45rem; font-weight: 700; color: var(--text);
+      letter-spacing: -.025em; line-height: 1.15;
+    }
+    .det-subtitle { font-size: .78rem; color: var(--text-3); margin-top: 2px; }
+    .det-header-actions { display: flex; gap: 8px; align-items: center; }
+    .det-action-btn { white-space: nowrap; }
+
+    .det-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 28px;
+    }
+    .det-stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 13px; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .det-stat-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .det-stat-num {
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 1.8rem; font-weight: 800; color: var(--text);
+      line-height: 1; letter-spacing: -0.03em;
+    }
+    .det-stat-lbl { font-size: .7rem; color: var(--text-3); font-weight: 600; }
+
+    .det-section { margin-bottom: 28px; }
+    .det-section-title {
+      font-size: .62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--text-3); margin-bottom: 12px;
+    }
+    .det-empty {
+      background: var(--surface); border: 1px dashed var(--border-2);
+      border-radius: 11px; padding: 24px; text-align: center;
+      color: var(--text-3); font-size: .84rem;
+    }
+
+    .det-table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .det-table { width: 100%; border-collapse: collapse; }
+    .det-table th {
+      background: var(--surface-2); font-size: .68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--text-3);
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .det-table td {
+      padding: 12px 14px; font-size: .875rem; color: var(--text);
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .det-table tr:last-child td { border-bottom: none; }
+    .det-table tr:hover td { background: var(--surface-2); }
+
+    .det-td-name { font-weight: 600; color: var(--text); }
+    .det-td-sub  { color: var(--text-3); font-size: .82rem; }
+
+    .det-badge {
+      font-size: .62rem; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px; white-space: nowrap;
+    }
+    .det-badge.open { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+    .det-badge.done { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); }
+
+    .det-prof-cell { display: flex; align-items: center; gap: 9px; }
+    .det-prof-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #eff6ff; color: #2563eb;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .78rem; flex-shrink: 0;
+    }
+
+    .det-chamadas { display: flex; flex-direction: column; gap: 6px; }
+    .det-cham-row {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .det-cham-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .det-cham-dot.open  { background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
+    .det-cham-dot.done  { background: #94a3b8; }
+    .det-cham-info { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .det-cham-nome { font-size: .875rem; font-weight: 600; color: var(--text); }
+    .det-cham-data { font-size: .75rem; color: var(--text-3); }
+
     /* ── Responsive ── */
     @media (max-width: 900px) {
       .dash-stats-row { grid-template-columns: repeat(2, 1fr); }
+      .det-stats       { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 520px) {
       .dash-stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .dash-inst-grid { grid-template-columns: 1fr; }
+      .det-stats       { grid-template-columns: 1fr 1fr; }
+      .det-header      { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -241,7 +371,7 @@
       </a>
     </nav>
     <div class="sidebar-footer">
-      <div class="sidebar-user" id="sidebar-user-name" style="padding:8px 12px;font-size:.75rem;color:var(--text-3);font-weight:500;border-top:1px solid var(--border)"></div>
+      <div class="sidebar-user" id="sidebar-user-name"></div>
       <button class="sidebar-logout-btn" id="logout-btn">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
         Sair
