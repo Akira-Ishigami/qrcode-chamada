@@ -6,17 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Relatório do Dia — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="stylesheet" href="/src/relatorio.css" />
   <style>
     .rd-header { margin-bottom: 28px; }
-    .rd-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--text-1); letter-spacing: -.02em; }
+    .rd-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--text-1); letter-spacing: -.02em; }
     .rd-subtitle { font-size: .85rem; color: var(--text-3); margin-top: 4px; text-transform: capitalize; }
 
     .rd-stats { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
     .rd-stat { display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 24px; min-width: 90px; }
-    .rd-num { font-size: 1.8rem; font-weight: 800; font-family: 'Syne', sans-serif; line-height: 1; }
+    .rd-num { font-size: 1.8rem; font-weight: 800; font-family: 'Outfit', system-ui, sans-serif; line-height: 1; }
     .rd-lbl { font-size: .72rem; font-weight: 600; color: var(--text-3); margin-top: 4px; }
     .rd-stat.green .rd-num { color: #16a34a; }
     .rd-stat.red   .rd-num { color: #dc2626; }
@@ -139,8 +139,9 @@
         Sair
       </button>
     </div>
-  
-<script>
+  </aside>
+
+  <script>
 (function(){var r=localStorage.getItem('qr_role');if(!r)return;document.querySelectorAll('[data-role]').forEach(function(e){if(!e.dataset.role.split(' ').includes(r))e.style.display='none';});})();
 </script>
   <div class="main-content">

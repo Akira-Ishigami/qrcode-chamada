@@ -7,7 +7,7 @@
   gap: 12px;
 }
 .hor-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
   color: var(--text);

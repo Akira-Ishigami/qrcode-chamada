@@ -6,48 +6,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
   <style>
+    /* ── Page root padding ── */
+    #page-root { padding: 28px 24px !important; }
+    @media (max-width: 768px) { #page-root { padding: 20px 16px !important; } }
+
     /* ── Header ─────────────────────────────────────── */
     .idash-header {
       display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 12px; margin-bottom: 36px;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 28px;
     }
-    .idash-greeting { font-size: .78rem; color: var(--text-3); font-weight: 500; margin-bottom: 6px; letter-spacing: .01em; }
+    .idash-greeting {
+      font-size: .72rem; color: var(--acc); font-weight: 600;
+      margin-bottom: 5px; letter-spacing: .04em; text-transform: uppercase;
+    }
     .idash-title {
-      font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
-      color: var(--text); letter-spacing: -.04em; line-height: 1.1;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 1.65rem; font-weight: 700;
+      color: var(--text); letter-spacing: -.025em; line-height: 1.1;
     }
     .idash-date-pill {
-      background: var(--surface); border: 1.5px solid var(--border);
+      background: var(--surface); border: 1px solid var(--border);
       border-radius: 20px; padding: 6px 14px;
-      font-size: .75rem; color: var(--text-3); font-weight: 600;
+      font-size: .73rem; color: var(--text-3); font-weight: 500;
       display: flex; align-items: center; gap: 6px; white-space: nowrap;
     }
-    .idash-date-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--acc); }
+    .idash-date-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
 
     /* ── Stats grid ──────────────────────────────────── */
     .idash-stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 14px; margin-bottom: 40px;
+      gap: 12px; margin-bottom: 32px;
     }
     .idash-stat {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 18px; padding: 22px 20px;
-      display: flex; flex-direction: column; gap: 14px;
-      transition: border-color .2s, box-shadow .2s, transform .2s;
-      animation: idashUp .4s cubic-bezier(.22,1,.36,1) both;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 18px;
+      display: flex; flex-direction: column; gap: 12px;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+      animation: idashUp .35s cubic-bezier(.22,1,.36,1) both;
     }
     .idash-stat:hover {
       border-color: var(--border-2);
-      box-shadow: 0 4px 20px rgba(15,23,42,.06);
+      box-shadow: var(--shadow);
       transform: translateY(-2px);
     }
     .idash-stat-top { display: flex; align-items: center; justify-content: space-between; }
     .idash-stat-icon {
-      width: 40px; height: 40px; border-radius: 12px;
+      width: 38px; height: 38px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .idash-stat-icon.blue   { background: #eff6ff; color: #2563eb; }
@@ -55,22 +63,23 @@
     .idash-stat-icon.purple { background: #faf5ff; color: #7c3aed; }
     .idash-stat-icon.orange { background: #fff7ed; color: #ea580c; }
     .idash-stat-trend {
-      font-size: .68rem; font-weight: 700; padding: 3px 7px;
-      border-radius: 6px; background: var(--surface-2); color: var(--text-3);
+      font-size: .65rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 6px; background: var(--surface-3); color: var(--text-3);
     }
     .idash-stat-num {
-      font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800;
-      color: var(--text); line-height: 1; letter-spacing: -.03em;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 2.2rem; font-weight: 800;
+      color: var(--text); line-height: 1; letter-spacing: -.035em;
     }
-    .idash-stat-lbl { font-size: .74rem; color: var(--text-3); font-weight: 600; }
+    .idash-stat-lbl { font-size: .72rem; color: var(--text-3); font-weight: 600; }
 
     /* ── Section heading ─────────────────────────────── */
     .idash-section-head {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .idash-section-title {
-      font-size: .65rem; font-weight: 800; text-transform: uppercase;
+      font-size: .62rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .1em; color: var(--text-3);
     }
 
@@ -78,95 +87,88 @@
     .idash-nav-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 12px; margin-bottom: 40px;
+      gap: 10px; margin-bottom: 32px;
     }
     .idash-nav-card {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 16px; padding: 20px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 14px;
       text-decoration: none; color: var(--text);
-      display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-      transition: border-color .2s, box-shadow .2s, transform .2s;
-      animation: idashUp .4s cubic-bezier(.22,1,.36,1) both;
-      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 11px;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+      animation: idashUp .35s cubic-bezier(.22,1,.36,1) both;
+      position: relative;
     }
-    .idash-nav-card::after {
-      content: ''; position: absolute; inset: 0;
-      opacity: 0; transition: opacity .2s;
-      border-radius: inherit;
-    }
-    .idash-nav-card:hover { transform: translateY(-3px); }
-    .idash-nav-card:hover::after { opacity: 1; }
+    .idash-nav-card:hover { transform: translateY(-2px); }
 
-    .idash-nav-card.c-blue  { border-color: #bfdbfe; }
-    .idash-nav-card.c-green { border-color: #bbf7d0; }
-    .idash-nav-card.c-violet{ border-color: #ddd6fe; }
-    .idash-nav-card.c-amber { border-color: #fde68a; }
-    .idash-nav-card.c-sky   { border-color: #bae6fd; }
-
-    .idash-nav-card.c-blue:hover  { box-shadow: 0 8px 24px rgba(37,99,235,.1); }
-    .idash-nav-card.c-green:hover { box-shadow: 0 8px 24px rgba(22,163,74,.1); }
-    .idash-nav-card.c-violet:hover{ box-shadow: 0 8px 24px rgba(124,58,237,.1); }
-    .idash-nav-card.c-amber:hover { box-shadow: 0 8px 24px rgba(217,119,6,.1); }
-    .idash-nav-card.c-sky:hover   { box-shadow: 0 8px 24px rgba(2,132,199,.1); }
+    .idash-nav-card.c-blue:hover  { border-color: #bfdbfe; box-shadow: 0 6px 18px rgba(37,99,235,.08); }
+    .idash-nav-card.c-green:hover { border-color: #86efac; box-shadow: 0 6px 18px rgba(22,163,74,.08); }
+    .idash-nav-card.c-violet:hover{ border-color: #c4b5fd; box-shadow: 0 6px 18px rgba(124,58,237,.08); }
+    .idash-nav-card.c-amber:hover { border-color: #fde68a; box-shadow: 0 6px 18px rgba(217,119,6,.08); }
+    .idash-nav-card.c-sky:hover   { border-color: #7dd3fc; box-shadow: 0 6px 18px rgba(14,165,233,.08); }
 
     .idash-nav-icon {
-      width: 44px; height: 44px; border-radius: 12px;
+      width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
     }
-    .c-blue   .idash-nav-icon { background: #dbeafe; color: #1d4ed8; }
-    .c-green  .idash-nav-icon { background: #dcfce7; color: #15803d; }
-    .c-violet .idash-nav-icon { background: #ede9fe; color: #6d28d9; }
-    .c-amber  .idash-nav-icon { background: #fef9c3; color: #a16207; }
-    .c-sky    .idash-nav-icon { background: #e0f2fe; color: #0369a1; }
+    .c-blue   .idash-nav-icon { background: #dbeafe; color: #2563eb; }
+    .c-green  .idash-nav-icon { background: #dcfce7; color: #16a34a; }
+    .c-violet .idash-nav-icon { background: #ede9fe; color: #7c3aed; }
+    .c-amber  .idash-nav-icon { background: #fef3c7; color: #d97706; }
+    .c-sky    .idash-nav-icon { background: #e0f2fe; color: #0284c7; }
 
     .idash-nav-body { flex: 1; min-width: 0; }
     .idash-nav-label {
-      font-family: 'Syne', sans-serif; font-size: .9rem; font-weight: 800;
-      letter-spacing: -.01em; margin-bottom: 2px;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: .86rem; font-weight: 700;
+      letter-spacing: -.01em; margin-bottom: 2px; color: var(--text);
     }
-    .idash-nav-desc { font-size: .72rem; color: var(--text-3); font-weight: 500; line-height: 1.4; }
+    .idash-nav-desc { font-size: .7rem; color: var(--text-3); font-weight: 500; line-height: 1.4; }
     .idash-nav-arrow {
       align-self: flex-end; color: var(--text-3);
       opacity: 0; transform: translateX(-4px);
-      transition: opacity .18s, transform .18s;
+      transition: opacity .15s, transform .15s;
     }
     .idash-nav-card:hover .idash-nav-arrow { opacity: 1; transform: none; }
 
     /* ── Chamadas ────────────────────────────────────── */
-    .idash-chamadas { display: flex; flex-direction: column; gap: 8px; }
+    .idash-chamadas { display: flex; flex-direction: column; gap: 6px; }
     .idash-cham-row {
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 12px; padding: 14px 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 11px; padding: 13px 16px;
       display: flex; align-items: center; gap: 14px;
-      transition: border-color .18s;
-      animation: idashUp .4s cubic-bezier(.22,1,.36,1) both;
+      transition: border-color .15s;
+      animation: idashUp .35s cubic-bezier(.22,1,.36,1) both;
     }
     .idash-cham-row:hover { border-color: var(--border-2); }
-    .idash-cham-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .idash-cham-dot.aberta  { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+    .idash-cham-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .idash-cham-dot.aberta  { background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
     .idash-cham-dot.fechada { background: #94a3b8; }
     .idash-cham-info { flex: 1; min-width: 0; }
-    .idash-cham-turma { font-size: .875rem; font-weight: 700; color: var(--text); }
-    .idash-cham-meta  { font-size: .73rem; color: var(--text-3); font-weight: 500; margin-top: 1px; }
+    .idash-cham-turma { font-size: .875rem; font-weight: 600; color: var(--text); }
+    .idash-cham-meta  { font-size: .72rem; color: var(--text-3); font-weight: 400; margin-top: 1px; }
     .idash-cham-badge {
-      font-size: .68rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; flex-shrink: 0;
+      font-size: .64rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
     }
-    .idash-cham-badge.aberta  { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .idash-cham-badge.aberta  { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
     .idash-cham-badge.fechada { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); }
 
     .idash-empty-box {
-      background: var(--surface); border: 1.5px dashed var(--border-2);
-      border-radius: 14px; padding: 36px 24px;
+      background: var(--surface); border: 1px dashed var(--border-2);
+      border-radius: 13px; padding: 32px 24px;
       text-align: center; color: var(--text-3); font-size: .84rem;
     }
 
     /* ── Animations ──────────────────────────────────── */
     @keyframes idashUp {
-      from { opacity: 0; transform: translateY(14px); }
+      from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: none; }
     }
 
     /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 1100px) {
+      .idash-stats     { grid-template-columns: repeat(2, 1fr); }
+      .idash-nav-grid  { grid-template-columns: repeat(3, 1fr); }
+    }
     @media (max-width: 900px) {
       .idash-stats     { grid-template-columns: repeat(2, 1fr); }
       .idash-nav-grid  { grid-template-columns: repeat(2, 1fr); }
@@ -174,7 +176,8 @@
     @media (max-width: 600px) {
       .idash-stats     { grid-template-columns: 1fr 1fr; }
       .idash-nav-grid  { grid-template-columns: 1fr 1fr; }
-      .idash-title     { font-size: 1.5rem; }
+      .idash-title     { font-size: 1.35rem; }
+      .idash-header    { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>

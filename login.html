@@ -5,180 +5,386 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      background: #f0f4f8;
+      font-family: 'Outfit', system-ui, sans-serif;
       min-height: 100vh;
+      display: flex;
+      background: #0d1526;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Left Panel ──────────────────────────────────────────────────── */
+    .left-panel {
+      display: none;
+      flex: 1;
+      background: linear-gradient(160deg, #0d1526 0%, #0a1a3a 100%);
+      position: relative;
+      overflow: hidden;
+      padding: 60px 48px;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(37,99,235,0.2) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 80% 80%, rgba(96,165,250,0.1) 0%, transparent 55%);
+      pointer-events: none;
+    }
+
+    /* Grid pattern */
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .left-brand {
+      display: flex; align-items: center; gap: 12px; position: relative; z-index: 1;
+    }
+
+    .left-brand-icon {
+      width: 40px; height: 40px;
+      background: #2563eb; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .left-brand-icon svg { color: #fff; }
+
+    .left-brand-name {
+      font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: -0.01em;
+    }
+
+    .left-content {
+      position: relative; z-index: 1;
+      max-width: 380px;
+    }
+
+    .left-eyebrow {
+      font-size: 0.65rem; font-weight: 700; color: #60a5fa;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      margin-bottom: 16px;
+    }
+
+    .left-headline {
+      font-size: 2.2rem; font-weight: 800; color: #fff;
+      line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 18px;
+    }
+
+    .left-headline em {
+      font-style: normal;
+      background: linear-gradient(90deg, #60a5fa, #93c5fd);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .left-desc {
+      font-size: 0.9rem; color: rgba(255,255,255,0.48); line-height: 1.65; font-weight: 400;
+    }
+
+    .left-features {
+      display: flex; flex-direction: column; gap: 12px; margin-top: 36px;
+    }
+
+    .left-feat {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .left-feat-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.3);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: #93c5fd;
+    }
+
+    .left-feat-text { font-size: 0.84rem; color: rgba(255,255,255,0.6); font-weight: 500; }
+
+    .left-footer {
+      position: relative; z-index: 1;
+      font-size: 0.72rem; color: rgba(255,255,255,0.2); font-weight: 400;
+    }
+
+    /* ── Right Panel (Form) ──────────────────────────────────────────── */
+    .right-panel {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 20px 16px;
+      background: #0d1526;
+      position: relative;
     }
 
-    .card {
-      background: #fff;
+    .right-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .form-wrap {
+      width: 100%; max-width: 380px;
+      position: relative; z-index: 1;
+    }
+
+    /* Logo (mobile only) */
+    .form-logo {
+      display: flex; flex-direction: column; align-items: center; margin-bottom: 36px;
+    }
+
+    .form-logo-icon {
+      width: 56px; height: 56px;
+      background: #2563eb; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      box-shadow: 0 0 0 8px rgba(37,99,235,0.12), 0 8px 24px rgba(37,99,235,0.4);
+    }
+    .form-logo-icon svg { color: #fff; }
+
+    .form-logo-name {
+      font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em;
+    }
+    .form-logo-sub {
+      font-size: 0.78rem; color: rgba(255,255,255,0.3); margin-top: 4px; font-weight: 400;
+    }
+
+    /* Card */
+    .form-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 20px;
-      box-shadow: 0 1px 3px rgba(15,23,42,0.07), 0 8px 32px rgba(15,23,42,0.08);
       padding: 36px 32px;
-      width: 100%;
-      max-width: 360px;
-      animation: fadeUp 0.35s ease both;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(0,0,0,0.4);
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(14px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .logo-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 28px;
+    .form-heading { margin-bottom: 28px; }
+
+    .form-heading h1 {
+      font-size: 1.45rem; font-weight: 800; color: #fff; letter-spacing: -0.025em;
+      margin-bottom: 5px;
     }
 
-    .logo-icon {
-      width: 52px; height: 52px;
-      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 14px;
-      box-shadow: 0 4px 16px rgba(2,132,199,0.35);
+    .form-heading p {
+      font-size: 0.84rem; color: rgba(255,255,255,0.36); font-weight: 400;
     }
 
-    .logo-icon svg { color: #fff; }
+    /* Fields */
+    .fields { display: flex; flex-direction: column; gap: 16px; margin-bottom: 22px; }
 
-    .logo-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.02em;
+    .field { display: flex; flex-direction: column; gap: 7px; }
+
+    .field label {
+      font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.45);
+      letter-spacing: 0.08em; text-transform: uppercase;
     }
 
-    .logo-sub {
-      font-size: 0.78rem;
-      color: #94a3b8;
-      margin-top: 3px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 6px;
-    }
-
-    input {
+    .field input {
       width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 0.875rem;
-      font-family: inherit;
-      color: #0f172a;
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      margin-bottom: 16px;
-    }
-
-    input:focus {
-      border-color: #0284c7;
-      box-shadow: 0 0 0 3px rgba(2,132,199,0.12);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 12px;
-      background: #0284c7;
-      color: #fff;
-      border: none;
-      border-radius: 12px;
+      padding: 12px 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 11px;
       font-size: 0.9rem;
-      font-weight: 600;
       font-family: inherit;
-      cursor: pointer;
-      transition: background 0.15s, opacity 0.15s;
-      margin-top: 4px;
+      color: #fff;
+      background: rgba(255,255,255,0.06);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      font-weight: 500;
     }
 
-    .btn:hover  { background: #0369a1; }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .field input::placeholder { color: rgba(255,255,255,0.2); }
 
+    .field input:focus {
+      border-color: #3b82f6;
+      background: rgba(255,255,255,0.09);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+    }
+
+    /* Error */
     .error-msg {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
-      font-size: 0.8rem;
+      background: rgba(220,38,38,0.12);
+      border: 1px solid rgba(220,38,38,0.28);
+      color: #fca5a5;
+      font-size: 0.82rem;
+      font-weight: 600;
       padding: 10px 14px;
-      border-radius: 10px;
+      border-radius: 9px;
       margin-bottom: 16px;
       display: none;
     }
+
+    /* Button */
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 11px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+      letter-spacing: -0.01em;
+      box-shadow: 0 4px 18px rgba(37,99,235,0.42);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 26px rgba(37,99,235,0.52);
+    }
+    .btn-login:active:not(:disabled) { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .spinner {
       display: none;
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.4);
+      width: 17px; height: 17px;
+      border: 2px solid rgba(255,255,255,0.3);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
-      margin: 0 auto;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── DESKTOP ──────────────────────────────────────────────────── */
+    @media (min-width: 900px) {
+      body { flex-direction: row; }
+      .left-panel { display: flex; }
+      .right-panel { width: 480px; flex-shrink: 0; }
+      .form-logo { display: none; }
+      .right-panel { background: #0a1221; }
+    }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="logo-wrap">
-    <div class="logo-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-        <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-        <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-        <rect x="7" y="7" width="3" height="3"/>
-        <rect x="14" y="7" width="3" height="3"/>
-        <rect x="7" y="14" width="3" height="3"/>
-        <rect x="14" y="14" width="3" height="3"/>
+<!-- Left decorative panel (desktop only) -->
+<div class="left-panel">
+  <div class="left-brand">
+    <div class="left-brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+        <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
       </svg>
     </div>
-    <p class="logo-title">Chamada QR</p>
-    <p class="logo-sub">Sistema de Presença</p>
+    <span class="left-brand-name">Chamada QR</span>
   </div>
 
-  <div class="error-msg" id="error-msg"></div>
+  <div class="left-content">
+    <div class="left-eyebrow">Sistema de Presença</div>
+    <h2 class="left-headline">Gestão de <em>chamadas</em> simples e eficiente</h2>
+    <p class="left-desc">Registre presenças via QR Code, gerencie turmas, professores e alunos em um só lugar.</p>
+    <div class="left-features">
+      <div class="left-feat">
+        <div class="left-feat-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
+        </div>
+        <span class="left-feat-text">Leitura de QR Code em tempo real</span>
+      </div>
+      <div class="left-feat">
+        <div class="left-feat-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <span class="left-feat-text">Relatórios de frequência exportáveis</span>
+      </div>
+      <div class="left-feat">
+        <div class="left-feat-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <span class="left-feat-text">Controle por instituição, turma e professor</span>
+      </div>
+    </div>
+  </div>
 
-  <form id="login-form">
-    <label for="email">Email</label>
-    <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+  <p class="left-footer">Chamada QR · Sistema de Presença</p>
+</div>
 
-    <label for="password">Senha</label>
-    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+<!-- Right Form Panel -->
+<div class="right-panel">
+  <div class="form-wrap">
 
-    <button type="submit" class="btn" id="submit-btn">
-      <span id="btn-text">Entrar</span>
-      <div class="spinner" id="spinner"></div>
-    </button>
-  </form>
+    <!-- Logo (mobile only) -->
+    <div class="form-logo">
+      <div class="form-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+          <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+        </svg>
+      </div>
+      <span class="form-logo-name">Chamada QR</span>
+      <span class="form-logo-sub">Sistema de Presença</span>
+    </div>
+
+    <div class="form-card">
+      <div class="form-heading">
+        <h1>Entrar</h1>
+        <p>Acesse o sistema com suas credenciais</p>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <form id="login-form">
+        <div class="fields">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="submit-btn">
+          <span id="btn-text">Entrar</span>
+          <div class="spinner" id="spinner"></div>
+        </button>
+      </form>
+    </div>
+
+  </div>
 </div>
 
 <script type="module">
 import { supabase } from '/src/supabase.js';
 
-// Se já tem sessão, redireciona por role
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
   if (profile?.role) localStorage.setItem('qr_role', profile.role);
-  window.location.replace(profile?.role === 'professor' ? '/chamada.html' : profile?.role === 'admin' ? '/dashboard.html' : '/inst-dashboard.html');
+  window.location.replace(
+    profile?.role === 'professor' ? '/chamada.html' :
+    profile?.role === 'admin'    ? '/dashboard.html' :
+    '/inst-dashboard.html'
+  );
 }
 
 const form      = document.getElementById('login-form');
@@ -211,7 +417,11 @@ form.addEventListener('submit', async (e) => {
     const { data: { session: s } } = await supabase.auth.getSession();
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', s.user.id).single();
     if (profile?.role) localStorage.setItem('qr_role', profile.role);
-    window.location.replace(profile?.role === 'professor' ? '/chamada.html' : profile?.role === 'admin' ? '/dashboard.html' : '/inst-dashboard.html');
+    window.location.replace(
+      profile?.role === 'professor' ? '/chamada.html' :
+      profile?.role === 'admin'    ? '/dashboard.html' :
+      '/inst-dashboard.html'
+    );
   }
 });
 </script>

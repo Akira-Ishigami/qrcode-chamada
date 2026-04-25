@@ -2,7 +2,7 @@
   margin-bottom: 28px;
 }
 .mt-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
   color: var(--text);
@@ -107,7 +107,7 @@
 
 /* Relatório do dia */
 .mt-section-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 800;
   color: var(--text);

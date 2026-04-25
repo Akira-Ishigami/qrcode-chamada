@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS turmas (
   criado_em      timestamptz DEFAULT now()
 );
 
--- ─── 3. ALUNOS ───────────────────────────────────────────────────────────────
+-- ─── 3. ALUNOS ───────────────────────────────────────────────────────────────np
 CREATE TABLE IF NOT EXISTS alunos (
   id             uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   nome           text        NOT NULL,
