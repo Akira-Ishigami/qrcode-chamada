@@ -177,7 +177,7 @@ import { supabase } from '/src/supabase.js';
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-  window.location.replace(profile?.role === 'professor' ? '/minhas-turmas.html' : '/turmas.html');
+  window.location.replace(profile?.role === 'professor' ? '/chamada.html' : profile?.role === 'admin' ? '/dashboard.html' : '/inst-dashboard.html');
 }
 
 const form      = document.getElementById('login-form');
@@ -209,7 +209,7 @@ form.addEventListener('submit', async (e) => {
   } else {
     const { data: { session: s } } = await supabase.auth.getSession();
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', s.user.id).single();
-    window.location.replace(profile?.role === 'professor' ? '/minhas-turmas.html' : '/turmas.html');
+    window.location.replace(profile?.role === 'professor' ? '/chamada.html' : profile?.role === 'admin' ? '/dashboard.html' : '/inst-dashboard.html');
   }
 });
 </script>

@@ -34,7 +34,7 @@ async function init() {
   }
 
   if (profile.role !== "admin") {
-    window.location.href = profile.role === "professor" ? "/chamada.html" : "/turmas.html";
+    window.location.href = profile.role === "professor" ? "/chamada.html" : "/inst-dashboard.html";
     return;
   }
 
