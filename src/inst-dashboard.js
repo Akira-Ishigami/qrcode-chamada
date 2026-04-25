@@ -71,31 +71,43 @@ async function render(profile) {
 
   root.innerHTML = `
     <div class="idash-header">
-      <div class="idash-greeting">${greeting}, ${hora} · ${data}</div>
-      <div class="idash-title">${instNome}</div>
+      <div>
+        <div class="idash-greeting">${greeting}</div>
+        <div class="idash-title">${instNome}</div>
+      </div>
+      <div class="idash-date-pill">
+        <span class="idash-date-dot"></span>
+        ${hora} · ${data}
+      </div>
     </div>
 
     <div class="idash-stats">
-      ${stat("blue",   svgTurma(),  nTurmas,  "Turmas")}
-      ${stat("green",  svgAluno(),  nAlunos,  "Alunos")}
-      ${stat("purple", svgProf(),   nProfs,   "Professores")}
-      ${stat("orange", svgQr(),     nCham,    nAbertas ? `Chamadas<br><span style="font-size:.68rem;font-weight:700;color:#92400e;background:#fef3c7;padding:1px 6px;border-radius:5px">${nAbertas} abertas</span>` : "Chamadas hoje")}
+      ${stat("blue",   svgTurma(), nTurmas, "Turmas")}
+      ${stat("green",  svgAluno(), nAlunos, "Alunos")}
+      ${stat("purple", svgProf(),  nProfs,  "Professores")}
+      ${stat("orange", svgQr(),    nCham,   nAbertas ? `Chamadas <span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:5px;padding:1px 6px;font-size:.65rem;font-weight:700;margin-left:4px">${nAbertas} abertas</span>` : "Chamadas hoje")}
     </div>
 
-    <div class="idash-section">Acesso rápido</div>
+    <div class="idash-section-head">
+      <span class="idash-section-title">Acesso Rápido</span>
+    </div>
     <div class="idash-nav-grid">
-      ${navCard("turmas.html",       "c-blue",   svgTurma(),  "Turmas",      "Gerencie turmas e matrículas")}
-      ${navCard("cadastro.html",     "c-green",  svgAluno(),  "Alunos",      "Cadastre e organize alunos")}
-      ${navCard("professores.html",  "c-purple", svgProf(),   "Professores", "Gerencie a equipe docente")}
-      ${navCard("horarios.html",     "c-orange", svgClock(),  "Horários",    "Monte a grade de aulas")}
-      ${navCard("relatorio.html",    "c-cyan",   svgRel(),    "Relatório",   "Frequência e presenças")}
+      ${navCard("turmas.html",      "c-blue",   svgTurma(), "Turmas",      "Turmas e matrículas",    0)}
+      ${navCard("cadastro.html",    "c-green",  svgAluno(), "Alunos",      "Cadastro de alunos",     1)}
+      ${navCard("professores.html", "c-violet", svgProf(),  "Professores", "Equipe docente",         2)}
+      ${navCard("horarios.html",    "c-amber",  svgClock(), "Horários",    "Grade de aulas",         3)}
+      ${navCard("relatorio-dia.html","c-sky",   svgRel(),   "Rel. do Dia", "Frequência diária",      4)}
+    </div>
+
+    <div class="idash-section-head">
+      <span class="idash-section-title">Chamadas de Hoje</span>
+      ${nAbertas > 0 ? `<span style="font-size:.72rem;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;padding:3px 10px;border-radius:20px">${nAbertas} aberta${nAbertas > 1 ? "s" : ""}</span>` : ""}
     </div>
 
     ${nCham > 0 ? `
-      <div class="idash-section">Chamadas de hoje</div>
       <div class="idash-chamadas">
-        ${(chamadas ?? []).map(c => `
-          <div class="idash-cham-row">
+        ${(chamadas ?? []).map((c, i) => `
+          <div class="idash-cham-row" style="animation-delay:${i * .04}s">
             <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
             <div class="idash-cham-info">
               <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
@@ -105,10 +117,7 @@ async function render(profile) {
           </div>
         `).join("")}
       </div>
-    ` : `
-      <div class="idash-section">Chamadas de hoje</div>
-      <div class="idash-empty-box">Nenhuma chamada registrada hoje.</div>
-    `}
+    ` : `<div class="idash-empty-box">Nenhuma chamada registrada hoje.</div>`}
   `;
 }
 
@@ -120,22 +129,24 @@ function esc(s) {
 function stat(color, icon, num, lbl) {
   return `
     <div class="idash-stat">
-      <div class="idash-stat-icon ${color}">${icon}</div>
+      <div class="idash-stat-top">
+        <div class="idash-stat-icon ${color}">${icon}</div>
+      </div>
       <div class="idash-stat-num">${num}</div>
       <div class="idash-stat-lbl">${lbl}</div>
     </div>`;
 }
 
-function navCard(href, cls, icon, label, desc) {
+function navCard(href, cls, icon, label, desc, idx) {
   return `
-    <a href="${href}" class="idash-nav-card ${cls}">
+    <a href="${href}" class="idash-nav-card ${cls}" style="animation-delay:${idx * .06}s">
       <div class="idash-nav-icon">${icon}</div>
-      <div>
+      <div class="idash-nav-body">
         <div class="idash-nav-label">${label}</div>
         <div class="idash-nav-desc">${desc}</div>
       </div>
       <div class="idash-nav-arrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </a>`;
 }
