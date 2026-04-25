@@ -21,10 +21,16 @@ async function init() {
 
   await applyNavRole();
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles").select("role, nome").eq("id", session.user.id).single();
 
-  if (!profile) { window.location.href = "/login.html"; return; }
+  if (profileError || !profile) {
+    document.body.innerHTML = `<div style="padding:40px;font-family:sans-serif;color:#ef4444">
+      ${profileError ? `Erro ao carregar perfil: ${profileError.message}.` : "Perfil não encontrado."}
+      <br><a href="/login.html">Fazer login novamente</a>
+    </div>`;
+    return;
+  }
   if (profile.role === "admin") { window.location.href = "/turmas.html"; return; }
   if (profile.role === "super_admin") { window.location.href = "/dashboard.html"; return; }
 

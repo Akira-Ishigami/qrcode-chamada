@@ -361,10 +361,16 @@ async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = "/login.html"; return; }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
 
-  if (!profile) { window.location.href = "/login.html"; return; }
+  if (profileError || !profile) {
+    root.innerHTML = `<div class="tv-error">
+      ${profileError ? `Erro ao carregar perfil: ${profileError.message}.` : "Perfil não encontrado."}
+      <br><a href="/login.html" style="color:var(--acc);text-decoration:underline">Fazer login novamente</a>
+    </div>`;
+    return;
+  }
 
   if (profile.role === "professor") {
     window.location.href = "/minhas-turmas.html";
