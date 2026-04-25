@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { podeAdmin } from "./nav-role.js";
 import { abrirModalGerenciar, iniciarModalGerenciar } from "./gerenciar.js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
@@ -203,7 +204,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
 async function carregarAlunos() {
   alunosList.innerHTML = `<div class="list-empty"><p>Carregando...</p></div>`;
 
-  const { data, error } = await supabase
+  let alunosQuery = supabase
     .from("alunos")
     .select(`
       id, nome, matricula, foto_url, telefone, data_nascimento, id_estadual, endereco,
@@ -211,6 +212,8 @@ async function carregarAlunos() {
       inst:instituicoes(id, nome)
     `)
     .order("nome");
+  if (_adminInstId) alunosQuery = alunosQuery.eq("instituicao_id", _adminInstId);
+  const { data, error } = await alunosQuery;
 
   if (error) {
     alunosList.innerHTML = `<div class="list-err">Erro ao carregar alunos: ${error.message}</div>`;
@@ -784,7 +787,27 @@ function showToast(msg, type = "") {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-iniciarModalGerenciar();
-carregarInstituicoes();
-carregarFiltroInstituicoes();
-carregarAlunos();
+let _adminInstId = null;
+
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = "/login.html"; return; }
+
+  const { data: profile } = await supabase
+    .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
+
+  if (!profile || !podeAdmin(profile.role)) {
+    window.location.href = "/minhas-turmas.html";
+    return;
+  }
+
+  // admin: escopo limitado à sua instituição
+  if (profile.role === "admin" && profile.instituicao_id) {
+    _adminInstId = profile.instituicao_id;
+  }
+
+  iniciarModalGerenciar();
+  carregarInstituicoes();
+  carregarFiltroInstituicoes();
+  carregarAlunos();
+})();

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { applyNavRole } from "./nav-role.js";
+import { applyNavRole, podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 
@@ -19,24 +19,27 @@ async function init() {
   await applyNavRole();
 
   const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", session.user.id).single();
+    .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !podeAdmin(profile.role)) {
     window.location.href = "/minhas-turmas.html";
     return;
   }
 
-  await renderPage();
+  await renderPage(profile);
 }
 
-async function renderPage() {
+async function renderPage(profile) {
   const hoje = new Date().toISOString().split("T")[0];
+  const adminInstId = profile.role === "admin" ? profile.instituicao_id : null;
 
-  // Carrega turmas para o filtro
-  const { data: turmas } = await supabase
+  // Carrega turmas para o filtro (admin: só da sua instituição)
+  let turmasQuery = supabase
     .from("turmas")
     .select("id, nome, instituicao_id, instituicoes(nome)")
     .order("nome");
+  if (adminInstId) turmasQuery = turmasQuery.eq("instituicao_id", adminInstId);
+  const { data: turmas } = await turmasQuery;
 
   const turmaOpts = (turmas || []).map(t =>
     `<option value="${t.id}">${esc(t.nome)}${t.instituicoes ? ` — ${esc(t.instituicoes.nome)}` : ""}</option>`
@@ -61,14 +64,14 @@ async function renderPage() {
     <div id="stats-bar" class="rel-stats-bar"></div>
     <div id="chamada-list" class="rel-chamada-list"></div>`;
 
-  document.getElementById("filtro-data").addEventListener("change", carregarChamadas);
-  document.getElementById("filtro-turma").addEventListener("change", carregarChamadas);
+  document.getElementById("filtro-data").addEventListener("change", () => carregarChamadas(adminInstId));
+  document.getElementById("filtro-turma").addEventListener("change", () => carregarChamadas(adminInstId));
 
-  await carregarChamadas();
+  await carregarChamadas(adminInstId);
 }
 
-async function carregarChamadas() {
-  const data   = document.getElementById("filtro-data").value;
+async function carregarChamadas(adminInstId) {
+  const data    = document.getElementById("filtro-data").value;
   const turmaId = document.getElementById("filtro-turma").value;
 
   document.getElementById("chamada-list").innerHTML =
@@ -76,11 +79,24 @@ async function carregarChamadas() {
 
   let query = supabase
     .from("chamadas")
-    .select("id, turma_id, data, aberta, turmas(nome, professor, horario, instituicoes(nome))")
+    .select("id, turma_id, data, aberta, turmas(nome, professor, horario, instituicao_id, instituicoes(nome))")
     .eq("data", data)
     .order("data", { ascending: false });
 
-  if (turmaId) query = query.eq("turma_id", turmaId);
+  if (turmaId) {
+    query = query.eq("turma_id", turmaId);
+  } else if (adminInstId) {
+    const { data: instTurmas } = await supabase
+      .from("turmas").select("id").eq("instituicao_id", adminInstId);
+    const ids = (instTurmas || []).map(t => t.id);
+    if (!ids.length) {
+      document.getElementById("stats-bar").innerHTML = "";
+      document.getElementById("chamada-list").innerHTML =
+        `<div class="rel-empty"><p>Nenhuma chamada encontrada para esta data.</p></div>`;
+      return;
+    }
+    query = query.in("turma_id", ids);
+  }
 
   const { data: chamadas, error } = await query;
 

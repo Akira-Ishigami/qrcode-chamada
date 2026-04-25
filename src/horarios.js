@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { applyNavRole } from "./nav-role.js";
+import { applyNavRole, podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
@@ -22,16 +22,26 @@ async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = "/login.html"; return; }
   await applyNavRole();
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
-  if (!profile || profile.role !== "admin") { window.location.href = "/minhas-turmas.html"; return; }
-  await renderPage();
+  const { data: profile } = await supabase.from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
+  if (!profile || !podeAdmin(profile.role)) { window.location.href = "/minhas-turmas.html"; return; }
+  await renderPage(profile);
 }
 
-async function renderPage() {
-  const { data: insts } = await supabase.from("instituicoes").select("id, nome").order("nome");
+async function renderPage(profile) {
+  const isAdmin = profile.role === "admin";
+  const adminInstId = isAdmin ? profile.instituicao_id : null;
 
-  const instOpts = (insts || []).map(i =>
-    `<option value="${i.id}">${esc(i.nome)}</option>`).join("");
+  // admin: pula o seletor de instituição e carrega turmas direto
+  const stepInstHtml = isAdmin ? "" : `
+    <div class="hor-step">
+      <div class="hor-step-num">1</div>
+      <div class="hor-step-body">
+        <label>Instituição</label>
+        <select id="sel-inst">
+          <option value="">Selecione…</option>
+        </select>
+      </div>
+    </div>`;
 
   root.innerHTML = `
     <div class="hor-header">
@@ -40,30 +50,19 @@ async function renderPage() {
         <div class="hor-subtitle">Selecione a turma, depois a matéria</div>
       </div>
     </div>
-
-    <!-- Passo 1: Turma -->
     <div class="hor-steps">
+      ${stepInstHtml}
       <div class="hor-step">
-        <div class="hor-step-num">1</div>
-        <div class="hor-step-body">
-          <label>Instituição</label>
-          <select id="sel-inst">
-            <option value="">Selecione…</option>
-            ${instOpts}
-          </select>
-        </div>
-      </div>
-      <div class="hor-step">
-        <div class="hor-step-num">2</div>
+        <div class="hor-step-num">${isAdmin ? "1" : "2"}</div>
         <div class="hor-step-body">
           <label>Turma</label>
-          <select id="sel-turma" disabled>
-            <option value="">— primeiro selecione a instituição —</option>
+          <select id="sel-turma" ${isAdmin ? "" : "disabled"}>
+            <option value="">${isAdmin ? "Carregando…" : "— primeiro selecione a instituição —"}</option>
           </select>
         </div>
       </div>
       <div class="hor-step" id="step-materia" style="display:none">
-        <div class="hor-step-num">3</div>
+        <div class="hor-step-num">${isAdmin ? "2" : "3"}</div>
         <div class="hor-step-body">
           <label>Matéria</label>
           <div style="display:flex;gap:8px;align-items:center">
@@ -77,30 +76,42 @@ async function renderPage() {
         </div>
       </div>
     </div>
-
     <div id="hor-content"></div>`;
 
-  // ── Evento: selecionar instituição ──────────────────────────────────────────
-  document.getElementById("sel-inst").addEventListener("change", async () => {
-    const instId = document.getElementById("sel-inst").value;
+  async function carregarTurmasDaInst(instId) {
     const selTurma = document.getElementById("sel-turma");
-    turmaId = null; materia = null;
-    document.getElementById("hor-content").innerHTML = "";
-    document.getElementById("step-materia").style.display = "none";
     selTurma.innerHTML = `<option value="">Carregando…</option>`;
     selTurma.disabled = true;
-
-    if (!instId) { selTurma.innerHTML = `<option value="">— primeiro selecione a instituição —</option>`; return; }
-
     const { data: turmas } = await supabase
       .from("turmas").select("id, nome").eq("instituicao_id", instId).order("nome");
-
     if (!turmas?.length) { selTurma.innerHTML = `<option value="">Nenhuma turma</option>`; return; }
-
     selTurma.innerHTML = `<option value="">Selecione a turma…</option>` +
       turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
     selTurma.disabled = false;
-  });
+  }
+
+  // ── Evento: selecionar instituição (só super_admin vê esse select) ──────────
+  if (!isAdmin) {
+    const { data: insts } = await supabase.from("instituicoes").select("id, nome").order("nome");
+    const selInst = document.getElementById("sel-inst");
+    selInst.innerHTML = `<option value="">Selecione…</option>` +
+      (insts || []).map(i => `<option value="${i.id}">${esc(i.nome)}</option>`).join("");
+
+    selInst.addEventListener("change", async () => {
+      const instId = selInst.value;
+      turmaId = null; materia = null;
+      document.getElementById("hor-content").innerHTML = "";
+      document.getElementById("step-materia").style.display = "none";
+      if (instId) await carregarTurmasDaInst(instId);
+      else {
+        const s = document.getElementById("sel-turma");
+        s.innerHTML = `<option value="">— primeiro selecione a instituição —</option>`;
+        s.disabled = true;
+      }
+    });
+  } else if (adminInstId) {
+    await carregarTurmasDaInst(adminInstId);
+  }
 
   // ── Evento: selecionar turma ─────────────────────────────────────────────────
   document.getElementById("sel-turma").addEventListener("change", async () => {

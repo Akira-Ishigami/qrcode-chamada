@@ -26,6 +26,7 @@ async function init() {
 
   if (!profile) { window.location.href = "/login.html"; return; }
   if (profile.role === "admin") { window.location.href = "/turmas.html"; return; }
+  if (profile.role === "super_admin") { window.location.href = "/dashboard.html"; return; }
 
   await renderPage(session.user.id, profile.nome);
 }

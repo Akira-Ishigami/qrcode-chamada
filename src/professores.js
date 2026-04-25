@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 
@@ -63,11 +64,11 @@ async function init() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, instituicao_id")
     .eq("id", session.user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !podeAdmin(profile.role)) {
     root.innerHTML = `<div class="prof-empty">${SVG_USER_BIG}<p>Acesso negado. Apenas admins.</p></div>`;
     return;
   }
