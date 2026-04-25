@@ -56,6 +56,7 @@ document.addEventListener("click", (e) => {
 
 // ─── Dados em memória ─────────────────────────────────────────────────────────
 let profilesCache = [];
+let _instId = null;   // instituicao_id do usuário logado
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
@@ -72,16 +73,19 @@ async function init() {
   if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
   if (profile.role === "professor")   { window.location.href = "/chamada.html"; return; }
 
-  await renderPage();
+  await renderPage(profile);
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
-async function renderPage() {
+async function renderPage(profile) {
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
+  // Só professores da própria instituição — nunca admins
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, nome, email, role")
+    .select("id, nome, email, role, instituicao_id")
+    .eq("instituicao_id", profile.instituicao_id)
+    .eq("role", "professor")
     .order("nome");
 
   if (error) {
@@ -89,15 +93,16 @@ async function renderPage() {
     return;
   }
 
+  _instId = profile.instituicao_id;
   profilesCache = data || [];
 
   root.innerHTML = `
     <div class="prof-header">
       <div>
         <div class="prof-title">Professores</div>
-        <div class="prof-subtitle">${profilesCache.length} usuário${profilesCache.length !== 1 ? "s" : ""}</div>
+        <div class="prof-subtitle">${profilesCache.length} professor${profilesCache.length !== 1 ? "es" : ""}</div>
       </div>
-      <button class="btn btn-primary" id="btn-novo">${SVG_PLUS}&nbsp; Novo Usuário</button>
+      <button class="btn btn-primary" id="btn-novo">${SVG_PLUS}&nbsp; Novo Professor</button>
     </div>
     <div class="prof-table-wrap">
       <table class="prof-table">
@@ -154,7 +159,6 @@ async function renderPage() {
       const p = profilesCache.find((x) => x.id === id);
       if (!p) return;
       if (action === "editar")  modalEditar(p);
-      if (action === "nivel")   modalNivel(p);
       if (action === "turmas")  await modalTurmas(p);
       if (action === "excluir") modalExcluir(p);
     }
@@ -165,9 +169,7 @@ async function renderPage() {
 function buildRow(p) {
   const initials = (p.nome || p.email || "?")
     .split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-  const badge = p.role === "admin"
-    ? `<span class="badge badge-admin">Admin</span>`
-    : `<span class="badge badge-professor">Professor</span>`;
+  const badge = `<span class="badge badge-professor">Professor</span>`;
   return `
     <tr>
       <td>
@@ -185,10 +187,6 @@ function buildRow(p) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Editar dados
           </button>
-          <button class="action-menu-item" data-action="nivel" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="8" r="4"/><path d="M2 20c0-4 4-7 10-7s10 3 10 7"/></svg>
-            Nível de acesso
-          </button>
           <button class="action-menu-item" data-action="turmas" data-id="${p.id}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Atribuir turmas
@@ -203,10 +201,10 @@ function buildRow(p) {
     </tr>`;
 }
 
-// ─── Modal: Novo usuário ──────────────────────────────────────────────────────
+// ─── Modal: Novo professor ────────────────────────────────────────────────────
 function modalNovoUsuario() {
   openModal(`
-    <div class="modal-title">Novo Usuário</div>
+    <div class="modal-title">Novo Professor</div>
     <div class="modal-field">
       <label>Nome</label>
       <input id="m-nome" placeholder="Nome completo" autocomplete="off" />
@@ -222,32 +220,17 @@ function modalNovoUsuario() {
         <button class="pw-toggle" id="m-pw-toggle" type="button">${SVG_EYE}</button>
       </div>
     </div>
-    <div class="modal-field">
-      <label>Nível de acesso</label>
-      <div class="role-options">
-        <label class="role-option" id="m-opt-admin">
-          <input type="radio" name="m-role" value="admin" />
-          <span>Admin</span>
-        </label>
-        <label class="role-option selected-professor" id="m-opt-prof">
-          <input type="radio" name="m-role" value="professor" checked />
-          <span>Professor</span>
-        </label>
-      </div>
-    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="m-cancel">Cancelar</button>
-      <button class="btn btn-primary" id="m-save">Criar usuário</button>
+      <button class="btn btn-primary" id="m-save">Criar professor</button>
     </div>
   `, () => {
-    setupRoleOptions("m-");
     document.getElementById("m-cancel").addEventListener("click", closeModal);
     document.getElementById("m-pw-toggle").addEventListener("click", () => togglePw("m-senha", "m-pw-toggle"));
     document.getElementById("m-save").addEventListener("click", async () => {
       const nome  = document.getElementById("m-nome").value.trim();
       const email = document.getElementById("m-email").value.trim();
       const senha = document.getElementById("m-senha").value;
-      const role  = document.querySelector('input[name="m-role"]:checked')?.value || "professor";
 
       if (!nome || !email || !senha) { showToast("Preencha todos os campos", "error"); return; }
       if (senha.length < 6) { showToast("Senha mínima de 6 caracteres", "error"); return; }
@@ -255,32 +238,30 @@ function modalNovoUsuario() {
       const btn = document.getElementById("m-save");
       btn.disabled = true; btn.textContent = "Criando…";
 
-      // Cria via Admin API (requer service key)
       const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
       if (!supabaseAdmin) {
         showToast("Service key não configurada no .env", "error");
-        btn.disabled = false; btn.textContent = "Criar usuário";
-        return;
+        btn.disabled = false; btn.textContent = "Criar professor"; return;
       }
 
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: senha,
-        email_confirm: true,
-        user_metadata: { nome, role },
+        email, password: senha, email_confirm: true,
+        user_metadata: { nome, role: "professor" },
       });
 
       if (error) {
         showToast("Erro: " + error.message, "error");
-        btn.disabled = false; btn.textContent = "Criar usuário";
-        return;
+        btn.disabled = false; btn.textContent = "Criar professor"; return;
       }
 
-      await supabase.from("profiles").upsert({ id: data.user.id, nome, email, role });
+      // Vincula à instituição
+      await supabaseAdmin.from("profiles")
+        .update({ nome, email, instituicao_id: _instId })
+        .eq("id", data.user.id);
 
-      showToast("Usuário criado!", "success");
+      showToast("Professor criado!", "success");
       closeModal();
-      await renderPage();
+      await renderPage({ role: "instituicao", instituicao_id: _instId });
     });
   });
 }
@@ -332,7 +313,7 @@ function modalEditar(p) {
       await supabase.from("profiles").update({ nome, email }).eq("id", p.id);
       showToast("Dados atualizados!", "success");
       closeModal();
-      await renderPage();
+      await renderPage({ role: "instituicao", instituicao_id: _instId });
     });
   });
 }
@@ -387,7 +368,8 @@ function modalNivel(p) {
 // ─── Modal: Atribuir turmas ───────────────────────────────────────────────────
 async function modalTurmas(p) {
   const [{ data: turmas }, { data: atribuidas }] = await Promise.all([
-    supabase.from("turmas").select("id, nome, materia").order("nome"),
+    supabase.from("turmas").select("id, nome, materia")
+      .eq("instituicao_id", _instId).order("nome"),
     supabase.from("turmas").select("id").eq("professor_id", p.id),
   ]);
 
@@ -454,9 +436,9 @@ function modalExcluir(p) {
       const { error } = await supabaseAdmin.auth.admin.deleteUser(p.id);
       if (error) { showToast("Erro: " + error.message, "error"); btn.disabled = false; btn.textContent = "Excluir"; return; }
 
-      showToast("Usuário excluído.", "success");
+      showToast("Professor excluído.", "success");
       closeModal();
-      await renderPage();
+      await renderPage({ role: "instituicao", instituicao_id: _instId });
     });
   });
 }
