@@ -2,14 +2,15 @@
 -- super_admin → admin  |  admin → instituicao  |  professor permanece
 -- Execute no Supabase SQL Editor
 
--- ─── 1. Atualiza dados existentes ANTES de mudar a constraint ────────────────
-UPDATE public.profiles SET role = 'admin'       WHERE role = 'super_admin';
-UPDATE public.profiles SET role = 'instituicao' WHERE role = 'admin';
-
--- ─── 2. Atualiza constraint de role ──────────────────────────────────────────
+-- ─── 1. Remove constraint ANTES de alterar os dados ─────────────────────────
 ALTER TABLE public.profiles
   DROP CONSTRAINT IF EXISTS profiles_role_check;
 
+-- ─── 2. Renomeia roles nos dados existentes ───────────────────────────────────
+UPDATE public.profiles SET role = 'admin'       WHERE role = 'super_admin';
+UPDATE public.profiles SET role = 'instituicao' WHERE role = 'admin';
+
+-- ─── 3. Recria constraint com os novos valores ───────────────────────────────
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('admin', 'instituicao', 'professor'));
