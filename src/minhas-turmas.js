@@ -31,8 +31,8 @@ async function init() {
     </div>`;
     return;
   }
-  if (profile.role === "admin") { window.location.href = "/turmas.html"; return; }
-  if (profile.role === "super_admin") { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "admin")      { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "instituicao") { window.location.href = "/turmas.html"; return; }
 
   await renderPage(session.user.id, profile.nome);
 }

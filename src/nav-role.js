@@ -1,6 +1,7 @@
 import { supabase } from "./supabase.js";
 
-// Uso: <a href="..." data-role="admin super_admin"> — visível apenas para os roles listados.
+// Roles: admin | instituicao | professor
+// Uso: <a href="..." data-role="instituicao professor"> — visível apenas para os roles listados.
 // Sem data-role → visível para todos.
 export async function applyNavRole() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -25,6 +26,12 @@ export async function applyNavRole() {
   return profile;
 }
 
+// true se pode gerenciar dados da instituição (turmas, alunos, etc.)
+export function podeInstituicao(role) {
+  return role === "instituicao";
+}
+
+// compatibilidade: mantém podeAdmin apontando para podeInstituicao
 export function podeAdmin(role) {
-  return role === "admin" || role === "super_admin";
+  return podeInstituicao(role);
 }

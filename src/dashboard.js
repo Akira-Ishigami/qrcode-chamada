@@ -27,8 +27,8 @@ async function init() {
   const { data: profile } = await supabase
     .from("profiles").select("role").eq("id", session.user.id).single();
 
-  if (!profile || profile.role !== "super_admin") {
-    window.location.href = profile?.role === "professor" ? "/minhas-turmas.html" : "/turmas.html";
+  if (!profile || profile.role !== "admin") {
+    window.location.href = profile?.role === "professor" ? "/chamada.html" : "/turmas.html";
     return;
   }
 

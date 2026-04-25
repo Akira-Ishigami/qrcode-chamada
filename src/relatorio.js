@@ -21,17 +21,16 @@ async function init() {
   const { data: profile } = await supabase
     .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
 
-  if (!profile || !podeAdmin(profile.role)) {
-    window.location.href = "/minhas-turmas.html";
-    return;
-  }
+  if (!profile)                       { window.location.href = "/login.html"; return; }
+  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "professor")   { window.location.href = "/relatorio-dia.html"; return; }
 
   await renderPage(profile);
 }
 
 async function renderPage(profile) {
   const hoje = new Date().toISOString().split("T")[0];
-  const adminInstId = profile.role === "admin" ? profile.instituicao_id : null;
+  const adminInstId = profile.role === "instituicao" ? profile.instituicao_id : null;
 
   // Carrega turmas para o filtro (admin: só da sua instituição)
   let turmasQuery = supabase

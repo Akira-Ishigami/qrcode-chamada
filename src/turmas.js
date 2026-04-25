@@ -372,26 +372,24 @@ async function init() {
     return;
   }
 
-  if (profile.role === "professor") {
-    window.location.href = "/minhas-turmas.html";
-    return;
-  }
-
   if (profile.role === "admin") {
-    if (!profile.instituicao_id) {
-      root.innerHTML = `<div class="tv-error">Sua conta não está vinculada a uma instituição. Contate o super administrador.</div>`;
-      return;
-    }
-    const { data: inst } = await supabase
-      .from("instituicoes").select("nome").eq("id", profile.instituicao_id).single();
-    renderTurmas(profile.instituicao_id, inst?.nome || "Minha Instituição");
+    window.location.href = "/dashboard.html";
     return;
   }
 
-  // super_admin: vê lista de todas as instituições
-  renderInstituicoes().catch(err => {
-    root.innerHTML = `<div class="tv-error">Erro inesperado: ${err?.message ?? err}</div>`;
-  });
+  if (profile.role === "professor") {
+    window.location.href = "/chamada.html";
+    return;
+  }
+
+  // instituicao: vê turmas da sua instituição
+  if (!profile.instituicao_id) {
+    root.innerHTML = `<div class="tv-error">Conta não vinculada a uma instituição. Contate o administrador.</div>`;
+    return;
+  }
+  const { data: inst } = await supabase
+    .from("instituicoes").select("nome").eq("id", profile.instituicao_id).single();
+  renderTurmas(profile.instituicao_id, inst?.nome || "Minha Instituição");
 }
 
 init();

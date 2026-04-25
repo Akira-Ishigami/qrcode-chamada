@@ -68,10 +68,9 @@ async function init() {
     .eq("id", session.user.id)
     .single();
 
-  if (!profile || !podeAdmin(profile.role)) {
-    root.innerHTML = `<div class="prof-empty">${SVG_USER_BIG}<p>Acesso negado. Apenas admins.</p></div>`;
-    return;
-  }
+  if (!profile)                       { window.location.href = "/login.html"; return; }
+  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "professor")   { window.location.href = "/chamada.html"; return; }
 
   await renderPage();
 }

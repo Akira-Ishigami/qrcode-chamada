@@ -796,13 +796,12 @@ let _adminInstId = null;
   const { data: profile } = await supabase
     .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
 
-  if (!profile || !podeAdmin(profile.role)) {
-    window.location.href = "/minhas-turmas.html";
-    return;
-  }
+  if (!profile)                       { window.location.href = "/login.html"; return; }
+  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "professor")   { window.location.href = "/chamada.html"; return; }
 
-  // admin: escopo limitado à sua instituição
-  if (profile.role === "admin" && profile.instituicao_id) {
+  // instituicao: escopo limitado à sua instituição
+  if (profile.role === "instituicao" && profile.instituicao_id) {
     _adminInstId = profile.instituicao_id;
   }
 

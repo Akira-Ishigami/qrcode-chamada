@@ -23,16 +23,17 @@ async function init() {
   if (!session) { window.location.href = "/login.html"; return; }
   await applyNavRole();
   const { data: profile } = await supabase.from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
-  if (!profile || !podeAdmin(profile.role)) { window.location.href = "/minhas-turmas.html"; return; }
+  if (!profile)                       { window.location.href = "/login.html"; return; }
+  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
   await renderPage(profile);
 }
 
 async function renderPage(profile) {
-  const isAdmin = profile.role === "admin";
-  const adminInstId = isAdmin ? profile.instituicao_id : null;
+  const isInstituicao = profile.role === "instituicao";
+  const adminInstId = isInstituicao ? profile.instituicao_id : null;
 
   // admin: pula o seletor de instituição e carrega turmas direto
-  const stepInstHtml = isAdmin ? "" : `
+  const stepInstHtml = isInstituicao ? "" : `
     <div class="hor-step">
       <div class="hor-step-num">1</div>
       <div class="hor-step-body">
@@ -53,16 +54,16 @@ async function renderPage(profile) {
     <div class="hor-steps">
       ${stepInstHtml}
       <div class="hor-step">
-        <div class="hor-step-num">${isAdmin ? "1" : "2"}</div>
+        <div class="hor-step-num">${isInstituicao ? "1" : "2"}</div>
         <div class="hor-step-body">
           <label>Turma</label>
-          <select id="sel-turma" ${isAdmin ? "" : "disabled"}>
-            <option value="">${isAdmin ? "Carregando…" : "— primeiro selecione a instituição —"}</option>
+          <select id="sel-turma" ${isInstituicao ? "" : "disabled"}>
+            <option value="">${isInstituicao ? "Carregando…" : "— primeiro selecione a instituição —"}</option>
           </select>
         </div>
       </div>
       <div class="hor-step" id="step-materia" style="display:none">
-        <div class="hor-step-num">${isAdmin ? "2" : "3"}</div>
+        <div class="hor-step-num">${isInstituicao ? "2" : "3"}</div>
         <div class="hor-step-body">
           <label>Matéria</label>
           <div style="display:flex;gap:8px;align-items:center">
@@ -90,8 +91,8 @@ async function renderPage(profile) {
     selTurma.disabled = false;
   }
 
-  // ── Evento: selecionar instituição (só super_admin vê esse select) ──────────
-  if (!isAdmin) {
+  // ── Evento: selecionar instituição (só professor vê esse select) ──────────
+  if (!isInstituicao) {
     const { data: insts } = await supabase.from("instituicoes").select("id, nome").order("nome");
     const selInst = document.getElementById("sel-inst");
     selInst.innerHTML = `<option value="">Selecione…</option>` +
