@@ -171,12 +171,7 @@
 </div>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const SUPABASE_URL  = 'https://jazshbcbhuipekmmmzzj.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphenNoYmNiaHVpcGVrbW1tenpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjMwOTQsImV4cCI6MjA5MTMzOTA5NH0.uEHQoNUaUm2B9CANNuD0sSIPNMQfpSkNFz0l2j99gp8';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+import { supabase } from '/src/supabase.js';
 
 // Se já tem sessão, redireciona por role
 const { data: { session } } = await supabase.auth.getSession();
