@@ -33,23 +33,41 @@ const modalStatus   = document.getElementById("modal-status");
 const contentTopbar = document.getElementById("content-topbar");
 const statusBadge   = document.getElementById("sidebar-status-badge");
 
-// ─── Init: carrega instituições ───────────────────────────────────────────────
+// ─── Modo professor (sem select de instituição) ───────────────────────────────
+let _isProfessor = false;
+
+// ─── Init: detecta perfil e carrega dados ─────────────────────────────────────
 async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = "/login.html"; return; }
+
+  const { data: profile } = await supabase
+    .from("profiles").select("role, nome, instituicao_id").eq("id", session.user.id).single();
+
+  if (!profile) { window.location.href = "/login.html"; return; }
+
+  if (profile.role === "professor" && profile.instituicao_id) {
+    _isProfessor = true;
+    // Esconde o grupo de instituição
+    const instGroup = selInst.closest(".sel-group");
+    if (instGroup) instGroup.style.display = "none";
+    // Carrega turmas direto da instituição do professor
+    await carregarTurmasDeInst(profile.instituicao_id);
+  } else {
+    await carregarInstituicoes();
+  }
+}
+
+async function carregarInstituicoes() {
   selInst.innerHTML = '<option value="">Carregando...</option>';
 
   const { data, error } = await supabase
     .from("instituicoes").select("id, nome").order("nome");
 
-  if (error || !data.length) {
+  if (error || !data?.length) {
     selInst.innerHTML = '<option value="">Nenhuma instituição cadastrada</option>';
-    selFeedback.textContent = "";
     const hint = document.getElementById("setup-hint");
-    if (hint) {
-      hint.style.display = "";
-      // Atualiza link para nova URL
-      const btnSetup = hint.querySelector(".btn-setup");
-      if (btnSetup) btnSetup.href = "index.html";
-    }
+    if (hint) { hint.style.display = ""; const b = hint.querySelector(".btn-setup"); if (b) b.href = "index.html"; }
     return;
   }
 
@@ -59,10 +77,33 @@ async function init() {
   selInst.innerHTML = '<option value="">Selecione...</option>';
   data.forEach(inst => {
     const opt = document.createElement("option");
-    opt.value       = inst.id;
-    opt.textContent = inst.nome;
+    opt.value = inst.id; opt.textContent = inst.nome;
     selInst.appendChild(opt);
   });
+}
+
+async function carregarTurmasDeInst(instId) {
+  selTurma.innerHTML = '<option value="">Carregando turmas…</option>';
+  selTurma.disabled  = true;
+  btnIniciar.disabled = true;
+
+  const { data, error } = await supabase
+    .from("turmas").select("id, nome, professor")
+    .eq("instituicao_id", instId).order("nome");
+
+  if (error || !data?.length) {
+    selTurma.innerHTML = '<option value="">Nenhuma turma cadastrada</option>';
+    selFeedback.textContent = "Nenhuma turma encontrada para esta instituição.";
+    return;
+  }
+
+  selTurma.innerHTML = '<option value="">Selecione a turma…</option>';
+  data.forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t.id; opt.textContent = t.nome;
+    selTurma.appendChild(opt);
+  });
+  selTurma.disabled = false;
 }
 
 selInst.addEventListener("change", async () => {
@@ -74,27 +115,7 @@ selInst.addEventListener("change", async () => {
 
   if (!instId) return;
 
-  selTurma.innerHTML = '<option value="">Carregando...</option>';
-
-  const { data, error } = await supabase
-    .from("turmas")
-    .select("id, nome, horario, professor")
-    .eq("instituicao_id", instId).order("nome");
-
-  if (error || !data.length) {
-    selTurma.innerHTML = '<option value="">Nenhuma turma cadastrada</option>';
-    selFeedback.textContent = "Cadastre uma turma para esta instituição.";
-    return;
-  }
-
-  selTurma.innerHTML = '<option value="">Selecione...</option>';
-  data.forEach(t => {
-    const opt = document.createElement("option");
-    opt.value       = t.id;
-    opt.textContent = t.horario ? `${t.nome} — ${t.horario}` : t.nome;
-    selTurma.appendChild(opt);
-  });
-  selTurma.disabled = false;
+  await carregarTurmasDeInst(instId);
 });
 
 selTurma.addEventListener("change", () => {
@@ -369,13 +390,10 @@ async function handleQRResult(qrValue) {
   aluno.presente = true;
   updateStats();
   refreshCard(aluno);
-  showToast(`✓ ${aluno.nome}`, "success");
-  modalStatus.textContent = `✓ ${aluno.nome} — presença confirmada`;
+  showPresencaConfirmada(aluno);
+  modalStatus.textContent = "Aponte para o próximo QR Code";
 
-  setTimeout(() => {
-    modalStatus.textContent = "Aponte para o próximo QR Code";
-    lastResult = null;
-  }, 2000);
+  setTimeout(() => { lastResult = null; }, 2500);
 }
 
 // ─── Scanner ──────────────────────────────────────────────────────────────────
@@ -452,10 +470,42 @@ function mostrarViewChamada() {
 function mostrarViewSeletor() {
   viewChamada.style.display  = "none";
   viewSelector.style.display = "block";
-  selTurma.innerHTML  = '<option value="">Selecione a instituição</option>';
-  selTurma.disabled   = true;
   btnIniciar.disabled = true;
-  selInst.value       = "";
+
+  if (_isProfessor) {
+    selTurma.value = "";
+  } else {
+    selTurma.innerHTML = '<option value="">Selecione a instituição</option>';
+    selTurma.disabled  = true;
+    selInst.value      = "";
+  }
+}
+
+// ─── Flash de confirmação de presença ────────────────────────────────────────
+function showPresencaConfirmada(aluno) {
+  const overlay  = document.getElementById("presenca-flash");
+  const avatarEl = document.getElementById("pf-avatar");
+  const nameEl   = document.getElementById("pf-name");
+  const barFill  = document.getElementById("pf-bar-fill");
+  if (!overlay) return;
+
+  const initials = aluno.nome.split(" ").slice(0, 2).map(n => n[0]).join("");
+  avatarEl.innerHTML = aluno.foto_url
+    ? `<img src="${aluno.foto_url}" alt="${initials}" />`
+    : initials;
+  nameEl.textContent = aluno.nome;
+
+  // Reinicia a barra de progresso
+  barFill.style.animation = "none";
+  barFill.offsetHeight; // reflow
+  barFill.style.animation = "";
+
+  overlay.classList.add("show");
+
+  clearTimeout(showPresencaConfirmada._t);
+  showPresencaConfirmada._t = setTimeout(() => {
+    overlay.classList.remove("show");
+  }, 2400);
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────

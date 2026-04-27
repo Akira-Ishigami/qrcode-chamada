@@ -64,11 +64,13 @@ function setSkeleton(n = 4) {
     <div class="tv-header">
       <div class="tv-header-left">
         <div class="tv-icon inst">${SVG_INST}</div>
-        <div><div class="tv-title skel-line" style="width:180px;height:28px;border-radius:8px"></div>
-        <div class="skel-line" style="width:140px;height:14px;border-radius:6px;margin-top:6px"></div></div>
+        <div>
+          <div class="skel-line" style="width:160px;height:22px;border-radius:6px"></div>
+          <div class="skel-line" style="width:110px;height:13px;border-radius:5px;margin-top:6px"></div>
+        </div>
       </div>
     </div>
-    <div class="tv-grid">${Array(n).fill('<div class="tv-card skel-card" style="height:148px"></div>').join("")}</div>
+    <div class="tv-grid">${Array(n).fill('<div class="tv-card skel-card"></div>').join("")}</div>
   `;
 }
 
@@ -123,24 +125,21 @@ async function renderInstituicoes() {
   if (lista.length > 0) {
     const grid = document.getElementById("inst-grid");
     lista.forEach((inst, i) => {
-      const qtd  = porInst[inst.id] ?? 0;
-      const card = document.createElement("div");
+      const qtd    = porInst[inst.id] ?? 0;
+      const letter = inst.nome.charAt(0).toUpperCase();
+      const card   = document.createElement("div");
       card.className = "tv-card inst-card";
       card.style.animationDelay = `${i * 0.05}s`;
       card.innerHTML = `
-        <div class="tvc-head">
-          <div class="tvc-avatar inst">${SVG_INST}</div>
-          <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
+        <div class="tvc-avatar inst">${letter}</div>
+        <div class="tvc-body">
+          <div class="tvc-name">${inst.nome}</div>
+          <div class="tvc-meta">${qtd === 0 ? "Sem turmas" : qtd === 1 ? "1 turma" : `${qtd} turmas`}</div>
         </div>
-        <div class="tvc-name">${inst.nome}</div>
-        <div class="tvc-meta">
-          <span class="tvc-dot"></span>
-          ${qtd === 0 ? "Sem turmas" : qtd === 1 ? "1 turma" : `${qtd} turmas`}
-        </div>
-        <div class="tvc-footer">
-          <span class="tvc-badge inst">${SVG_TURMA} ${qtd}</span>
+        <div class="tvc-right">
           <span class="tvc-enter">Ver turmas ${SVG_ARROW}</span>
         </div>
+        <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
       `;
       card.addEventListener("click", e => {
         if (e.target.closest(".tvc-del")) return;
@@ -209,24 +208,25 @@ async function renderTurmas(instId, instNome) {
   if (lista.length > 0) {
     const grid = document.getElementById("turma-grid");
     lista.forEach((t, i) => {
-      const card = document.createElement("div");
+      const card   = document.createElement("div");
+      const letter = t.nome.charAt(0).toUpperCase();
       card.className = "tv-card turma-card";
       card.style.animationDelay = `${i * 0.05}s`;
 
-      const tags = [];
-      if (t.professor) tags.push(`<span class="tv-tag">${t.professor}</span>`);
-      if (t.horario)   tags.push(`<span class="tv-tag">${t.horario}</span>`);
+      const subParts = [];
+      if (t.professor) subParts.push(t.professor);
+      if (t.horario)   subParts.push(t.horario);
 
       card.innerHTML = `
-        <div class="tvc-head">
-          <div class="tvc-avatar turma">${SVG_TURMA}</div>
-          <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
+        <div class="tvc-avatar turma">${letter}</div>
+        <div class="tvc-body">
+          <div class="tvc-name">${t.nome}</div>
+          ${subParts.length ? `<div class="tvc-sub">${subParts.join(" · ")}</div>` : ""}
         </div>
-        <div class="tvc-name">${t.nome}</div>
-        ${tags.length ? `<div class="tv-tags">${tags.join("")}</div>` : ""}
-        <div class="tvc-footer">
+        <div class="tvc-right">
           <span class="tvc-badge turma">Ativa</span>
         </div>
+        <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
       `;
 
       card.querySelector(".tvc-del").addEventListener("click", () => deletarTurma(t.id, t.nome));
@@ -237,7 +237,6 @@ async function renderTurmas(instId, instNome) {
 
 // ─── Modal genérico ───────────────────────────────────────────────────────────
 function abrirModal(tipo) {
-  // Remove modal existente
   document.getElementById("tv-modal")?.remove();
 
   const isInst = tipo === "inst";
@@ -267,16 +266,6 @@ function abrirModal(tipo) {
         ` : `
           <label class="tv-label">Nome da turma <span style="color:var(--red)">*</span></label>
           <input class="tv-input" id="mt-nome" placeholder="Ex: Turma A, 1º Ano Noturno" autocomplete="off" />
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
-            <div>
-              <label class="tv-label">Professor</label>
-              <input class="tv-input" id="mt-prof" placeholder="Nome do professor" />
-            </div>
-            <div>
-              <label class="tv-label">Horário</label>
-              <input class="tv-input" id="mt-hor" placeholder="Ex: Seg 19h" />
-            </div>
-          </div>
         `}
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
@@ -318,11 +307,9 @@ function abrirModal(tipo) {
       await renderInstituicoes();
       renderTurmas(data.id, nome);
     } else {
-      const nome    = document.getElementById("mt-nome")?.value.trim();
-      const prof    = document.getElementById("mt-prof")?.value.trim() || null;
-      const horario = document.getElementById("mt-hor")?.value.trim()  || null;
+      const nome = document.getElementById("mt-nome")?.value.trim();
       if (!nome) { err.textContent = "Informe o nome da turma."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
-      const { error } = await supabase.from("turmas").insert({ nome, professor: prof, horario, instituicao_id: instAtualId });
+      const { error } = await supabase.from("turmas").insert({ nome, instituicao_id: instAtualId });
       if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
       fechar();
       showToast(`Turma "${nome}" adicionada!`, "success");

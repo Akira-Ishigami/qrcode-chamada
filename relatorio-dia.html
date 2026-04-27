@@ -10,53 +10,98 @@
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="stylesheet" href="/src/relatorio.css" />
   <style>
-    .rd-header { margin-bottom: 28px; }
-    .rd-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--text-1); letter-spacing: -.02em; }
-    .rd-subtitle { font-size: .85rem; color: var(--text-3); margin-top: 4px; text-transform: capitalize; }
+    #page-root { padding: 22px 18px !important; }
+    @media (min-width: 769px) { #page-root { padding: 32px 36px !important; } }
 
-    .rd-stats { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
-    .rd-stat { display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 24px; min-width: 90px; }
-    .rd-num { font-size: 1.8rem; font-weight: 800; font-family: 'Outfit', system-ui, sans-serif; line-height: 1; }
-    .rd-lbl { font-size: .72rem; font-weight: 600; color: var(--text-3); margin-top: 4px; }
+    /* ── Header ── */
+    .rd-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+    .rd-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.45rem; font-weight: 700; color: var(--text); letter-spacing: -.025em; }
+    .rd-subtitle { font-size: .8rem; color: var(--text-3); margin-top: 3px; text-transform: capitalize; }
+
+    /* ── Stats ── */
+    .rd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; max-width: 400px; }
+    .rd-stat {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      animation: rdUp .3s cubic-bezier(.22,1,.36,1) both;
+    }
+    .rd-num { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.8rem; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+    .rd-lbl { font-size: .68rem; font-weight: 600; color: var(--text-3); }
     .rd-stat.green .rd-num { color: #16a34a; }
     .rd-stat.red   .rd-num { color: #dc2626; }
     .rd-stat.blue  .rd-num { color: #2563eb; }
 
-    .rd-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
-    .rd-card-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; user-select: none; }
-    .rd-card-header:hover { background: var(--hover, #f8fafc); }
+    /* ── Cards de chamada ── */
+    .rd-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 13px; margin-bottom: 10px; overflow: hidden;
+      animation: rdUp .28s cubic-bezier(.22,1,.36,1) both;
+    }
+    .rd-card-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      transition: background .12s;
+    }
+    .rd-card-header:hover { background: var(--surface-2); }
     .rd-card-info { flex: 1; min-width: 0; }
-    .rd-card-nome { font-weight: 700; font-size: .92rem; color: var(--text-1); }
-    .rd-card-meta { font-size: .75rem; color: var(--text-3); margin-top: 2px; }
+    .rd-card-nome { font-weight: 700; font-size: .9rem; color: var(--text); }
+    .rd-card-meta { font-size: .74rem; color: var(--text-3); margin-top: 2px; }
     .rd-card-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
-    .rd-pct { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    .rd-chevron { color: var(--text-3); flex-shrink: 0; transition: transform .2s; }
+    .rd-card.open .rd-chevron { transform: rotate(90deg); }
+
+    /* ── % frequência ── */
+    .rd-pct { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
     .rd-pct.green  { background: #dcfce7; color: #166534; }
     .rd-pct.orange { background: #ffedd5; color: #9a3412; }
     .rd-pct.red    { background: #fee2e2; color: #991b1b; }
-    .rd-chevron { color: var(--text-3); flex-shrink: 0; transition: transform .2s; }
-    .rd-card.open .rd-chevron { transform: rotate(90deg); }
-    .rd-alunos { display: none; border-top: 1px solid var(--border); padding: 8px 0; }
+
+    /* ── Lista de alunos (accordion) ── */
+    .rd-alunos { display: none; border-top: 1px solid var(--border); }
     .rd-card.open .rd-alunos { display: block; }
-    .rd-aluno-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; font-size: .83rem; }
-    .rd-aluno-nome { color: var(--text-1); }
+    .rd-aluno-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 18px; border-bottom: 1px solid var(--border); font-size: .83rem;
+    }
+    .rd-aluno-row:last-child { border-bottom: none; }
+    .rd-aluno-nome { color: var(--text); font-weight: 500; }
 
-    .rd-section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin: 24px 0 10px; }
-    .rd-sem-chamada { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .rd-turma-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+    /* ── Badges ── */
+    .badge-aberta    { background: #dcfce7; color: #166534; border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; white-space: nowrap; }
+    .badge-encerrada { background: var(--surface-3); color: var(--text-3); border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; }
+    .badge-presente  { background: #dcfce7; color: #166534; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
+    .badge-ausente   { background: #fee2e2; color: #991b1b; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
+    .dot-presente { color: #16a34a; font-weight: 700; font-size: .78rem; }
+    .dot-ausente  { color: #dc2626; font-weight: 700; font-size: .78rem; }
+
+    /* ── Sem chamada hoje ── */
+    .rd-section-title {
+      font-size: .6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--text-3); margin: 24px 0 10px;
+    }
+    .rd-sem-chamada {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .rd-turma-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
     .rd-turma-row:last-child { border-bottom: none; }
-    .rd-turma-nome { font-weight: 600; font-size: .85rem; color: var(--text-1); }
-    .rd-turma-meta { font-size: .75rem; color: var(--text-3); }
-    .rd-turma-inst { font-size: .72rem; color: var(--text-3); background: var(--surface-2, #f1f5f9); padding: 2px 8px; border-radius: 6px; margin-left: auto; }
+    .rd-turma-nome { font-weight: 600; font-size: .875rem; color: var(--text); flex: 1; }
+    .rd-turma-meta { font-size: .74rem; color: var(--text-3); }
+    .rd-turma-inst {
+      font-size: .7rem; color: var(--text-3); background: var(--surface-2);
+      border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px;
+      margin-left: auto; flex-shrink: 0;
+    }
 
-    .rd-empty { text-align: center; padding: 60px 20px; color: var(--text-3); }
-    .rd-empty p { margin-top: 14px; font-size: .9rem; }
+    /* ── Empty ── */
+    .rd-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--text-3); gap: 10px; }
+    .rd-empty p { font-size: .875rem; }
 
-    .dot-presente { color: #16a34a; font-weight: 600; font-size: .78rem; }
-    .dot-ausente  { color: #dc2626; font-weight: 600; font-size: .78rem; }
-    .badge-aberta    { background: #dcfce7; color: #166534; border-radius: 6px; padding: 2px 8px; font-size: .7rem; font-weight: 700; }
-    .badge-encerrada { background: #f1f5f9; color: #64748b; border-radius: 6px; padding: 2px 8px; font-size: .7rem; font-weight: 700; }
-    .badge-presente  { background: #dcfce7; color: #166534; border-radius: 6px; padding: 2px 8px; font-size: .72rem; font-weight: 700; }
-    .badge-ausente   { background: #fee2e2; color: #991b1b; border-radius: 6px; padding: 2px 8px; font-size: .72rem; font-weight: 700; }
+    @keyframes rdUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
   </style>
 </head>
 <body>
@@ -115,10 +160,6 @@
       <a href="professores.html" class="sidebar-link " data-role="instituicao">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         Professores
-      </a>
-      <a href="horarios.html" class="sidebar-link " data-role="instituicao professor">
-        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        Horários
       </a>
       <a href="relatorio-dia.html" class="sidebar-link active" data-role="instituicao professor">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>

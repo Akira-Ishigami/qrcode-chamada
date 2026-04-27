@@ -16,28 +16,37 @@ async function init() {
   await applyNavRole();
 
   const { data: profile } = await supabase
-    .from("profiles").select("role, nome").eq("id", session.user.id).single();
+    .from("profiles").select("role, nome, instituicao_id").eq("id", session.user.id).single();
 
-  if (!profile || profile.role !== "professor") {
-    window.location.href = "/turmas.html";
+  if (!profile || profile.role === "admin") {
+    window.location.href = "/dashboard.html";
     return;
   }
 
-  await renderPage(session.user.id, profile.nome);
+  await renderPage(profile);
 }
 
-async function renderPage(userId, nome) {
+async function renderPage(profile) {
   const hoje = new Date().toISOString().split("T")[0];
   const dataFormatada = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const nome = profile.nome;
 
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  // Busca turmas do professor
-  const { data: turmas } = await supabase
+  // Professor: filtra pelas turmas onde o campo professor (text) tem o nome dele
+  // Instituição: mostra todas as turmas da instituição
+  let turmasQuery = supabase
     .from("turmas")
-    .select("id, nome, horario, instituicoes(nome)")
-    .eq("professor_id", userId)
+    .select("id, nome, professor, instituicoes(nome)")
     .order("nome");
+
+  if (profile.role === "professor") {
+    turmasQuery = turmasQuery.eq("professor", nome);
+  } else {
+    turmasQuery = turmasQuery.eq("instituicao_id", profile.instituicao_id);
+  }
+
+  const { data: turmas } = await turmasQuery;
 
   if (!turmas?.length) {
     root.innerHTML = `
@@ -88,7 +97,7 @@ async function renderPage(userId, nome) {
     <div class="rd-header">
       <div>
         <div class="rd-title">Relatório do Dia</div>
-        <div class="rd-subtitle">Olá, ${esc(nome || "Professor")} · ${dataFormatada}</div>
+        <div class="rd-subtitle">${nome ? `Olá, ${esc(nome)} · ` : ""}${dataFormatada}</div>
       </div>
     </div>
 
@@ -108,7 +117,7 @@ async function renderPage(userId, nome) {
         ${turmasSemChamada.map(t => `
           <div class="rd-turma-row">
             <span class="rd-turma-nome">${esc(t.nome)}</span>
-            ${t.horario ? `<span class="rd-turma-meta">${esc(t.horario)}</span>` : ""}
+            ${t.professor ? `<span class="rd-turma-meta">${esc(t.professor)}</span>` : ""}
             ${t.instituicoes ? `<span class="rd-turma-inst">${esc(t.instituicoes.nome)}</span>` : ""}
           </div>
         `).join("")}
@@ -144,8 +153,9 @@ async function renderPage(userId, nome) {
         <div class="rd-card-info">
           <div class="rd-card-nome">${esc(turma?.nome || "—")}</div>
           <div class="rd-card-meta">
-            ${turma?.instituicoes ? esc(turma.instituicoes.nome) + " · " : ""}
-            ${turma?.horario ? esc(turma.horario) : ""}
+            ${turma?.professor ? esc(turma.professor) : ""}
+            ${turma?.professor && turma?.instituicoes ? " · " : ""}
+            ${turma?.instituicoes ? esc(turma.instituicoes.nome) : ""}
           </div>
         </div>
         <div class="rd-card-badges">

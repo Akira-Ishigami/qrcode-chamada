@@ -9,6 +9,18 @@ let todosAlunos = [];
 let alunosFiltrados = [];
 let fotoBase64 = null;
 
+// ─── Máscara de telefone ──────────────────────────────────────────────────────
+function maskPhone(input) {
+  input.addEventListener("input", () => {
+    const digits = input.value.replace(/\D/g, "").slice(0, 11);
+    let masked = digits;
+    if (digits.length > 2)  masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+    if (digits.length > 7)  masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+    if (digits.length > 10) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7,11)}`;
+    input.value = masked;
+  });
+}
+
 // ─── Upload de foto ───────────────────────────────────────────────────────────
 const fotoArea    = document.getElementById("foto-upload-area");
 const fotoInput   = document.getElementById("foto_file");
@@ -53,11 +65,13 @@ btnAlunoCancel.addEventListener("click", fecharModalAluno);
 modalAluno.addEventListener("click", e => { if (e.target === modalAluno) fecharModalAluno(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") fecharModalAluno(); });
 
+// Máscara no campo de telefone do modal de novo aluno
+maskPhone(document.getElementById("telefone"));
+
 // ─── DOM: formulário ──────────────────────────────────────────────────────────
-const selInstituicao = document.getElementById("instituicao");
-const selTurma       = document.getElementById("turma");
-const btnSubmit      = document.getElementById("btn-submit");
-const feedback       = document.getElementById("feedback");
+const selTurma  = document.getElementById("turma");
+const btnSubmit = document.getElementById("btn-submit");
+const feedback  = document.getElementById("feedback");
 
 // ─── DOM: painel de alunos ────────────────────────────────────────────────────
 const filterInst   = document.getElementById("filter-inst");
@@ -67,64 +81,28 @@ const alunosList   = document.getElementById("alunos-list");
 const countBadge   = document.getElementById("count-badge");
 const btnDlAll     = document.getElementById("btn-dl-all");
 
-// ─── Carregar instituições (form) ─────────────────────────────────────────────
-async function carregarInstituicoes(selecionarId = null) {
-  selInstituicao.innerHTML = '<option value="">Carregando...</option>';
-
-  const { data, error } = await supabase
-    .from("instituicoes").select("id, nome").order("nome");
-
-  if (error || !data?.length) {
-    selInstituicao.innerHTML = '<option value="">Nenhuma instituição — use Gerenciar</option>';
-    return;
-  }
-
-  selInstituicao.innerHTML = '<option value="">Selecione...</option>';
-  data.forEach(inst => {
-    const opt = document.createElement("option");
-    opt.value = inst.id; opt.textContent = inst.nome;
-    selInstituicao.appendChild(opt);
-  });
-
-  if (selecionarId) {
-    selInstituicao.value = selecionarId;
-    selInstituicao.dispatchEvent(new Event("change"));
-  }
-}
-
 // ─── Carregar turmas (form) ───────────────────────────────────────────────────
 async function carregarTurmas(instId, selecionarId = null) {
-  selTurma.innerHTML = '<option value="">Carregando...</option>';
-  selTurma.disabled  = true;
+  selTurma.innerHTML = '<option value="">Carregando turmas…</option>';
 
   const { data, error } = await supabase
-    .from("turmas").select("id, nome, horario")
+    .from("turmas").select("id, nome")
     .eq("instituicao_id", instId).order("nome");
 
-  selTurma.disabled = false;
-
   if (error || !data?.length) {
-    selTurma.innerHTML = '<option value="">Nenhuma turma — use Gerenciar</option>';
+    selTurma.innerHTML = '<option value="">Nenhuma turma cadastrada</option>';
     return;
   }
 
-  selTurma.innerHTML = '<option value="">Selecione...</option>';
+  selTurma.innerHTML = '<option value="">Selecione a turma…</option>';
   data.forEach(t => {
     const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = t.horario ? `${t.nome} — ${t.horario}` : t.nome;
+    opt.value = t.id; opt.textContent = t.nome;
     selTurma.appendChild(opt);
   });
 
   if (selecionarId) selTurma.value = selecionarId;
 }
-
-selInstituicao.addEventListener("change", () => {
-  const instId = selInstituicao.value;
-  selTurma.innerHTML = '<option value="">Selecione a instituição</option>';
-  selTurma.disabled  = !instId;
-  if (instId) carregarTurmas(instId);
-});
 
 // ─── Modal gerenciar (se existir o botão) ────────────────────────────────────
 const btnAbrirGer = document.getElementById("btn-abrir-gerenciar");
@@ -155,15 +133,14 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
   const dataNasc       = document.getElementById("data_nascimento").value       || null;
   const idEstadual     = document.getElementById("id_estadual").value.trim()    || null;
   const endereco       = document.getElementById("endereco").value.trim()       || null;
-  const fotoUrl        = fotoBase64 || null;
-  const instituicaoId  = selInstituicao.value || null;
-  const turmaId        = selTurma.value       || null;
+  const fotoUrl       = fotoBase64 || null;
+  const instituicaoId = _adminInstId;
+  const turmaId       = selTurma.value || null;
 
   let hasError = false;
-  if (!nome)          { fieldError("nome",        "Nome é obrigatório.");         hasError = true; }
-  if (!matricula)     { fieldError("matricula",   "Matrícula é obrigatória.");    hasError = true; }
-  if (!instituicaoId) { fieldError("instituicao", "Selecione uma instituição.");  hasError = true; }
-  if (!turmaId)       { fieldError("turma",       "Selecione uma turma.");        hasError = true; }
+  if (!nome)      { fieldError("nome",      "Nome é obrigatório.");      hasError = true; }
+  if (!matricula) { fieldError("matricula", "Matrícula é obrigatória."); hasError = true; }
+  if (!turmaId)   { fieldError("turma",     "Selecione uma turma.");     hasError = true; }
   if (hasError) return;
 
   setLoading(true);
@@ -190,8 +167,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
 
   fecharModalAluno();
   document.getElementById("form-cadastro").reset();
-  selTurma.innerHTML = '<option value="">Selecione a instituição</option>';
-  selTurma.disabled  = true;
+  await carregarTurmas(_adminInstId);
   clearErrors();
   setFeedback("", "");
   showToast("Aluno cadastrado com sucesso!", "success");
@@ -222,6 +198,18 @@ async function carregarAlunos() {
 
   todosAlunos = data ?? [];
   aplicarFiltros();
+}
+
+// ─── Carregar turmas do filtro direto (para usuário instituição) ──────────────
+async function carregarFiltroTurmasDaInst(instId) {
+  const { data } = await supabase.from("turmas").select("id, nome").eq("instituicao_id", instId).order("nome");
+  filterTurma.innerHTML = '<option value="">Todas as turmas</option>';
+  filterTurma.disabled = false;
+  (data ?? []).forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t.id; opt.textContent = t.nome;
+    filterTurma.appendChild(opt);
+  });
 }
 
 // ─── Carregar opções do filtro de instituições ────────────────────────────────
@@ -278,69 +266,54 @@ function renderAlunos() {
     return;
   }
 
-  alunosList.className = "alunos-list tv-grid";
+  alunosList.className = "alunos-list alunos-container";
   alunosList.innerHTML = "";
+
+  const SVG_TEL  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+  const SVG_CAL  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+  const SVG_DOC  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  const SVG_PIN  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const SVG_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const SVG_DL   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
 
   alunosFiltrados.forEach((a, i) => {
     const initials = a.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
-
-    const nascFormatted = a.data_nascimento
+    const nasc = a.data_nascimento
       ? new Date(a.data_nascimento + "T12:00:00").toLocaleDateString("pt-BR")
       : null;
 
-    const extras = [
-      a.telefone    ? `<span class="tvc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${a.telefone}</span>` : "",
-      nascFormatted ? `<span class="tvc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${nascFormatted}</span>` : "",
-      a.id_estadual ? `<span class="tvc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${a.id_estadual}</span>` : "",
-      a.endereco    ? `<span class="tvc-chip tvc-chip-wide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${a.endereco}</span>` : "",
+    const tags = [
+      a.telefone    ? `<span class="aluno-tag">${SVG_TEL}${a.telefone}</span>` : "",
+      nasc          ? `<span class="aluno-tag">${SVG_CAL}${nasc}</span>` : "",
+      a.id_estadual ? `<span class="aluno-tag">${SVG_DOC}${a.id_estadual}</span>` : "",
+      a.endereco    ? `<span class="aluno-tag">${SVG_PIN}${a.endereco}</span>` : "",
     ].filter(Boolean).join("");
 
-    const card = document.createElement("div");
-    card.className = "tv-card aluno-card-tv";
-    card.style.animationDelay = `${i * 0.04}s`;
+    const row = document.createElement("div");
+    row.className = "aluno-row";
+    row.style.animationDelay = `${i * 0.04}s`;
 
-    card.innerHTML = `
-      <div class="tvc-head">
-        <div class="tvc-avatar-aluno">
-          ${a.foto_url
-            ? `<img src="${a.foto_url}" alt="${initials}" />`
-            : `<span>${initials}</span>`}
-        </div>
-        <div class="ac-actions">
-          <button class="ac-btn-edit" title="Editar aluno">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="ac-btn-qr" title="Baixar QR Code" data-id="${a.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </button>
-        </div>
+    row.innerHTML = `
+      <div class="aluno-avatar">
+        ${a.foto_url ? `<img src="${a.foto_url}" alt="${initials}" />` : initials}
       </div>
-
-      <div class="tvc-name">${a.nome}</div>
-
-      <div class="tvc-meta">
-        <span class="tvc-dot"></span>
-        ${a.matricula}
+      <div class="aluno-info">
+        <div class="aluno-name-line">
+          <span class="aluno-name">${a.nome}</span>
+          <span class="aluno-mat">${a.matricula}</span>
+        </div>
+        ${tags ? `<div class="aluno-tags">${tags}</div>` : ""}
       </div>
-
-      ${extras ? `<div class="tv-tags" style="margin-top:8px">${extras}</div>` : ""}
-
-      <div class="tvc-footer">
-        ${a.inst?.nome  ? `<span class="tvc-badge inst" style="font-size:.68rem">${a.inst.nome}</span>` : ""}
-        ${a.turma?.nome ? `<span class="tvc-badge turma" style="font-size:.68rem">${a.turma.nome}</span>` : ""}
+      <div class="aluno-actions">
+        ${a.turma?.nome ? `<span class="aluno-badge-turma">${a.turma.nome}</span>` : ""}
+        <button class="aluno-btn-edit" title="Editar">${SVG_EDIT}</button>
+        <button class="aluno-btn-qr" data-id="${a.id}">${SVG_DL} QR</button>
       </div>
     `;
 
-    card.querySelector(".ac-btn-edit").addEventListener("click", () => abrirModalEditar(a));
-    card.querySelector(".ac-btn-qr").addEventListener("click", () => baixarQR(a));
-    alunosList.appendChild(card);
+    row.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
+    row.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQR(a));
+    alunosList.appendChild(row);
   });
 }
 
@@ -423,18 +396,11 @@ function abrirModalEditar(aluno) {
           <input type="text" id="ed-endereco" value="${aluno.endereco ?? ""}" />
         </div>
 
-        <!-- Instituição + Turma -->
-        <div class="fld-row" style="margin-top:10px">
-          <div class="fld fld-half">
-            <label class="required">Instituição</label>
-            <select id="ed-instituicao"><option value="">Carregando...</option></select>
-            <span class="fld-err" id="ed-err-inst"></span>
-          </div>
-          <div class="fld fld-half">
-            <label class="required">Turma</label>
-            <select id="ed-turma" disabled><option value="">Selecione a instituição</option></select>
-            <span class="fld-err" id="ed-err-turma"></span>
-          </div>
+        <!-- Turma -->
+        <div class="fld" style="margin-top:10px">
+          <label class="required">Turma</label>
+          <select id="ed-turma"><option value="">Carregando turmas…</option></select>
+          <span class="fld-err" id="ed-err-turma"></span>
         </div>
 
         <div class="fld" style="margin-top:10px">
@@ -457,6 +423,9 @@ function abrirModalEditar(aluno) {
   `;
 
   document.body.appendChild(overlay);
+
+  // Máscara no campo de telefone do modal de edição
+  maskPhone(overlay.querySelector("#ed-telefone"));
 
   // ── foto ──
   let novaFotoBase64 = null;
@@ -484,69 +453,46 @@ function abrirModalEditar(aluno) {
     if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
   });
 
-  // ── carregar instituições no select ──
-  const edSelInst  = overlay.querySelector("#ed-instituicao");
+  // ── carregar turmas no select ──
   const edSelTurma = overlay.querySelector("#ed-turma");
 
-  async function carregarInstEd() {
-    const { data } = await supabase.from("instituicoes").select("id, nome").order("nome");
-    edSelInst.innerHTML = '<option value="">Selecione...</option>';
-    (data ?? []).forEach(inst => {
-      const o = document.createElement("option");
-      o.value = inst.id; o.textContent = inst.nome;
-      if (inst.id === aluno.inst?.id) o.selected = true;
-      edSelInst.appendChild(o);
-    });
-    if (aluno.inst?.id) await carregarTurmasEd(aluno.inst.id);
-  }
-
-  async function carregarTurmasEd(instId) {
-    edSelTurma.innerHTML = '<option value="">Carregando...</option>';
-    edSelTurma.disabled = true;
-    const { data } = await supabase.from("turmas").select("id, nome, horario")
+  async function carregarTurmasEd() {
+    const instId = _adminInstId || aluno.inst?.id;
+    if (!instId) { edSelTurma.innerHTML = '<option value="">Sem instituição</option>'; return; }
+    const { data } = await supabase.from("turmas").select("id, nome")
       .eq("instituicao_id", instId).order("nome");
-    edSelTurma.disabled = false;
-    edSelTurma.innerHTML = '<option value="">Selecione...</option>';
+    edSelTurma.innerHTML = '<option value="">Selecione…</option>';
     (data ?? []).forEach(t => {
       const o = document.createElement("option");
-      o.value = t.id;
-      o.textContent = t.horario ? `${t.nome} — ${t.horario}` : t.nome;
+      o.value = t.id; o.textContent = t.nome;
       if (t.id === aluno.turma?.id) o.selected = true;
       edSelTurma.appendChild(o);
     });
   }
 
-  edSelInst.addEventListener("change", () => {
-    edSelTurma.innerHTML = '<option value="">Selecione a instituição</option>';
-    edSelTurma.disabled = !edSelInst.value;
-    if (edSelInst.value) carregarTurmasEd(edSelInst.value);
-  });
-
-  carregarInstEd();
+  carregarTurmasEd();
 
   // ── salvar ──
   overlay.querySelector("#ed-salvar").addEventListener("click", async () => {
     const errFb   = overlay.querySelector("#ed-feedback");
     const errNome = overlay.querySelector("#ed-err-nome");
     const errMat  = overlay.querySelector("#ed-err-matricula");
-    const errInst = overlay.querySelector("#ed-err-inst");
     const errTur  = overlay.querySelector("#ed-err-turma");
-    errFb.textContent = errNome.textContent = errMat.textContent = errInst.textContent = errTur.textContent = "";
+    errFb.textContent = errNome.textContent = errMat.textContent = errTur.textContent = "";
 
-    const nome        = overlay.querySelector("#ed-nome").value.trim();
-    const matricula   = overlay.querySelector("#ed-matricula").value.trim();
-    const telefone    = overlay.querySelector("#ed-telefone").value.trim()    || null;
-    const dataNasc    = overlay.querySelector("#ed-nascimento").value         || null;
-    const idEstadual  = overlay.querySelector("#ed-id-estadual").value.trim() || null;
-    const endereco    = overlay.querySelector("#ed-endereco").value.trim()    || null;
-    const instId      = edSelInst.value  || null;
-    const turmaId     = edSelTurma.value || null;
-    const fotoUrl     = novaFotoBase64 ?? aluno.foto_url ?? null;
+    const nome       = overlay.querySelector("#ed-nome").value.trim();
+    const matricula  = overlay.querySelector("#ed-matricula").value.trim();
+    const telefone   = overlay.querySelector("#ed-telefone").value.trim()    || null;
+    const dataNasc   = overlay.querySelector("#ed-nascimento").value         || null;
+    const idEstadual = overlay.querySelector("#ed-id-estadual").value.trim() || null;
+    const endereco   = overlay.querySelector("#ed-endereco").value.trim()    || null;
+    const instId     = _adminInstId || aluno.inst?.id || null;
+    const turmaId    = edSelTurma.value || null;
+    const fotoUrl    = novaFotoBase64 ?? aluno.foto_url ?? null;
 
     let ok = true;
     if (!nome)      { errNome.textContent = "Obrigatório."; ok = false; }
     if (!matricula) { errMat.textContent  = "Obrigatório."; ok = false; }
-    if (!instId)    { errInst.textContent = "Selecione.";   ok = false; }
     if (!turmaId)   { errTur.textContent  = "Selecione.";   ok = false; }
     if (!ok) return;
 
@@ -760,8 +706,8 @@ function fieldError(id, msg) {
 }
 
 function clearErrors() {
-  ["nome", "matricula", "instituicao", "turma"].forEach(id => fieldError(id, ""));
-  ["nome", "matricula", "telefone", "data_nascimento", "id_estadual", "endereco", "foto_url", "instituicao", "turma"]
+  ["nome", "matricula", "turma"].forEach(id => fieldError(id, ""));
+  ["nome", "matricula", "telefone", "data_nascimento", "id_estadual", "endereco", "foto_url", "turma"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("error"); });
 }
 
@@ -803,10 +749,19 @@ let _adminInstId = null;
   // instituicao: escopo limitado à sua instituição
   if (profile.role === "instituicao" && profile.instituicao_id) {
     _adminInstId = profile.instituicao_id;
+
+    // Esconde filtro de instituição (desnecessário — já estão no escopo certo)
+    const filterInstGroup = filterInst.closest(".filter-group");
+    if (filterInstGroup) filterInstGroup.style.display = "none";
+    const dividerAposInst = filterInstGroup?.nextElementSibling;
+    if (dividerAposInst?.classList.contains("filter-divider")) dividerAposInst.style.display = "none";
+
+    // Carrega turmas do filtro direto
+    await carregarFiltroTurmasDaInst(_adminInstId);
   }
 
   iniciarModalGerenciar();
-  carregarInstituicoes();
-  carregarFiltroInstituicoes();
+  if (_adminInstId) carregarTurmas(_adminInstId);
+  if (!_adminInstId) carregarFiltroInstituicoes();
   carregarAlunos();
 })();

@@ -148,98 +148,75 @@ async function renderInstituicoes() {
     { data: profs,        error: e3 },
     { data: chamadas,     error: e4 },
   ] = await Promise.all([
-    supabaseAdmin.from("instituicoes").select("id, nome, criado_em").order("nome"),
+    supabaseAdmin.from("instituicoes").select("id, nome").order("nome"),
     supabaseAdmin.from("alunos").select("id, instituicao_id"),
     supabaseAdmin.from("profiles").select("id, instituicao_id").eq("role", "professor"),
     supabaseAdmin.from("chamadas").select("id, aberta, turmas(instituicao_id)").eq("data", hoje),
   ]);
 
   const fetchErr = e1 || e2 || e3 || e4;
-  if (fetchErr) {
-    root.innerHTML = `<div class="tv-error">Erro ao carregar dados: ${fetchErr.message}</div>`;
-    return;
-  }
+  if (fetchErr) { root.innerHTML = `<div class="tv-error">Erro ao carregar dados: ${fetchErr.message}</div>`; return; }
 
   const insts = instituicoes ?? [];
   const alunosPorInst = {};
   const profsPorInst  = {};
   const chamPorInst   = {};
 
-  (alunos ?? []).forEach(a => { if (a.instituicao_id) alunosPorInst[a.instituicao_id] = (alunosPorInst[a.instituicao_id]??0)+1; });
-  (profs  ?? []).forEach(p => { if (p.instituicao_id) profsPorInst [p.instituicao_id] = (profsPorInst [p.instituicao_id]??0)+1; });
+  (alunos   ?? []).forEach(a => { if (a.instituicao_id) alunosPorInst[a.instituicao_id] = (alunosPorInst[a.instituicao_id]??0)+1; });
+  (profs    ?? []).forEach(p => { if (p.instituicao_id) profsPorInst [p.instituicao_id] = (profsPorInst [p.instituicao_id]??0)+1; });
   (chamadas ?? []).forEach(c => { const id = c.turmas?.instituicao_id; if (id) chamPorInst[id] = (chamPorInst[id]??0)+1; });
 
+  const PALETTE = [
+    { bg: "#eff6ff", fg: "#2563eb" }, { bg: "#f0fdf4", fg: "#16a34a" },
+    { bg: "#faf5ff", fg: "#7c3aed" }, { bg: "#fff7ed", fg: "#ea580c" },
+    { bg: "#fdf4ff", fg: "#9333ea" }, { bg: "#ecfeff", fg: "#0891b2" },
+  ];
+
   root.innerHTML = `
-    <div class="inst-header">
+    <div class="il-header">
       <div>
-        <div class="inst-title">Instituições</div>
-        <div class="inst-subtitle">${insts.length} instituição${insts.length !== 1 ? "s" : ""} cadastrada${insts.length !== 1 ? "s" : ""}</div>
+        <div class="il-title">Instituições</div>
+        <div class="il-subtitle">${insts.length} instituição${insts.length !== 1 ? "s" : ""} cadastrada${insts.length !== 1 ? "s" : ""}</div>
       </div>
-      <button class="tv-btn-add" id="btn-nova-inst">
+      <button class="il-btn-new" id="btn-nova-inst">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nova Instituição
       </button>
     </div>
-
     ${insts.length === 0
-      ? `<div class="inst-empty">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      ? `<div class="il-empty">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
            <p>Nenhuma instituição cadastrada ainda.</p>
          </div>`
-      : `<div class="inst-table-wrap">
-           <table class="inst-table">
-             <thead>
-               <tr>
-                 <th>Instituição</th>
-                 <th>Alunos</th>
-                 <th>Professores</th>
-                 <th>Chamadas hoje</th>
-                 <th></th>
-               </tr>
-             </thead>
-             <tbody id="inst-tbody"></tbody>
-           </table>
-         </div>`
+      : `<div class="il-list" id="il-list"></div>`
     }
   `;
 
   document.getElementById("btn-nova-inst").addEventListener("click", abrirModalNovaInst);
 
   if (insts.length > 0) {
-    const tbody = document.getElementById("inst-tbody");
+    const list = document.getElementById("il-list");
     insts.forEach((inst, i) => {
-      const na = alunosPorInst[inst.id] ?? 0;
-      const np = profsPorInst [inst.id] ?? 0;
-      const nc = chamPorInst  [inst.id] ?? 0;
-      const since = inst.criado_em
-        ? new Date(inst.criado_em).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
-        : "";
+      const na  = alunosPorInst[inst.id] ?? 0;
+      const np  = profsPorInst [inst.id] ?? 0;
+      const nc  = chamPorInst  [inst.id] ?? 0;
+      const pal = PALETTE[(inst.nome.charCodeAt(0) || 0) % PALETTE.length];
 
-      const tr = document.createElement("tr");
-      tr.className = "clickable";
-      tr.style.animationDelay = `${i * .04}s`;
-      tr.innerHTML = `
-        <td>
-          <div class="inst-name-cell">
-            <div class="inst-avatar">${svgInst()}</div>
-            <div>
-              <div class="inst-name-txt">${esc(inst.nome)}</div>
-              ${since ? `<div class="inst-since">Desde ${since}</div>` : ""}
-            </div>
-          </div>
-        </td>
-        <td><span class="inst-mini-stat">${na}</span></td>
-        <td><span class="inst-mini-stat">${np}</span></td>
-        <td>${nc > 0
-          ? `<span class="inst-mini-stat">${nc}</span>`
-          : `<span style="color:var(--text-3);font-size:.8rem">—</span>`}
-        </td>
-        <td>
-          <svg class="inst-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
-        </td>
+      const row = document.createElement("div");
+      row.className = "il-row";
+      row.style.animationDelay = `${i * .04}s`;
+      row.innerHTML = `
+        <div class="il-initial" style="background:${pal.bg};color:${pal.fg}">${esc(inst.nome.charAt(0).toUpperCase())}</div>
+        <span class="il-row-name">${esc(inst.nome)}</span>
+        <div class="il-row-stats">
+          <span class="il-stat"><strong>${na}</strong> alunos</span>
+          <span class="il-stat"><strong>${np}</strong> prof.</span>
+          ${nc > 0 ? `<span class="il-stat active"><strong>${nc}</strong> hoje</span>` : ""}
+        </div>
+        <svg class="il-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
       `;
-      tr.addEventListener("click", () => renderInstDetalhe(inst.id, inst.nome));
-      tbody.appendChild(tr);
+      row.addEventListener("click", () => renderInstDetalhe(inst.id, inst.nome));
+      list.appendChild(row);
     });
   }
 }
@@ -283,6 +260,14 @@ async function renderInstDetalhe(instId, instNome) {
   const gruposTurma = Object.values(turmaMap);
   const semTurma    = (alunos ?? []).filter(a => !turmaMap[a.turma_id]);
 
+  const instInitial = instNome.charAt(0).toUpperCase();
+  const PALETTE = [
+    { bg: "#eff6ff", fg: "#2563eb" }, { bg: "#f0fdf4", fg: "#16a34a" },
+    { bg: "#faf5ff", fg: "#7c3aed" }, { bg: "#fff7ed", fg: "#ea580c" },
+    { bg: "#fdf4ff", fg: "#9333ea" }, { bg: "#ecfeff", fg: "#0891b2" },
+  ];
+  const pal = PALETTE[(instNome.charCodeAt(0) || 0) % PALETTE.length];
+
   root.innerHTML = `
     <div class="det-breadcrumb">
       <button class="det-btn-back" id="btn-back">
@@ -295,11 +280,8 @@ async function renderInstDetalhe(instId, instNome) {
 
     <div class="det-header">
       <div class="det-header-left">
-        <div class="det-avatar">${svgInst()}</div>
-        <div>
-          <div class="det-title">${esc(instNome)}</div>
-          <div class="det-subtitle">Informações detalhadas</div>
-        </div>
+        <div class="det-avatar" style="background:${pal.bg};color:${pal.fg}">${instInitial}</div>
+        <div class="det-title">${esc(instNome)}</div>
       </div>
       <div class="det-header-actions">
         <button class="det-btn-reset" id="btn-reset">
@@ -313,7 +295,6 @@ async function renderInstDetalhe(instId, instNome) {
       </div>
     </div>
 
-    <!-- Stats -->
     <div class="det-stats">
       <div class="det-stat">
         <div class="det-stat-icon" style="background:#eff6ff;color:#2563eb">${svgTurma()}</div>
@@ -337,57 +318,62 @@ async function renderInstDetalhe(instId, instNome) {
       </div>
     </div>
 
-    <!-- Alunos por turma -->
-    <div class="det-section">
-      <div class="det-section-title">Alunos por turma (${(alunos??[]).length})</div>
-      ${gruposTurma.length === 0 && semTurma.length === 0
-        ? `<div class="det-empty">Nenhum aluno cadastrado.</div>`
-        : `<div id="det-alunos-list"></div>`
-      }
-    </div>
+    <div class="det-body">
+      <!-- Coluna principal: alunos por turma -->
+      <div class="det-main-col">
+        <div class="det-section">
+          <div class="det-section-title">Alunos por turma (${(alunos??[]).length})</div>
+          ${gruposTurma.length === 0 && semTurma.length === 0
+            ? `<div class="det-empty">Nenhum aluno cadastrado.</div>`
+            : `<div id="det-alunos-list"></div>`
+          }
+        </div>
+      </div>
 
-    <!-- Professores -->
-    <div class="det-section">
-      <div class="det-section-title">Professores (${(profs??[]).length})</div>
-      ${(profs??[]).length === 0
-        ? `<div class="det-empty">Nenhum professor cadastrado.</div>`
-        : `<div class="det-table-wrap">
-            <table class="det-table">
-              <thead><tr><th>Nome</th><th>E-mail</th></tr></thead>
-              <tbody>
-                ${(profs??[]).map(p => `
-                  <tr>
-                    <td>
-                      <div class="det-prof-cell">
-                        <div class="det-prof-avatar">${esc((p.nome||p.email||"?").charAt(0).toUpperCase())}</div>
-                        <span class="det-td-name">${esc(p.nome||"—")}</span>
-                      </div>
-                    </td>
-                    <td><span class="det-td-sub">${esc(p.email||"—")}</span></td>
-                  </tr>`).join("")}
-              </tbody>
-            </table>
-          </div>`
-      }
-    </div>
+      <!-- Coluna lateral: professores + chamadas -->
+      <div class="det-side-col">
+        <div class="det-section">
+          <div class="det-section-title">Professores (${(profs??[]).length})</div>
+          ${(profs??[]).length === 0
+            ? `<div class="det-empty">Nenhum professor cadastrado.</div>`
+            : `<div class="det-table-wrap">
+                <table class="det-table">
+                  <thead><tr><th>Nome</th><th>E-mail</th></tr></thead>
+                  <tbody>
+                    ${(profs??[]).map(p => `
+                      <tr>
+                        <td>
+                          <div class="det-prof-cell">
+                            <div class="det-prof-avatar">${esc((p.nome||p.email||"?").charAt(0).toUpperCase())}</div>
+                            <span class="det-td-name">${esc(p.nome||"—")}</span>
+                          </div>
+                        </td>
+                        <td><span class="det-td-sub">${esc(p.email||"—")}</span></td>
+                      </tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>`
+          }
+        </div>
 
-    <!-- Chamadas -->
-    <div class="det-section">
-      <div class="det-section-title">Chamadas recentes (${(chamadas??[]).length})</div>
-      ${(chamadas??[]).length === 0
-        ? `<div class="det-empty">Nenhuma chamada registrada ainda.</div>`
-        : `<div class="det-chamadas">
-            ${(chamadas??[]).map(c => `
-              <div class="det-cham-row">
-                <div class="det-cham-dot ${c.aberta ? "open" : "done"}"></div>
-                <div class="det-cham-info">
-                  <span class="det-cham-nome">${esc(c.turmas?.nome??"—")}</span>
-                  <span class="det-cham-data">${new Date(c.data+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"})}</span>
-                </div>
-                <span class="det-badge ${c.aberta?"open":"done"}">${c.aberta?"Aberta":"Encerrada"}</span>
-              </div>`).join("")}
-          </div>`
-      }
+        <div class="det-section">
+          <div class="det-section-title">Chamadas recentes (${(chamadas??[]).length})</div>
+          ${(chamadas??[]).length === 0
+            ? `<div class="det-empty">Nenhuma chamada registrada ainda.</div>`
+            : `<div class="det-table-wrap">
+                ${(chamadas??[]).map(c => `
+                  <div class="det-cham-row">
+                    <div class="det-cham-dot ${c.aberta ? "open" : "done"}"></div>
+                    <div class="det-cham-info">
+                      <div class="det-cham-nome">${esc(c.turmas?.nome??"—")}</div>
+                      <div class="det-cham-data">${new Date(c.data+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"})}</div>
+                    </div>
+                    <span class="det-badge ${c.aberta?"open":"done"}">${c.aberta?"Aberta":"Encerrada"}</span>
+                  </div>`).join("")}
+              </div>`
+          }
+        </div>
+      </div>
     </div>
   `;
 
@@ -467,127 +453,167 @@ async function renderInstDetalhe(instId, instNome) {
 
 // ══ VIEW 3: ANOTAÇÕES ════════════════════════════════════════════════════════
 function renderAnotacoes() {
-  const storageKey = `adm_notes_${window._adminId || "local"}`;
-  const pinsKey    = `adm_pins_${window._adminId  || "local"}`;
+  const storageKey = `adm_notes_v2_${window._adminId || "local"}`;
+  const COLORS     = ["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#06b6d4"];
+  const timers     = {};
 
-  const saved = localStorage.getItem(storageKey) || "";
-  const pins  = JSON.parse(localStorage.getItem(pinsKey) || "[]");
+  const loadNotes = () => JSON.parse(localStorage.getItem(storageKey) || "[]");
+  const saveNotes = (notes) => localStorage.setItem(storageKey, JSON.stringify(notes));
 
-  const renderPins = () => {
-    const container = document.getElementById("pins-container");
-    if (!container) return;
-    const pinList = JSON.parse(localStorage.getItem(pinsKey) || "[]");
-    if (pinList.length === 0) {
-      container.innerHTML = `<div style="font-size:.78rem;color:var(--text-3);padding:8px 0">Nenhuma nota fixada.<br>Selecione texto e clique em "Fixar seleção".</div>`;
+  const fmtDate = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR", { day:"numeric", month:"short" }) + " " +
+           d.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  };
+
+  const newNote = () => ({
+    id: crypto.randomUUID(),
+    title: "", content: "",
+    color: COLORS[0],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  const renderGrid = () => {
+    const notes = loadNotes();
+    const grid  = document.getElementById("notes-grid");
+    if (!grid) return;
+
+    if (notes.length === 0) {
+      grid.innerHTML = `
+        <div class="notes-empty">
+          <div class="notes-empty-icon">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" width="52" height="52">
+              <rect x="8" y="6" width="32" height="36" rx="4"/>
+              <line x1="16" y1="16" x2="32" y2="16"/>
+              <line x1="16" y1="23" x2="28" y2="23"/>
+              <line x1="16" y1="30" x2="22" y2="30"/>
+            </svg>
+          </div>
+          <div class="notes-empty-title">Nenhuma anotação ainda</div>
+          <div class="notes-empty-sub">Clique em "Nova nota" para começar</div>
+        </div>`;
       return;
     }
-    container.innerHTML = pinList.map((p, i) => `
-      <div class="notes-pin-card">
-        <div class="notes-pin-text">${esc(p.text)}</div>
-        <div class="notes-pin-date">${p.date}</div>
-        <button class="notes-pin-del" data-i="${i}" title="Remover">✕</button>
+
+    grid.innerHTML = notes.map((note, i) => `
+      <div class="note-card" data-id="${note.id}" style="--note-color:${note.color};animation-delay:${i * .045}s">
+        <button class="note-del" data-id="${note.id}" title="Excluir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="note-inner">
+          <input  class="note-title"   data-id="${note.id}" placeholder="Título" value="${esc(note.title)}" maxlength="80"/>
+          <textarea class="note-content" data-id="${note.id}" placeholder="Escreva aqui…" rows="4">${esc(note.content)}</textarea>
+        </div>
+        <div class="note-footer">
+          <div class="note-colors">
+            ${COLORS.map(c => `<div class="note-color-dot${note.color===c?" active":""}" data-id="${note.id}" data-color="${c}" style="background:${c}"></div>`).join("")}
+          </div>
+          <div class="note-timestamp">${fmtDate(note.updatedAt)}</div>
+        </div>
       </div>`).join("");
-    container.querySelectorAll(".notes-pin-del").forEach(btn => {
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        const idx  = parseInt(btn.dataset.i);
-        const list = JSON.parse(localStorage.getItem(pinsKey) || "[]");
-        list.splice(idx, 1);
-        localStorage.setItem(pinsKey, JSON.stringify(list));
-        renderPins();
+
+    grid.querySelectorAll(".note-content").forEach(ta => {
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    });
+
+    attachEvents();
+  };
+
+  const attachEvents = () => {
+    const grid = document.getElementById("notes-grid");
+    if (!grid) return;
+
+    grid.querySelectorAll(".note-title").forEach(inp => {
+      inp.addEventListener("input", () => scheduleAutosave(inp.dataset.id));
+    });
+
+    grid.querySelectorAll(".note-content").forEach(ta => {
+      ta.addEventListener("input", () => {
+        ta.style.height = "auto";
+        ta.style.height = ta.scrollHeight + "px";
+        scheduleAutosave(ta.dataset.id);
+      });
+    });
+
+    grid.querySelectorAll(".note-color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        const { id, color } = dot.dataset;
+        const notes = loadNotes();
+        const note  = notes.find(n => n.id === id);
+        if (!note) return;
+        note.color = color;
+        note.updatedAt = new Date().toISOString();
+        saveNotes(notes);
+        const card = grid.querySelector(`.note-card[data-id="${id}"]`);
+        if (card) {
+          card.style.setProperty("--note-color", color);
+          card.querySelectorAll(".note-color-dot").forEach(d => d.classList.toggle("active", d.dataset.color === color));
+          const ts = card.querySelector(".note-timestamp");
+          if (ts) ts.textContent = fmtDate(note.updatedAt);
+        }
+      });
+    });
+
+    grid.querySelectorAll(".note-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id   = btn.dataset.id;
+        const card = grid.querySelector(`.note-card[data-id="${id}"]`);
+        if (!card) return;
+        card.classList.add("removing");
+        card.addEventListener("animationend", () => {
+          saveNotes(loadNotes().filter(n => n.id !== id));
+          renderGrid();
+        }, { once: true });
       });
     });
   };
 
-  root.innerHTML = `
-    <div class="notes-header">
-      <div class="notes-title">Anotações</div>
-      <div class="notes-subtitle">Notas pessoais — salvas localmente neste navegador</div>
-    </div>
-
-    <div class="notes-wrap">
-      <div class="notes-main">
-        <div class="notes-card">
-          <div class="notes-toolbar">
-            <span class="notes-toolbar-title">Bloco de notas</span>
-            <span class="notes-save-status" id="save-status">Pronto</span>
-          </div>
-          <textarea class="notes-textarea" id="notes-ta" placeholder="Escreva suas anotações aqui...">${esc(saved)}</textarea>
-          <div class="notes-actions">
-            <button class="notes-btn-save" id="btn-save-notes">Salvar</button>
-            <button class="notes-btn-pin" id="btn-pin-sel">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="margin-right:5px"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14"/><path d="M12 3l3 7H9l3-7z"/></svg>
-              Fixar seleção
-            </button>
-            <button class="notes-btn-clear" id="btn-clear-notes">Limpar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="notes-sidebar">
-        <div class="notes-pins-title">Notas fixadas</div>
-        <div id="pins-container"></div>
-      </div>
-    </div>
-  `;
-
-  renderPins();
-
-  const ta         = document.getElementById("notes-ta");
-  const saveStatus = document.getElementById("save-status");
-  let autoTimer    = null;
-
-  const save = (showMsg = true) => {
-    localStorage.setItem(storageKey, ta.value);
-    if (showMsg) {
-      saveStatus.textContent = "Salvo ✓";
-      saveStatus.className   = "notes-save-status saved";
-      setTimeout(() => { saveStatus.textContent = "Pronto"; saveStatus.className = "notes-save-status"; }, 2000);
-    }
+  const scheduleAutosave = (id) => {
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(() => {
+      const grid = document.getElementById("notes-grid");
+      if (!grid) return;
+      const titleEl   = grid.querySelector(`.note-title[data-id="${id}"]`);
+      const contentEl = grid.querySelector(`.note-content[data-id="${id}"]`);
+      if (!titleEl || !contentEl) return;
+      const notes = loadNotes();
+      const note  = notes.find(n => n.id === id);
+      if (!note) return;
+      note.title     = titleEl.value;
+      note.content   = contentEl.value;
+      note.updatedAt = new Date().toISOString();
+      saveNotes(notes);
+      const ts = grid.querySelector(`.note-card[data-id="${id}"] .note-timestamp`);
+      if (ts) ts.textContent = fmtDate(note.updatedAt);
+    }, 900);
   };
 
-  // Auto-save após 1.5s sem digitar
-  ta.addEventListener("input", () => {
-    saveStatus.textContent = "Não salvo…";
-    saveStatus.className   = "notes-save-status";
-    clearTimeout(autoTimer);
-    autoTimer = setTimeout(() => save(true), 1500);
-  });
-
-  document.getElementById("btn-save-notes").addEventListener("click", () => save(true));
-
-  document.getElementById("btn-pin-sel").addEventListener("click", () => {
-    const start = ta.selectionStart;
-    const end   = ta.selectionEnd;
-    const text  = ta.value.substring(start, end).trim();
-    if (!text) { showToast("Selecione um trecho do texto antes de fixar.", "error"); return; }
-    const list = JSON.parse(localStorage.getItem(pinsKey) || "[]");
-    list.unshift({ text, date: new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) });
-    localStorage.setItem(pinsKey, JSON.stringify(list));
-    renderPins();
-    showToast("Trecho fixado!", "success");
-  });
-
-  document.getElementById("btn-clear-notes").addEventListener("click", () => {
-    if (!ta.value.trim()) return;
-    const overlay = criarOverlay(`
-      <div class="tv-modal-body" style="padding:28px 24px;text-align:center">
-        <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px">Limpar anotações?</h3>
-        <p style="font-size:.875rem;color:var(--text-2);margin-bottom:20px">Todo o conteúdo do bloco será apagado.</p>
-        <div style="display:flex;gap:10px">
-          <button class="tv-btn-ghost" id="m-cancel" style="flex:1">Cancelar</button>
-          <button id="m-ok" style="flex:1;padding:10px;border:none;border-radius:9px;background:var(--red);color:white;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit">Limpar</button>
-        </div>
+  root.innerHTML = `
+    <div class="notes-header">
+      <div>
+        <div class="notes-title">Anotações</div>
+        <div class="notes-subtitle">Salvas localmente neste navegador</div>
       </div>
-    `);
-    overlay.querySelector("#m-cancel").addEventListener("click", () => overlay.remove());
-    overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
-    overlay.querySelector("#m-ok").addEventListener("click", () => {
-      ta.value = "";
-      save(false);
-      saveStatus.textContent = "Pronto";
-      overlay.remove();
-    });
+      <button class="notes-btn-new" id="btn-nova-nota">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova nota
+      </button>
+    </div>
+    <div class="notes-grid" id="notes-grid"></div>
+  `;
+
+  renderGrid();
+
+  document.getElementById("btn-nova-nota").addEventListener("click", () => {
+    const notes = loadNotes();
+    notes.unshift(newNote());
+    saveNotes(notes);
+    renderGrid();
+    setTimeout(() => {
+      document.getElementById("notes-grid")?.querySelector(".note-title")?.focus();
+    }, 60);
   });
 }
 

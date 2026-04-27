@@ -367,23 +367,33 @@ function modalNivel(p) {
 
 // ─── Modal: Atribuir turmas ───────────────────────────────────────────────────
 async function modalTurmas(p) {
-  const [{ data: turmas }, { data: atribuidas }] = await Promise.all([
-    supabase.from("turmas").select("id, nome, materia")
-      .eq("instituicao_id", _instId).order("nome"),
-    supabase.from("turmas").select("id").eq("professor_id", p.id),
-  ]);
+  const profNome = p.nome || p.email;
 
-  const atribSet = new Set((atribuidas || []).map((t) => t.id));
-  const items = (turmas || []).map((t) => `
-    <label class="turma-check-item">
-      <input type="checkbox" value="${t.id}" ${atribSet.has(t.id) ? "checked" : ""} />
-      ${esc(t.nome)}${t.materia ? ` <span style="color:var(--text-3)"> · ${esc(t.materia)}</span>` : ""}
-    </label>`).join("") || `<p style="padding:12px;color:var(--text-3);font-size:.85rem">Nenhuma turma cadastrada.</p>`;
+  const { data: turmas } = await supabase
+    .from("turmas")
+    .select("id, nome, professor")
+    .eq("instituicao_id", _instId)
+    .order("nome");
+
+  const lista = turmas || [];
+  // turmas já atribuídas a este professor (pelo nome no campo text)
+  const atribSet = new Set(lista.filter(t => t.professor === profNome).map(t => t.id));
+
+  const items = lista.length === 0
+    ? `<p style="padding:12px;color:var(--text-3);font-size:.85rem">Nenhuma turma cadastrada.</p>`
+    : lista.map(t => `
+        <label class="turma-check-item">
+          <input type="checkbox" value="${t.id}" ${atribSet.has(t.id) ? "checked" : ""} />
+          <span>${esc(t.nome)}</span>
+          ${t.professor && t.professor !== profNome
+            ? `<span style="font-size:.75rem;color:var(--text-3);margin-left:4px">· ${esc(t.professor)}</span>`
+            : ""}
+        </label>`).join("");
 
   openModal(`
     <div class="modal-title">Atribuir turmas</div>
-    <p style="font-size:.875rem;color:var(--text-2);margin-bottom:14px">
-      Turmas de <strong>${esc(p.nome || p.email)}</strong>:
+    <p style="font-size:.85rem;color:var(--text-2);margin-bottom:14px">
+      Selecione as turmas de <strong>${esc(profNome)}</strong>:
     </p>
     <div class="modal-field">
       <div class="turmas-check-list">${items}</div>
@@ -395,17 +405,18 @@ async function modalTurmas(p) {
   `, () => {
     document.getElementById("t-cancel").addEventListener("click", closeModal);
     document.getElementById("t-save").addEventListener("click", async () => {
-      const checks = [...document.querySelectorAll(".turmas-check-list input[type=checkbox]")];
-      const novas  = new Set(checks.filter((c) => c.checked).map((c) => c.value));
+      const checks    = [...document.querySelectorAll(".turmas-check-list input[type=checkbox]")];
+      const novas     = new Set(checks.filter(c => c.checked).map(c => c.value));
+      const remover   = [...atribSet].filter(id => !novas.has(id));
+      const adicionar = [...novas].filter(id => !atribSet.has(id));
 
       const btn = document.getElementById("t-save");
       btn.disabled = true; btn.textContent = "Salvando…";
 
-      const remover   = [...atribSet].filter((id) => !novas.has(id));
-      const adicionar = [...novas].filter((id) => !atribSet.has(id));
-
-      if (remover.length)   await supabase.from("turmas").update({ professor_id: null }).in("id", remover);
-      if (adicionar.length) await supabase.from("turmas").update({ professor_id: p.id }).in("id", adicionar);
+      if (remover.length)
+        await supabase.from("turmas").update({ professor: null }).in("id", remover);
+      if (adicionar.length)
+        await supabase.from("turmas").update({ professor: profNome }).in("id", adicionar);
 
       showToast("Turmas atualizadas!", "success");
       closeModal();
