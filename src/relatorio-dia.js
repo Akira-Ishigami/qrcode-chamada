@@ -1,5 +1,6 @@
-import { supabase } from "./supabase.js";
-import { applyNavRole } from "./nav-role.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
+import { applyNavRole }  from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 
@@ -33,65 +34,73 @@ async function renderPage(profile) {
 
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  // Professor: filtra pelas turmas onde o campo professor (text) tem o nome dele
-  // Instituição: mostra todas as turmas da instituição
-  let turmasQuery = supabase
-    .from("turmas")
-    .select("id, nome, professor, instituicoes(nome)")
-    .order("nome");
-
-  if (profile.role === "professor") {
-    turmasQuery = turmasQuery.eq("professor", nome);
-  } else {
-    turmasQuery = turmasQuery.eq("instituicao_id", profile.instituicao_id);
-  }
-
-  const { data: turmas } = await turmasQuery;
-
-  if (!turmas?.length) {
+  if (!profile.instituicao_id) {
     root.innerHTML = `
       <div class="rd-header">
-        <div class="rd-title">Relatório do Dia</div>
-        <div class="rd-subtitle">${dataFormatada}</div>
+        <div><div class="rd-title">Relatório do Dia</div><div class="rd-subtitle">${dataFormatada}</div></div>
       </div>
       <div class="rd-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:.25">
-          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-        <p>Você não tem turmas atribuídas.</p>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>Seu perfil não está vinculado a uma instituição.<br>Entre em contato com o administrador.</p>
       </div>`;
     return;
   }
 
-  const turmaIds = turmas.map(t => t.id);
+  // Usa supabaseAdmin para bypassar RLS
+  // Professor e instituicao veem todas as turmas da instituição
+  const { data: turmas, error: eTurmas } = await supabaseAdmin
+    .from("turmas")
+    .select("id, nome, professor, instituicoes(nome)")
+    .eq("instituicao_id", profile.instituicao_id)
+    .order("nome");
 
-  // Busca chamadas de hoje para as turmas do professor
-  const { data: chamadas } = await supabase
+  if (eTurmas) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar turmas: ${eTurmas.message}</div>`;
+    return;
+  }
+
+  const lista = turmas ?? [];
+
+  if (lista.length === 0) {
+    root.innerHTML = `
+      <div class="rd-header">
+        <div><div class="rd-title">Relatório do Dia</div><div class="rd-subtitle">${dataFormatada}</div></div>
+      </div>
+      <div class="rd-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:.2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <p>Nenhuma turma cadastrada ainda.</p>
+      </div>`;
+    return;
+  }
+
+  const turmaIds = lista.map(t => t.id);
+
+  // Busca chamadas de hoje
+  const { data: chamadas } = await supabaseAdmin
     .from("chamadas")
     .select("id, turma_id, aberta")
     .eq("data", hoje)
     .in("turma_id", turmaIds);
 
-  // Para cada chamada, busca presenças
+  // Para cada chamada, busca presenças e alunos
   const detalhes = await Promise.all((chamadas ?? []).map(async c => {
     const [{ data: presencas }, { data: alunos }] = await Promise.all([
-      supabase.from("presencas").select("aluno_id").eq("chamada_id", c.id),
-      supabase.from("alunos").select("id, nome, matricula").eq("turma_id", c.turma_id).order("nome"),
+      supabaseAdmin.from("presencas").select("aluno_id").eq("chamada_id", c.id),
+      supabaseAdmin.from("alunos").select("id, nome, matricula").eq("turma_id", c.turma_id).order("nome"),
     ]);
     const presenteIds = new Set((presencas ?? []).map(p => p.aluno_id));
-    const lista = alunos ?? [];
+    const alunosList  = alunos ?? [];
     return {
       chamada: c,
-      turma: turmas.find(t => t.id === c.turma_id),
-      presentes: lista.filter(a => presenteIds.has(a.id)),
-      ausentes:  lista.filter(a => !presenteIds.has(a.id)),
+      turma:    lista.find(t => t.id === c.turma_id),
+      presentes: alunosList.filter(a =>  presenteIds.has(a.id)),
+      ausentes:  alunosList.filter(a => !presenteIds.has(a.id)),
     };
   }));
 
-  const turmasSemChamada = turmas.filter(t => !(chamadas ?? []).some(c => c.turma_id === t.id));
-
-  const totalPresentes = detalhes.reduce((s, d) => s + d.presentes.length, 0);
-  const totalAusentes  = detalhes.reduce((s, d) => s + d.ausentes.length, 0);
+  const turmasSemChamada = lista.filter(t => !(chamadas ?? []).some(c => c.turma_id === t.id));
+  const totalPresentes   = detalhes.reduce((s, d) => s + d.presentes.length, 0);
+  const totalAusentes    = detalhes.reduce((s, d) => s + d.ausentes.length, 0);
 
   root.innerHTML = `
     <div class="rd-header">
@@ -103,9 +112,15 @@ async function renderPage(profile) {
 
     ${detalhes.length > 0 ? `
       <div class="rd-stats">
-        <div class="rd-stat green"><span class="rd-num">${totalPresentes}</span><span class="rd-lbl">Presentes</span></div>
-        <div class="rd-stat red"><span class="rd-num">${totalAusentes}</span><span class="rd-lbl">Ausentes</span></div>
-        <div class="rd-stat blue"><span class="rd-num">${detalhes.length}</span><span class="rd-lbl">Chamadas</span></div>
+        <div class="rd-stat green">
+          <span class="rd-num">${totalPresentes}</span><span class="rd-lbl">Presentes</span>
+        </div>
+        <div class="rd-stat red">
+          <span class="rd-num">${totalAusentes}</span><span class="rd-lbl">Ausentes</span>
+        </div>
+        <div class="rd-stat blue">
+          <span class="rd-num">${detalhes.length}</span><span class="rd-lbl">Chamadas</span>
+        </div>
       </div>
     ` : ""}
 
@@ -125,12 +140,12 @@ async function renderPage(profile) {
     ` : ""}
   `;
 
-  const lista = document.getElementById("chamadas-list");
+  const listaEl = document.getElementById("chamadas-list");
 
   if (detalhes.length === 0) {
-    lista.innerHTML = `
+    listaEl.innerHTML = `
       <div class="rd-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.25">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
         </svg>
@@ -139,15 +154,13 @@ async function renderPage(profile) {
     return;
   }
 
-  detalhes.forEach(({ chamada, turma, presentes, ausentes }) => {
+  detalhes.forEach(({ chamada, turma, presentes, ausentes }, i) => {
     const total = presentes.length + ausentes.length;
     const pct   = total > 0 ? Math.round((presentes.length / total) * 100) : 0;
-    const statusBadge = chamada.aberta
-      ? `<span class="badge-aberta">Aberta</span>`
-      : `<span class="badge-encerrada">Encerrada</span>`;
 
     const card = document.createElement("div");
     card.className = "rd-card";
+    card.style.animationDelay = `${i * 0.05}s`;
     card.innerHTML = `
       <div class="rd-card-header" onclick="this.closest('.rd-card').classList.toggle('open')">
         <div class="rd-card-info">
@@ -162,7 +175,9 @@ async function renderPage(profile) {
           <span class="rd-pct ${pct >= 75 ? "green" : pct >= 50 ? "orange" : "red"}">${pct}%</span>
           <span class="badge-presente">${presentes.length} ✓</span>
           <span class="badge-ausente">${ausentes.length} ✗</span>
-          ${statusBadge}
+          ${chamada.aberta
+            ? `<span class="badge-aberta">Aberta</span>`
+            : `<span class="badge-encerrada">Encerrada</span>`}
         </div>
         <svg class="rd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
           <polyline points="9 18 15 12 9 6"/>
@@ -177,11 +192,10 @@ async function renderPage(profile) {
               <span class="${a.presente ? "dot-presente" : "dot-ausente"}">
                 ${a.presente ? "✓ Presente" : "✗ Ausente"}
               </span>
-            </div>
-          `).join("")}
+            </div>`).join("")}
       </div>
     `;
-    lista.appendChild(card);
+    listaEl.appendChild(card);
   });
 }
 
