@@ -1,11 +1,11 @@
 import { defineConfig } from "vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import mkcert from "vite-plugin-mkcert";
 
 export default defineConfig({
-  plugins: [basicSsl()],
+  plugins: [mkcert()],
   server: {
     https: true,
-    host: true, // expõe na rede local (permite acesso pelo celular)
+    host: true, // expõe na rede local para acesso pelo celular
   },
   build: {
     target: "esnext",
