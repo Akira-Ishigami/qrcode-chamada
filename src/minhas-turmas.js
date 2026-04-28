@@ -1,202 +1,226 @@
-import { supabase } from "./supabase.js";
-import { applyNavRole } from "./nav-role.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
+import { applyNavRole }  from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 const hoje = new Date().toISOString().split("T")[0];
 
-const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 function showToast(msg, type = "") {
   const t = document.getElementById("toast");
   if (!t) return;
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
+  t.textContent = msg; t.className = `toast ${type} show`;
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => t.classList.remove("show"), 3500);
 }
 
+// ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = "/login.html"; return; }
 
   await applyNavRole();
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles").select("role, nome").eq("id", session.user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles").select("role, nome, instituicao_id").eq("id", session.user.id).single();
 
-  if (profileError || !profile) {
-    document.body.innerHTML = `<div style="padding:40px;font-family:sans-serif;color:#ef4444">
-      ${profileError ? `Erro ao carregar perfil: ${profileError.message}.` : "Perfil não encontrado."}
-      <br><a href="/login.html">Fazer login novamente</a>
-    </div>`;
-    return;
-  }
-  if (profile.role === "admin")      { window.location.href = "/dashboard.html"; return; }
-  if (profile.role === "instituicao") { window.location.href = "/turmas.html"; return; }
+  if (!profile) { window.location.href = "/login.html"; return; }
+  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
+  if (profile.role === "instituicao") { window.location.href = "/inst-dashboard.html"; return; }
 
-  await renderPage(session.user.id, profile.nome);
+  await renderPage(profile);
 }
 
-async function renderPage(userId, nome) {
+// ─── Render principal ─────────────────────────────────────────────────────────
+async function renderPage(profile) {
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const [{ data: turmas }, { data: chamadas }] = await Promise.all([
-    supabase
+  const nomeProfessor = profile.nome || "";
+
+  // Usa supabaseAdmin para bypasear RLS (authenticated sem política no banco)
+  const [
+    { data: turmas,   error: e1 },
+    { data: chamadas, error: e2 },
+  ] = await Promise.all([
+    supabaseAdmin
       .from("turmas")
       .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
-      .eq("professor_id", userId)
-      .order("materia").order("nome"),
-    supabase
+      .eq("professor", nomeProfessor)   // campo text com o nome
+      .order("nome"),
+    supabaseAdmin
       .from("chamadas")
       .select("id, turma_id, aberta, data")
       .eq("data", hoje),
   ]);
 
-  // Horários de hoje
-  const [{ data: horariosHoje }] = await Promise.all([
-    supabase
-      .from("horarios")
-      .select("turma_id, dia_semana, hora_inicio, hora_fim, sala")
-      .in("turma_id", (turmas || []).map(t => t.id)),
-  ]);
-
-  const horariosMap = {};
-  (horariosHoje || []).forEach(h => {
-    if (!horariosMap[h.turma_id]) horariosMap[h.turma_id] = [];
-    horariosMap[h.turma_id].push(h);
-  });
+  if (e1 || e2) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar turmas. Tente novamente.</div>`;
+    return;
+  }
 
   const chamadaMap = {};
-  (chamadas || []).forEach(c => { chamadaMap[c.turma_id] = c; });
+  (chamadas ?? []).forEach(c => { chamadaMap[c.turma_id] = c; });
 
-  if (!turmas || turmas.length === 0) {
+  const lista = turmas ?? [];
+
+  if (lista.length === 0) {
     root.innerHTML = `
       <div class="mt-header">
-        <div class="mt-title">Olá, ${esc(nome || "Professor")}</div>
+        <div class="mt-title">Olá, ${esc(nomeProfessor || "Professor")}</div>
         <div class="mt-subtitle">Nenhuma turma atribuída ainda.</div>
       </div>
       <div class="mt-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <p>Nenhuma turma foi atribuída ao seu perfil ainda.<br>Entre em contato com o administrador.</p>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:.25">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <p>Nenhuma turma foi atribuída ao seu perfil.<br>Entre em contato com o administrador.</p>
       </div>`;
     return;
   }
 
   // Agrupa por matéria
   const grupos = {};
-  turmas.forEach(t => {
-    const mat = t.materia || "Sem matéria";
+  lista.forEach(t => {
+    const mat = t.materia || "Geral";
     if (!grupos[mat]) grupos[mat] = [];
     grupos[mat].push(t);
   });
 
-  const hoje_dia = new Date().getDay(); // 0=Dom..6=Sab
-
-  const gruposHtml = Object.entries(grupos).map(([mat, list]) => `
-    <div class="mt-group">
-      <div class="mt-group-label">${esc(mat)}</div>
-      <div class="mt-cards">
-        ${list.map(t => {
-          const chamada = chamadaMap[t.turma_id] || chamadaMap[t.id];
-          const horariosDaTurma = horariosMap[t.id] || [];
-          const horariosHojeStr = horariosDaTurma
-            .filter(h => h.dia_semana === hoje_dia)
-            .map(h => `${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}${h.sala ? ` · ${h.sala}` : ""}`)
-            .join(", ");
-
-          const horarioLegenda = t.horario || horariosHojeStr || "";
-
-          let statusBadge = "";
-          let actionBtn = "";
-          if (chamada && !chamada.aberta) {
-            statusBadge = `<span class="mt-badge mt-badge-done">Encerrada</span>`;
-            actionBtn = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-ghost">Ver chamada</a>`;
-          } else if (chamada && chamada.aberta) {
-            statusBadge = `<span class="mt-badge mt-badge-open">Em andamento</span>`;
-            actionBtn = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-primary">Continuar</a>`;
-          } else {
-            actionBtn = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-primary">Fazer Chamada</a>`;
-          }
-
-          return `
-            <div class="mt-card">
-              <div class="mt-card-top">
-                <div class="mt-card-info">
-                  <div class="mt-card-nome">${esc(t.nome)}</div>
-                  ${t.instituicoes ? `<div class="mt-card-inst">${esc(t.instituicoes.nome)}</div>` : ""}
-                  ${horarioLegenda ? `<div class="mt-card-horario">🕐 ${esc(horarioLegenda)}</div>` : ""}
-                </div>
-                ${statusBadge}
-              </div>
-              <div class="mt-card-actions">${actionBtn}</div>
-            </div>`;
-        }).join("")}
-      </div>
-    </div>`).join("");
-
-  // Chamadas do dia (relatório resumido)
-  const chamadas_do_dia = (chamadas || []).filter(c =>
-    (turmas || []).some(t => t.id === c.turma_id));
-
-  let relatorioHtml = "";
-  if (chamadas_do_dia.length > 0) {
-    relatorioHtml = await buildRelatorioHoje(chamadas_do_dia, turmas);
-  }
+  const dataFmt = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   root.innerHTML = `
     <div class="mt-header">
       <div>
-        <div class="mt-title">Olá, ${esc(nome || "Professor")}</div>
-        <div class="mt-subtitle">Suas turmas — ${formatarData(hoje)}</div>
+        <div class="mt-title">Olá, ${esc(nomeProfessor || "Professor")}</div>
+        <div class="mt-subtitle">${dataFmt} · ${lista.length} turma${lista.length !== 1 ? "s" : ""}</div>
       </div>
     </div>
-    ${gruposHtml}
-    ${chamadas_do_dia.length ? `
-      <div class="mt-section-title">Chamadas de hoje</div>
-      ${relatorioHtml}
-    ` : ""}`;
-}
+    <div id="mt-grupos"></div>
+  `;
 
-async function buildRelatorioHoje(chamadas, turmas) {
-  const turmaMap = {};
-  turmas.forEach(t => { turmaMap[t.id] = t; });
+  const container = document.getElementById("mt-grupos");
 
-  const rows = await Promise.all(chamadas.map(async c => {
-    const { data: presencas } = await supabase
-      .from("presencas").select("aluno_id").eq("chamada_id", c.id);
-    const { data: total } = await supabase
-      .from("alunos").select("id", { count: "exact" }).eq("turma_id", c.turma_id);
+  Object.entries(grupos).forEach(([mat, turmasList]) => {
+    const section = document.createElement("div");
+    section.className = "mt-group";
+    section.innerHTML = `
+      <div class="mt-group-label">${esc(mat)}</div>
+      <div class="mt-cards" id="cards-${esc(mat).replace(/\s/g,"_")}"></div>
+    `;
+    container.appendChild(section);
 
-    const presentes = presencas?.length || 0;
-    const totalAlunos = total?.length || 0;
-    const ausentes = totalAlunos - presentes;
-    const turma = turmaMap[c.turma_id];
+    const cards = section.querySelector(".mt-cards");
+    turmasList.forEach(t => {
+      const chamada = chamadaMap[t.id];
+      let statusBadge = "";
+      let actionBtn   = "";
 
-    return `
-      <div class="rel-row">
-        <div class="rel-row-nome">${esc(turma?.nome || "—")}</div>
-        <div class="rel-row-stats">
-          <span class="rel-stat presente">${presentes} presentes</span>
-          <span class="rel-stat ausente">${ausentes} ausentes</span>
-          <span class="rel-stat total">${totalAlunos} total</span>
+      if (chamada && !chamada.aberta) {
+        statusBadge = `<span class="mt-badge mt-badge-done">Encerrada</span>`;
+        actionBtn   = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-ghost">Ver chamada</a>`;
+      } else if (chamada && chamada.aberta) {
+        statusBadge = `<span class="mt-badge mt-badge-open">Em andamento</span>`;
+        actionBtn   = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-primary">Continuar</a>`;
+      } else {
+        actionBtn = `<a href="/chamada.html?turma=${t.id}" class="mt-btn mt-btn-primary">Fazer Chamada</a>`;
+      }
+
+      const card = document.createElement("div");
+      card.className = "mt-card";
+      card.innerHTML = `
+        <div class="mt-card-top">
+          <div class="mt-card-info">
+            <div class="mt-card-nome">${esc(t.nome)}</div>
+            ${t.instituicoes?.nome ? `<div class="mt-card-inst">${esc(t.instituicoes.nome)}</div>` : ""}
+            ${t.horario ? `<div class="mt-card-horario">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="margin-right:3px;opacity:.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${esc(t.horario)}</div>` : ""}
+          </div>
+          ${statusBadge}
         </div>
-        ${c.aberta ? `<span class="mt-badge mt-badge-open" style="font-size:.7rem">Aberta</span>` :
-          `<span class="mt-badge mt-badge-done" style="font-size:.7rem">Encerrada</span>`}
+        <div class="mt-card-actions">
+          ${actionBtn}
+          <button class="mt-btn mt-btn-ghost btn-ver-alunos" data-turma-id="${t.id}" data-turma-nome="${esc(t.nome)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Ver alunos
+          </button>
+        </div>
+      `;
+
+      card.querySelector(".btn-ver-alunos").addEventListener("click", () =>
+        abrirModalAlunos(t.id, t.nome));
+
+      cards.appendChild(card);
+    });
+  });
+}
+
+// ─── Modal: Alunos da turma (somente visualização) ────────────────────────────
+async function abrirModalAlunos(turmaId, turmaNome) {
+  // Overlay de loading
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay open";
+  overlay.innerHTML = `
+    <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <h2>Alunos — ${esc(turmaNome)}</h2>
+        <button class="close-btn" id="modal-close">✕</button>
+      </div>
+      <div id="modal-alunos-body" style="overflow-y:auto;padding:16px;flex:1">
+        <div style="padding:32px;text-align:center;color:var(--text-3)">Carregando…</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector("#modal-close").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
+  });
+
+  const { data: alunos, error } = await supabaseAdmin
+    .from("alunos")
+    .select("id, nome, matricula")
+    .eq("turma_id", turmaId)
+    .order("nome");
+
+  const body = document.getElementById("modal-alunos-body");
+  if (!body) return;
+
+  if (error) {
+    body.innerHTML = `<div class="tv-error">Erro ao carregar alunos.</div>`; return;
+  }
+
+  if (!alunos || alunos.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--text-3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.3;margin-bottom:10px">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        </svg>
+        <p style="font-size:.875rem">Nenhum aluno nesta turma.</p>
       </div>`;
-  }));
+    return;
+  }
 
-  return `<div class="rel-list">${rows.join("")}</div>`;
-}
-
-function formatarData(iso) {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-}
-
-function esc(str) {
-  return String(str)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  body.innerHTML = `
+    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:10px">
+      ${alunos.length} aluno${alunos.length !== 1 ? "s" : ""}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      ${alunos.map((a, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;">
+          <span style="font-size:.72rem;color:var(--text-3);font-weight:600;width:20px;text-align:right;flex-shrink:0">${i+1}</span>
+          <span style="flex:1;font-size:.875rem;font-weight:600;color:var(--text)">${esc(a.nome)}</span>
+          ${a.matricula ? `<span style="font-size:.72rem;color:var(--text-3);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:5px">${esc(a.matricula)}</span>` : ""}
+        </div>`).join("")}
+    </div>
+  `;
 }
 
 init();
