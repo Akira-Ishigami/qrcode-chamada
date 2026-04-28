@@ -125,13 +125,15 @@ async function renderPage(profile, userId) {
       }
 
       const card = document.createElement("div");
-      card.className = "mt-card";
       const minhaTurma = t.professor_id === userId || t.professor === nomeProfessor;
+      const statusClass = chamada?.aberta ? "status-open" : chamada ? "status-done" : "status-none";
+      card.className = `mt-card ${statusClass}`;
       card.innerHTML = `
+        <div class="mt-card-inner">
         <div class="mt-card-top">
           <div class="mt-card-info">
             <div class="mt-card-nome">${esc(t.nome)}</div>
-            ${t.professor && !minhaTurma ? `<div class="mt-card-inst" style="color:var(--text-3)">Prof. ${esc(t.professor)}</div>` : ""}
+            ${t.professor && !minhaTurma ? `<div class="mt-card-inst">Prof. ${esc(t.professor)}</div>` : ""}
             ${t.horario ? `<div class="mt-card-horario">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="margin-right:3px;opacity:.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               ${esc(t.horario)}</div>` : ""}
@@ -144,6 +146,7 @@ async function renderPage(profile, userId) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Ver alunos
           </button>
+        </div>
         </div>
       `;
 
