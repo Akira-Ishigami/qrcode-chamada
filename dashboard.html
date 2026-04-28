@@ -405,11 +405,21 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   if(!btn)return;
   var scrollY=0;
   function open(){scrollY=window.scrollY;sidebar.classList.add('open');overlay.classList.add('visible');document.body.classList.add('sidebar-open');document.body.style.top='-'+scrollY+'px';}
-  function close(){sidebar.classList.remove('open');overlay.classList.remove('visible');document.body.classList.remove('sidebar-open');document.body.style.top='';window.scrollTo(0,scrollY);}
+  function close(){
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    document.body.classList.remove('sidebar-open');
+    document.body.style.top='';
+    /* Só restaura scroll ao fechar pelo overlay/esc, não ao trocar de aba */
+    if(arguments[0]!=='nav')window.scrollTo(0,scrollY);
+  }
   btn.addEventListener('click',function(){sidebar.classList.contains('open')?close():open();});
-  overlay.addEventListener('click',close);
+  overlay.addEventListener('click',function(){close();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
-  sidebar.querySelectorAll('.sidebar-link').forEach(function(l){l.addEventListener('click',close);});
+  /* Botões de nav: fecha sidebar sem restaurar scroll, depois o JS troca a view */
+  sidebar.querySelectorAll('.sidebar-link').forEach(function(l){
+    l.addEventListener('click',function(){close('nav');});
+  });
 })();
 </script>
 </body>

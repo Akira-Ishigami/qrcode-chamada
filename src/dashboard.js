@@ -41,10 +41,22 @@ async function init() {
   // Guarda user id para notas
   window._adminId = session.user.id;
 
-  // Navegação sidebar
-  document.getElementById("nav-dashboard").addEventListener("click", () => { setActive("nav-dashboard"); renderDashboard(); });
-  document.getElementById("nav-instituicoes").addEventListener("click", () => { setActive("nav-instituicoes"); renderInstituicoes(); });
-  document.getElementById("nav-anotacoes").addEventListener("click", () => { setActive("nav-anotacoes"); renderAnotacoes(); });
+  // Navegação sidebar — scroll topo garante visibilidade no mobile
+  document.getElementById("nav-dashboard").addEventListener("click", () => {
+    setActive("nav-dashboard");
+    window.scrollTo(0, 0);
+    renderDashboard();
+  });
+  document.getElementById("nav-instituicoes").addEventListener("click", () => {
+    setActive("nav-instituicoes");
+    window.scrollTo(0, 0);
+    renderInstituicoes();
+  });
+  document.getElementById("nav-anotacoes").addEventListener("click", () => {
+    setActive("nav-anotacoes");
+    window.scrollTo(0, 0);
+    renderAnotacoes();
+  });
 
   await renderDashboard();
 }
@@ -681,7 +693,7 @@ function abrirModalNovaInst() {
     });
 
     if (userErr) {
-      await supabase.from("instituicoes").delete().eq("id", instData.id);
+      await supabaseAdmin.from("instituicoes").delete().eq("id", instData.id);
       err.textContent = userErr.message;
       btn.disabled = false; btn.textContent = "Criar"; return;
     }
@@ -775,7 +787,7 @@ function confirmarExcluir(instId, instNome) {
       .from("profiles").select("id").eq("instituicao_id", instId).eq("role", "instituicao").single();
     if (profile) await supabaseAdmin.auth.admin.deleteUser(profile.id);
 
-    const { error } = await supabase.from("instituicoes").delete().eq("id", instId);
+    const { error } = await supabaseAdmin.from("instituicoes").delete().eq("id", instId);
     if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.textContent = "Excluir"; return; }
 
     fechar();
