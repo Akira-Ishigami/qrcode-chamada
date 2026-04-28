@@ -31,42 +31,47 @@ async function init() {
   if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
   if (profile.role === "instituicao") { window.location.href = "/inst-dashboard.html"; return; }
 
-  await renderPage(profile);
+  await renderPage(profile, session.user.id);
 }
 
 // ─── Render principal ─────────────────────────────────────────────────────────
-async function renderPage(profile) {
+async function renderPage(profile, userId) {
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
   const nomeProfessor = profile.nome || "";
 
-  // Usa supabaseAdmin para bypasear RLS (authenticated sem política no banco)
-  const [
-    { data: turmas,   error: e1 },
-    { data: chamadas, error: e2 },
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("turmas")
-      .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
-      .eq("professor", nomeProfessor)   // campo text com o nome
-      .order("nome"),
-    supabaseAdmin
-      .from("chamadas")
-      .select("id, turma_id, aberta, data")
-      .eq("data", hoje),
-  ]);
+  // 1. Busca turmas pelo professor_id (UUID — campo correto, migration 003)
+  const { data: turmasPorId } = await supabaseAdmin
+    .from("turmas")
+    .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
+    .eq("professor_id", userId)
+    .order("nome");
 
-  if (e1 || e2) {
-    root.innerHTML = `<div class="tv-error">Erro ao carregar turmas. Tente novamente.</div>`;
-    return;
-  }
+  // 2. Fallback: turmas legacy com professor (nome texto) sem professor_id
+  const { data: turmasLegacy } = await supabaseAdmin
+    .from("turmas")
+    .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
+    .eq("professor", nomeProfessor)
+    .is("professor_id", null)
+    .order("nome");
+
+  // Mescla sem duplicatas
+  const idsVistos = new Set((turmasPorId ?? []).map(t => t.id));
+  const turmas = [
+    ...(turmasPorId ?? []),
+    ...(turmasLegacy ?? []).filter(t => !idsVistos.has(t.id)),
+  ];
+
+  // 3. Chamadas de hoje
+  const { data: chamadas } = await supabaseAdmin
+    .from("chamadas")
+    .select("id, turma_id, aberta, data")
+    .eq("data", hoje);
 
   const chamadaMap = {};
   (chamadas ?? []).forEach(c => { chamadaMap[c.turma_id] = c; });
 
-  const lista = turmas ?? [];
-
-  if (lista.length === 0) {
+  if (turmas.length === 0) {
     root.innerHTML = `
       <div class="mt-header">
         <div class="mt-title">Olá, ${esc(nomeProfessor || "Professor")}</div>
@@ -84,19 +89,19 @@ async function renderPage(profile) {
 
   // Agrupa por matéria
   const grupos = {};
-  lista.forEach(t => {
+  turmas.forEach(t => {
     const mat = t.materia || "Geral";
     if (!grupos[mat]) grupos[mat] = [];
     grupos[mat].push(t);
   });
 
-  const dataFmt = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const dataFmt = new Date().toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
 
   root.innerHTML = `
     <div class="mt-header">
       <div>
         <div class="mt-title">Olá, ${esc(nomeProfessor || "Professor")}</div>
-        <div class="mt-subtitle">${dataFmt} · ${lista.length} turma${lista.length !== 1 ? "s" : ""}</div>
+        <div class="mt-subtitle">${dataFmt} · ${turmas.length} turma${turmas.length !== 1 ? "s" : ""}</div>
       </div>
     </div>
     <div id="mt-grupos"></div>
@@ -104,17 +109,17 @@ async function renderPage(profile) {
 
   const container = document.getElementById("mt-grupos");
 
-  Object.entries(grupos).forEach(([mat, turmasList]) => {
+  Object.entries(grupos).forEach(([mat, lista]) => {
     const section = document.createElement("div");
     section.className = "mt-group";
     section.innerHTML = `
       <div class="mt-group-label">${esc(mat)}</div>
-      <div class="mt-cards" id="cards-${esc(mat).replace(/\s/g,"_")}"></div>
+      <div class="mt-cards"></div>
     `;
     container.appendChild(section);
 
     const cards = section.querySelector(".mt-cards");
-    turmasList.forEach(t => {
+    lista.forEach(t => {
       const chamada = chamadaMap[t.id];
       let statusBadge = "";
       let actionBtn   = "";
@@ -144,7 +149,7 @@ async function renderPage(profile) {
         </div>
         <div class="mt-card-actions">
           ${actionBtn}
-          <button class="mt-btn mt-btn-ghost btn-ver-alunos" data-turma-id="${t.id}" data-turma-nome="${esc(t.nome)}">
+          <button class="mt-btn mt-btn-ghost btn-ver-alunos">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Ver alunos
           </button>
@@ -161,7 +166,6 @@ async function renderPage(profile) {
 
 // ─── Modal: Alunos da turma (somente visualização) ────────────────────────────
 async function abrirModalAlunos(turmaId, turmaNome) {
-  // Overlay de loading
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay open";
   overlay.innerHTML = `
@@ -193,17 +197,13 @@ async function abrirModalAlunos(turmaId, turmaNome) {
   const body = document.getElementById("modal-alunos-body");
   if (!body) return;
 
-  if (error) {
-    body.innerHTML = `<div class="tv-error">Erro ao carregar alunos.</div>`; return;
-  }
-
-  if (!alunos || alunos.length === 0) {
+  if (error || !alunos || alunos.length === 0) {
     body.innerHTML = `
       <div style="text-align:center;padding:40px;color:var(--text-3)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.3;margin-bottom:10px">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
         </svg>
-        <p style="font-size:.875rem">Nenhum aluno nesta turma.</p>
+        <p style="font-size:.875rem">${error ? "Erro ao carregar." : "Nenhum aluno nesta turma."}</p>
       </div>`;
     return;
   }

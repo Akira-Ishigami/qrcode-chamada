@@ -371,13 +371,15 @@ async function modalTurmas(p) {
 
   const { data: turmas } = await supabase
     .from("turmas")
-    .select("id, nome, professor")
+    .select("id, nome, professor, professor_id")
     .eq("instituicao_id", _instId)
     .order("nome");
 
   const lista = turmas || [];
-  // turmas já atribuídas a este professor (pelo nome no campo text)
-  const atribSet = new Set(lista.filter(t => t.professor === profNome).map(t => t.id));
+  // turmas já atribuídas a este professor (por id ou por nome legado)
+  const atribSet = new Set(
+    lista.filter(t => t.professor_id === p.id || t.professor === profNome).map(t => t.id)
+  );
 
   const items = lista.length === 0
     ? `<p style="padding:12px;color:var(--text-3);font-size:.85rem">Nenhuma turma cadastrada.</p>`
@@ -414,9 +416,9 @@ async function modalTurmas(p) {
       btn.disabled = true; btn.textContent = "Salvando…";
 
       if (remover.length)
-        await supabase.from("turmas").update({ professor: null }).in("id", remover);
+        await supabase.from("turmas").update({ professor: null, professor_id: null }).in("id", remover);
       if (adicionar.length)
-        await supabase.from("turmas").update({ professor: profNome }).in("id", adicionar);
+        await supabase.from("turmas").update({ professor: profNome, professor_id: p.id }).in("id", adicionar);
 
       showToast("Turmas atualizadas!", "success");
       closeModal();
