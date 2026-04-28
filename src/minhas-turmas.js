@@ -40,29 +40,19 @@ async function renderPage(profile, userId) {
 
   const nomeProfessor = profile.nome || "";
 
-  // 1. Busca turmas pelo professor_id (UUID — campo correto, migration 003)
-  const { data: turmasPorId } = await supabaseAdmin
+  // Mesma lógica da Chamada: carrega TODAS as turmas da instituição do professor
+  const { data: turmas, error: eTurmas } = await supabaseAdmin
     .from("turmas")
-    .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
-    .eq("professor_id", userId)
+    .select("id, nome, materia, horario, professor, instituicao_id, instituicoes(nome)")
+    .eq("instituicao_id", profile.instituicao_id)
     .order("nome");
 
-  // 2. Fallback: turmas legacy com professor (nome texto) sem professor_id
-  const { data: turmasLegacy } = await supabaseAdmin
-    .from("turmas")
-    .select("id, nome, materia, horario, instituicao_id, instituicoes(nome)")
-    .eq("professor", nomeProfessor)
-    .is("professor_id", null)
-    .order("nome");
+  if (eTurmas || !profile.instituicao_id) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar turmas. Verifique se você tem uma instituição vinculada.</div>`;
+    return;
+  }
 
-  // Mescla sem duplicatas
-  const idsVistos = new Set((turmasPorId ?? []).map(t => t.id));
-  const turmas = [
-    ...(turmasPorId ?? []),
-    ...(turmasLegacy ?? []).filter(t => !idsVistos.has(t.id)),
-  ];
-
-  // 3. Chamadas de hoje
+  // Chamadas de hoje
   const { data: chamadas } = await supabaseAdmin
     .from("chamadas")
     .select("id, turma_id, aberta, data")
@@ -136,11 +126,12 @@ async function renderPage(profile, userId) {
 
       const card = document.createElement("div");
       card.className = "mt-card";
+      const minhaTurma = t.professor_id === userId || t.professor === nomeProfessor;
       card.innerHTML = `
         <div class="mt-card-top">
           <div class="mt-card-info">
             <div class="mt-card-nome">${esc(t.nome)}</div>
-            ${t.instituicoes?.nome ? `<div class="mt-card-inst">${esc(t.instituicoes.nome)}</div>` : ""}
+            ${t.professor && !minhaTurma ? `<div class="mt-card-inst" style="color:var(--text-3)">Prof. ${esc(t.professor)}</div>` : ""}
             ${t.horario ? `<div class="mt-card-horario">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="margin-right:3px;opacity:.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               ${esc(t.horario)}</div>` : ""}
