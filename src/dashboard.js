@@ -58,7 +58,34 @@ async function init() {
     renderAnotacoes();
   });
 
+  // Realtime — atualiza a view ativa quando o banco muda
+  setupRealtime();
+
   await renderDashboard();
+}
+
+// ─── Realtime ─────────────────────────────────────────────────────────────────
+function setupRealtime() {
+  supabase
+    .channel("adm-realtime")
+    .on("postgres_changes", { event: "*", schema: "public", table: "instituicoes" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-dashboard")    renderDashboard();
+      if (active === "nav-instituicoes") renderInstituicoes();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "chamadas" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-dashboard") renderDashboard();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "turmas" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-instituicoes") renderInstituicoes();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "alunos" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-instituicoes") renderInstituicoes();
+    })
+    .subscribe();
 }
 
 // ══ VIEW 1: DASHBOARD (read-only) ════════════════════════════════════════════
@@ -783,17 +810,47 @@ function confirmarExcluir(instId, instNome) {
     const err = overlay.querySelector("#modal-err");
     btn.disabled = true; btn.textContent = "Excluindo…";
 
-    const { data: profile } = await supabaseAdmin
-      .from("profiles").select("id").eq("instituicao_id", instId).eq("role", "instituicao").single();
-    if (profile) await supabaseAdmin.auth.admin.deleteUser(profile.id);
+    try {
+      // 1. Busca os ids das turmas para poder deletar chamadas/presencas
+      const { data: turmas } = await supabaseAdmin
+        .from("turmas").select("id").eq("instituicao_id", instId);
+      const turmaIds = (turmas ?? []).map(t => t.id);
 
-    const { error } = await supabaseAdmin.from("instituicoes").delete().eq("id", instId);
-    if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.textContent = "Excluir"; return; }
+      // 2. Deleta presenças das chamadas dessas turmas
+      if (turmaIds.length > 0) {
+        const { data: chs } = await supabaseAdmin
+          .from("chamadas").select("id").in("turma_id", turmaIds);
+        const chamadaIds = (chs ?? []).map(c => c.id);
+        if (chamadaIds.length > 0) {
+          await supabaseAdmin.from("presencas").delete().in("chamada_id", chamadaIds);
+        }
+        // 3. Deleta chamadas
+        await supabaseAdmin.from("chamadas").delete().in("turma_id", turmaIds);
+      }
 
-    fechar();
-    showToast(`"${instNome}" excluída.`, "success");
-    setActive("nav-instituicoes");
-    await renderInstituicoes();
+      // 4. Deleta alunos (FK RESTRICT em turma_id e instituicao_id)
+      await supabaseAdmin.from("alunos").delete().eq("instituicao_id", instId);
+
+      // 5. Deleta turmas (FK RESTRICT em instituicao_id)
+      await supabaseAdmin.from("turmas").delete().eq("instituicao_id", instId);
+
+      // 6. Deleta o usuário auth da instituição
+      const { data: prof } = await supabaseAdmin
+        .from("profiles").select("id").eq("instituicao_id", instId).eq("role", "instituicao").single();
+      if (prof) await supabaseAdmin.auth.admin.deleteUser(prof.id);
+
+      // 7. Deleta a instituição
+      const { error } = await supabaseAdmin.from("instituicoes").delete().eq("id", instId);
+      if (error) throw error;
+
+      fechar();
+      showToast(`"${instNome}" excluída.`, "success");
+      setActive("nav-instituicoes");
+      await renderInstituicoes();
+    } catch (e) {
+      err.textContent = "Erro: " + (e.message ?? e);
+      btn.disabled = false; btn.textContent = "Excluir";
+    }
   });
 }
 

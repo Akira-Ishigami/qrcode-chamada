@@ -88,6 +88,16 @@ CREATE POLICY "auth_all_chamadas"     ON chamadas     FOR ALL TO authenticated U
 CREATE POLICY "auth_all_presencas"    ON presencas    FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ═══════════════════════════════════════════════════════════════════════════
+--  REALTIME — habilita publicação das tabelas
+--  Execute no SQL Editor do Supabase para ativar as subscrições realtime
+-- ═══════════════════════════════════════════════════════════════════════════
+ALTER PUBLICATION supabase_realtime ADD TABLE instituicoes;
+ALTER PUBLICATION supabase_realtime ADD TABLE turmas;
+ALTER PUBLICATION supabase_realtime ADD TABLE alunos;
+ALTER PUBLICATION supabase_realtime ADD TABLE chamadas;
+ALTER PUBLICATION supabase_realtime ADD TABLE presencas;
+
+-- ═══════════════════════════════════════════════════════════════════════════
 --  STORAGE (foto de perfil dos alunos — opcional)
 --  Execute separadamente se quiser habilitar upload de fotos
 -- ═══════════════════════════════════════════════════════════════════════════
