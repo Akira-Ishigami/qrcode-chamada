@@ -70,7 +70,6 @@ async function renderDashboard() {
     supabaseAdmin.from("chamadas")
       .select("id, aberta, turmas(nome, instituicoes(nome))")
       .eq("data", hoje)
-      .order("criado_em", { ascending: false })
       .limit(15),
   ]);
 
