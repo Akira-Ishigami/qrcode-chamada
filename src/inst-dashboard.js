@@ -53,14 +53,14 @@ async function render(profile) {
     { data: chamadas },
     { data: inst },
   ] = await Promise.all([
-    supabase.from("turmas").select("id, nome").eq("instituicao_id", instId),
-    supabase.from("alunos").select("id").eq("instituicao_id", instId),
-    supabase.from("profiles").select("id").eq("instituicao_id", instId).eq("role", "professor"),
-    supabase.from("chamadas")
+    supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", instId),
+    supabaseAdmin.from("alunos").select("id").eq("instituicao_id", instId),
+    supabaseAdmin.from("profiles").select("id").eq("instituicao_id", instId).eq("role", "professor"),
+    supabaseAdmin.from("chamadas")
       .select("id, aberta, turmas!inner(nome, professor, instituicao_id)")
       .eq("data", hoje)
       .eq("turmas.instituicao_id", instId),
-    instId ? supabase.from("instituicoes").select("nome").eq("id", instId).single() : { data: null },
+    instId ? supabaseAdmin.from("instituicoes").select("nome").eq("id", instId).single() : { data: null },
   ]);
 
   const nTurmas  = (turmas  ?? []).length;

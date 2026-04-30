@@ -1,4 +1,5 @@
-import { supabase } from "./supabase.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
 import { podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
@@ -88,7 +89,7 @@ async function renderInstituicoes() {
   }
 
   // Contagem de turmas
-  const { data: td } = await supabase.from("turmas").select("id, instituicao_id");
+  const { data: td } = await supabaseAdmin.from("turmas").select("id, instituicao_id");
   const porInst = {};
   (td ?? []).forEach(t => { porInst[t.instituicao_id] = (porInst[t.instituicao_id] ?? 0) + 1; });
 
@@ -300,7 +301,7 @@ function abrirModal(tipo) {
     if (isInst) {
       const nome = document.getElementById("mi-nome")?.value.trim();
       if (!nome) { err.textContent = "Informe o nome."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar`; return; }
-      const { data, error } = await supabase.from("instituicoes").insert({ nome }).select("id").single();
+      const { data, error } = await supabaseAdmin.from("instituicoes").insert({ nome }).select("id").single();
       if (error) { err.textContent = error.code === "23505" ? "Nome já existe." : error.message; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar`; return; }
       fechar();
       showToast(`"${nome}" adicionada!`, "success");
@@ -309,7 +310,7 @@ function abrirModal(tipo) {
     } else {
       const nome = document.getElementById("mt-nome")?.value.trim();
       if (!nome) { err.textContent = "Informe o nome da turma."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
-      const { error } = await supabase.from("turmas").insert({ nome, instituicao_id: instAtualId });
+      const { error } = await supabaseAdmin.from("turmas").insert({ nome, instituicao_id: instAtualId });
       if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
       fechar();
       showToast(`Turma "${nome}" adicionada!`, "success");
@@ -329,7 +330,7 @@ function abrirModal(tipo) {
 // ─── Deletar ──────────────────────────────────────────────────────────────────
 async function deletarInstituicao(id, nome) {
   if (!confirm(`Excluir "${nome}"? Só é possível se não houver turmas vinculadas.`)) return;
-  const { error } = await supabase.from("instituicoes").delete().eq("id", id);
+  const { error } = await supabaseAdmin.from("instituicoes").delete().eq("id", id);
   if (error) { showToast("Não é possível excluir: existem dados vinculados.", "error"); return; }
   showToast(`"${nome}" excluída.`, "success");
   renderInstituicoes();
@@ -337,7 +338,7 @@ async function deletarInstituicao(id, nome) {
 
 async function deletarTurma(id, nome) {
   if (!confirm(`Excluir turma "${nome}"? Só é possível se não houver chamadas vinculadas.`)) return;
-  const { error } = await supabase.from("turmas").delete().eq("id", id);
+  const { error } = await supabaseAdmin.from("turmas").delete().eq("id", id);
   if (error) { showToast("Não é possível excluir: existem dados vinculados.", "error"); return; }
   showToast(`Turma "${nome}" excluída.`, "success");
   renderTurmas(instAtualId, instAtualNome);

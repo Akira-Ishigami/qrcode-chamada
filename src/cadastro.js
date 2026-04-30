@@ -1,4 +1,5 @@
-import { supabase } from "./supabase.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
 import { podeAdmin } from "./nav-role.js";
 import { abrirModalGerenciar, iniciarModalGerenciar } from "./gerenciar.js";
 import QRCode from "qrcode";
@@ -145,7 +146,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
 
   setLoading(true);
 
-  const { error } = await supabase.from("alunos").insert({
+  const { error } = await supabaseAdmin.from("alunos").insert({
     nome,
     matricula,
     telefone,
@@ -202,7 +203,7 @@ async function carregarAlunos() {
 
 // ─── Carregar turmas do filtro direto (para usuário instituição) ──────────────
 async function carregarFiltroTurmasDaInst(instId) {
-  const { data } = await supabase.from("turmas").select("id, nome").eq("instituicao_id", instId).order("nome");
+  const { data } = await supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", instId).order("nome");
   filterTurma.innerHTML = '<option value="">Todas as turmas</option>';
   filterTurma.disabled = false;
   (data ?? []).forEach(t => {
@@ -459,7 +460,7 @@ function abrirModalEditar(aluno) {
   async function carregarTurmasEd() {
     const instId = _adminInstId || aluno.inst?.id;
     if (!instId) { edSelTurma.innerHTML = '<option value="">Sem instituição</option>'; return; }
-    const { data } = await supabase.from("turmas").select("id, nome")
+    const { data } = await supabaseAdmin.from("turmas").select("id, nome")
       .eq("instituicao_id", instId).order("nome");
     edSelTurma.innerHTML = '<option value="">Selecione…</option>';
     (data ?? []).forEach(t => {
@@ -500,7 +501,7 @@ function abrirModalEditar(aluno) {
     btn.disabled = true;
     overlay.querySelector("#ed-btn-label").textContent = "Salvando...";
 
-    const { error } = await supabase.from("alunos").update({
+    const { error } = await supabaseAdmin.from("alunos").update({
       nome, matricula, telefone,
       data_nascimento: dataNasc,
       id_estadual:     idEstadual,
@@ -526,7 +527,7 @@ function abrirModalEditar(aluno) {
   // ── excluir ──
   overlay.querySelector("#ed-excluir").addEventListener("click", async () => {
     if (!confirm(`Excluir "${aluno.nome}"? Esta ação não pode ser desfeita.`)) return;
-    const { error } = await supabase.from("alunos").delete().eq("id", aluno.id);
+    const { error } = await supabaseAdmin.from("alunos").delete().eq("id", aluno.id);
     if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
     fechar();
     showToast(`"${aluno.nome}" excluído.`, "success");

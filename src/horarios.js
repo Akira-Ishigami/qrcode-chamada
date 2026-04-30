@@ -1,4 +1,5 @@
-import { supabase } from "./supabase.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole, podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
@@ -22,7 +23,7 @@ async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = "/login.html"; return; }
   await applyNavRole();
-  const { data: profile } = await supabase.from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
+  const { data: profile } = await supabaseAdmin.from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
   if (!profile)                       { window.location.href = "/login.html"; return; }
   if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
   await renderPage(profile);
@@ -93,7 +94,7 @@ async function renderPage(profile) {
 
   // ── Evento: selecionar instituição (só professor vê esse select) ──────────
   if (!isInstituicao) {
-    const { data: insts } = await supabase.from("instituicoes").select("id, nome").order("nome");
+    const { data: insts } = await supabaseAdmin.from("instituicoes").select("id, nome").order("nome");
     const selInst = document.getElementById("sel-inst");
     selInst.innerHTML = `<option value="">Selecione…</option>` +
       (insts || []).map(i => `<option value="${i.id}">${esc(i.nome)}</option>`).join("");
@@ -216,7 +217,7 @@ async function renderHorarios() {
   document.getElementById("hor-tbody").addEventListener("click", async (e) => {
     const btn = e.target.closest(".btn-del-row[data-id]");
     if (!btn) return;
-    const { error } = await supabase.from("horarios").delete().eq("id", btn.dataset.id);
+    const { error } = await supabaseAdmin.from("horarios").delete().eq("id", btn.dataset.id);
     if (error) { showToast("Erro ao excluir", "error"); return; }
     showToast("Removido.", "success");
     renderHorarios();
@@ -235,7 +236,7 @@ async function renderHorarios() {
     const btn = document.getElementById("btn-add-hor");
     btn.disabled = true;
 
-    const { error } = await supabase.from("horarios").insert({
+    const { error } = await supabaseAdmin.from("horarios").insert({
       turma_id: turmaId, materia, dia_semana: dia,
       hora_inicio: inicio, hora_fim: fim, sala: sala || null,
     });

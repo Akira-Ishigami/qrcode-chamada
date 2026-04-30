@@ -1,4 +1,5 @@
-import { supabase } from "./supabase.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin } from "./supabaseAdmin.js";
 import { podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
@@ -238,7 +239,7 @@ function modalNovoUsuario() {
       const btn = document.getElementById("m-save");
       btn.disabled = true; btn.textContent = "Criando…";
 
-      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
+      
       if (!supabaseAdmin) {
         showToast("Service key não configurada no .env", "error");
         btn.disabled = false; btn.textContent = "Criar professor"; return;
@@ -302,7 +303,7 @@ function modalEditar(p) {
       const btn = document.getElementById("e-save");
       btn.disabled = true; btn.textContent = "Salvando…";
 
-      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
+      
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       const updates = { email, user_metadata: { nome } };
@@ -310,7 +311,7 @@ function modalEditar(p) {
       const { error: ae } = await supabaseAdmin.auth.admin.updateUserById(p.id, updates);
       if (ae) { showToast("Erro: " + ae.message, "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
-      await supabase.from("profiles").update({ nome, email }).eq("id", p.id);
+      await supabaseAdmin.from("profiles").update({ nome, email }).eq("id", p.id);
       showToast("Dados atualizados!", "success");
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });
@@ -351,11 +352,11 @@ function modalNivel(p) {
       const btn = document.getElementById("n-save");
       btn.disabled = true; btn.textContent = "Salvando…";
 
-      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
+      
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       await supabaseAdmin.auth.admin.updateUserById(p.id, { user_metadata: { role } });
-      const { error } = await supabase.from("profiles").update({ role }).eq("id", p.id);
+      const { error } = await supabaseAdmin.from("profiles").update({ role }).eq("id", p.id);
       if (error) { showToast("Erro: " + error.message, "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       showToast("Nível atualizado!", "success");
@@ -416,9 +417,9 @@ async function modalTurmas(p) {
       btn.disabled = true; btn.textContent = "Salvando…";
 
       if (remover.length)
-        await supabase.from("turmas").update({ professor: null, professor_id: null }).in("id", remover);
+        await supabaseAdmin.from("turmas").update({ professor: null, professor_id: null }).in("id", remover);
       if (adicionar.length)
-        await supabase.from("turmas").update({ professor: profNome, professor_id: p.id }).in("id", adicionar);
+        await supabaseAdmin.from("turmas").update({ professor: profNome, professor_id: p.id }).in("id", adicionar);
 
       showToast("Turmas atualizadas!", "success");
       closeModal();
@@ -443,7 +444,7 @@ function modalExcluir(p) {
       const btn = document.getElementById("x-confirm");
       btn.disabled = true; btn.textContent = "Excluindo…";
 
-      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
+      
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Excluir"; return; }
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(p.id);
