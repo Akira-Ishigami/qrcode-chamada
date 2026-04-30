@@ -41,21 +41,19 @@ async function init() {
   // Guarda user id para notas
   window._adminId = session.user.id;
 
-  // Navegação sidebar — scroll topo garante visibilidade no mobile
+  const sairKanban = () => root.classList.remove("kanban-mode");
+
   document.getElementById("nav-dashboard").addEventListener("click", () => {
-    setActive("nav-dashboard");
-    window.scrollTo(0, 0);
+    setActive("nav-dashboard"); sairKanban(); window.scrollTo(0, 0);
     renderDashboard();
   });
   document.getElementById("nav-instituicoes").addEventListener("click", () => {
-    setActive("nav-instituicoes");
-    window.scrollTo(0, 0);
+    setActive("nav-instituicoes"); sairKanban(); window.scrollTo(0, 0);
     renderInstituicoes();
   });
   document.getElementById("nav-suporte").addEventListener("click", () => {
     setActive("nav-suporte");
-    window.scrollTo(0, 0);
-    renderPedidos();
+    renderPedidos(); // kanban-mode adicionado dentro da função
   });
 
   // Realtime — atualiza a view ativa quando o banco muda
@@ -141,41 +139,63 @@ async function renderDashboard() {
   const nCham   = (chamadas ?? []).length;
   const nAbr    = (chamadas ?? []).filter(c => c.aberta).length;
 
+  const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+
   root.innerHTML = `
-    <div class="dash-header">
-      <div>
+    <!-- Banner executivo -->
+    <div class="dash-banner">
+      <div class="dash-banner-left">
         <div class="dash-greeting">${greeting}</div>
-        <div class="dash-title">Painel ADM</div>
+        <div class="dash-title">Painel Administrativo</div>
         <div class="dash-subtitle">${dataFmt}</div>
       </div>
+      <div class="dash-banner-right">
+        <div class="dash-date-chip">
+          <strong>${hora}</strong>
+          ${nAbr > 0 ? `<span style="color:#fbbf24;font-size:.7rem;font-weight:600">${nAbr} chamada${nAbr>1?"s":""} aberta${nAbr>1?"s":""}</span>` : `<span>Nenhuma chamada aberta</span>`}
+        </div>
+      </div>
     </div>
 
+    <!-- Stats -->
     <div class="dash-stats-row">
-      <div class="dash-stat-card" style="animation-delay:0s">
+      <div class="dash-stat-card" style="animation-delay:.05s">
         <div class="dash-stat-icon blue">${svgInst()}</div>
-        <div class="dash-stat-num">${nInst}</div>
-        <div class="dash-stat-lbl">Instituições</div>
+        <div class="dash-stat-info">
+          <div class="dash-stat-num">${nInst}</div>
+          <div class="dash-stat-lbl">Instituições</div>
+        </div>
       </div>
-      <div class="dash-stat-card" style="animation-delay:.06s">
+      <div class="dash-stat-card" style="animation-delay:.1s">
         <div class="dash-stat-icon green">${svgAluno()}</div>
-        <div class="dash-stat-num">${nAlunos}</div>
-        <div class="dash-stat-lbl">Alunos</div>
+        <div class="dash-stat-info">
+          <div class="dash-stat-num">${nAlunos}</div>
+          <div class="dash-stat-lbl">Alunos</div>
+        </div>
       </div>
-      <div class="dash-stat-card" style="animation-delay:.12s">
+      <div class="dash-stat-card" style="animation-delay:.15s">
         <div class="dash-stat-icon purple">${svgProf()}</div>
-        <div class="dash-stat-num">${nProfs}</div>
-        <div class="dash-stat-lbl">Professores</div>
+        <div class="dash-stat-info">
+          <div class="dash-stat-num">${nProfs}</div>
+          <div class="dash-stat-lbl">Professores</div>
+        </div>
       </div>
-      <div class="dash-stat-card" style="animation-delay:.18s">
+      <div class="dash-stat-card" style="animation-delay:.2s">
         <div class="dash-stat-icon orange">${svgQr()}</div>
-        <div class="dash-stat-num">${nCham}</div>
-        <div class="dash-stat-lbl">Chamadas hoje${nAbr ? `<br><span class="dash-badge-aberta">${nAbr} abertas</span>` : ""}</div>
+        <div class="dash-stat-info">
+          <div class="dash-stat-num">${nCham}</div>
+          <div class="dash-stat-lbl">Chamadas hoje${nAbr ? `<span class="dash-badge-aberta">${nAbr} abertas</span>` : ""}</div>
+        </div>
       </div>
     </div>
 
-    <div class="dash-section-title">Chamadas de hoje</div>
+    <!-- Chamadas de hoje -->
+    <div class="dash-section-head">
+      <div class="dash-section-title">Chamadas de hoje</div>
+      <div class="dash-section-line"></div>
+    </div>
     ${nCham === 0
-      ? `<div style="background:var(--surface);border:1px dashed var(--border-2);border-radius:12px;padding:32px;text-align:center;color:var(--text-3);font-size:.875rem">Nenhuma chamada registrada hoje.</div>`
+      ? `<div class="dash-empty-feed">Nenhuma chamada registrada hoje.</div>`
       : `<div class="dash-activity">
           ${(chamadas ?? []).map((c, i) => `
             <div class="dash-act-row" style="animation-delay:${i*.04}s">
@@ -506,8 +526,9 @@ async function renderInstDetalhe(instId, instNome) {
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 }
 
-// ══ VIEW 3: PEDIDOS (reclamações e melhorias das instituições) ════════════════
-async function renderPedidos(filtroAtivo = "pendente") {
+// ══ VIEW 3: SUPORTE — KANBAN ═════════════════════════════════════════════════
+async function renderPedidos() {
+  root.classList.add("kanban-mode");
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
   const { data: pedidos, error } = await supabaseAdmin
@@ -516,162 +537,136 @@ async function renderPedidos(filtroAtivo = "pendente") {
     .order("criado_em", { ascending: false });
 
   if (error) {
-    root.innerHTML = `<div class="tv-error">Erro ao carregar pedidos: ${error.message}</div>`;
+    root.classList.remove("kanban-mode");
+    root.innerHTML = `<div class="tv-error">Erro: ${error.message}</div>`;
     return;
   }
 
-  const todos     = pedidos ?? [];
-  const pendentes = todos.filter(p => p.status === "pendente");
-  const analise   = todos.filter(p => p.status === "em_analise");
-  const resolvidos= todos.filter(p => p.status === "resolvido");
+  const todos = pedidos ?? [];
 
-  const contagem = { pendente: pendentes.length, em_analise: analise.length, resolvido: resolvidos.length };
-
-  // Atualiza badge na sidebar
+  // Atualiza badge sidebar
   const badge = document.getElementById("badge-suporte");
-  if (badge) {
-    if (pendentes.length > 0) { badge.textContent = pendentes.length; badge.style.display = ""; }
-    else { badge.style.display = "none"; }
-  }
+  const nPend = todos.filter(p => p.status === "pendente").length;
+  if (badge) { badge.textContent = nPend; badge.style.display = nPend > 0 ? "" : "none"; }
 
-  root.innerHTML = `
-    <div class="ped-header">
-      <div>
-        <div class="ped-title">Suporte</div>
-        <div class="ped-subtitle">Suporte — Reclamações e melhorias</div>
-      </div>
-    </div>
+  const tipoLabel = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short" });
 
-    <div class="ped-tabs">
-      ${[
-        { id: "pendente",   label: "Pendentes" },
-        { id: "em_analise", label: "Em análise" },
-        { id: "resolvido",  label: "Resolvidos" },
-        { id: "todos",      label: "Todos" },
-      ].map(t => `
-        <button class="ped-tab ${filtroAtivo === t.id ? "active" : ""}" data-filtro="${t.id}">
-          ${t.label}
-          <span class="ped-tab-count">${t.id === "todos" ? todos.length : (contagem[t.id] ?? 0)}</span>
-        </button>`).join("")}
-    </div>
+  const colunas = [
+    { id: "pendente",   label: "Pendente",   cor: "#f59e0b" },
+    { id: "em_analise", label: "Em análise", cor: "#2563eb" },
+    { id: "resolvido",  label: "Resolvido",  cor: "#16a34a" },
+  ];
 
-    <div class="ped-list" id="ped-list"></div>
-  `;
+  // ── Monta o HTML do Kanban ────────────────────────────────────────────────
+  root.innerHTML = `<div class="kanban-wrap" id="kanban-wrap"></div>`;
+  const wrap = document.getElementById("kanban-wrap");
 
-  // Tabs
-  root.querySelectorAll(".ped-tab").forEach(btn => {
-    btn.addEventListener("click", () => renderPedidos(btn.dataset.filtro));
-  });
-
-  const lista = filtroAtivo === "todos" ? todos
-    : todos.filter(p => p.status === filtroAtivo);
-
-  const listEl = document.getElementById("ped-list");
-
-  if (lista.length === 0) {
-    listEl.innerHTML = `
-      <div class="ped-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <p>Nenhuma solicitação ${filtroAtivo !== "todos" ? "nesta categoria" : "ainda"}.</p>
-      </div>`;
-    return;
-  }
-
-  const tipoLabel   = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
-  const statusLabel = { pendente: "Pendente", em_analise: "Em análise", resolvido: "Resolvido" };
-  const statusDesc  = { pendente: "Aguardando análise", em_analise: "Em andamento", resolvido: "Concluído" };
-  const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
-
-  // Fecha todos os dropdowns abertos
-  const fecharDropdowns = () => {
-    document.querySelectorAll(".ped-status-dropdown.open").forEach(d => {
-      d.classList.remove("open");
-      d.previousElementSibling?.classList.remove("open");
-    });
-  };
-
-  // Fecha ao clicar fora
-  document.addEventListener("click", fecharDropdowns, { once: false });
-
-  // Atualizar status
-  const mudarStatus = async (id, novoStatus, card) => {
-    fecharDropdowns();
+  // Atualiza status no banco e move o card visualmente
+  const mudarStatus = async (pedidoId, novoStatus, cardEl, targetCol) => {
     const { error: err } = await supabaseAdmin
-      .from("pedidos").update({ status: novoStatus }).eq("id", id);
+      .from("pedidos").update({ status: novoStatus }).eq("id", pedidoId);
     if (err) { showToast("Erro ao atualizar.", "error"); return; }
     showToast("Status atualizado!", "success");
-    renderPedidos(filtroAtivo);
+    // Move o card para a coluna destino
+    const targetCards = targetCol.querySelector(".kanban-cards");
+    cardEl.dataset.status = novoStatus;
+    cardEl.className = `kanban-card tipo-${cardEl.dataset.tipo}`;
+    targetCards.insertBefore(cardEl, targetCards.firstChild);
+    // Atualiza contadores
+    atualizarContadoresKanban();
+    atualizarBadgePedidos();
   };
 
-  lista.forEach((p, i) => {
+  // Cria um card arrastável
+  const criarCard = (p, idx) => {
     const card = document.createElement("div");
-    card.className = `ped-card tipo-${p.tipo}`;
-    card.style.animationDelay = `${i * .04}s`;
-
-    const opcoes = [
-      { val: "pendente",   label: "Pendente",   desc: "Aguardando análise" },
-      { val: "em_analise", label: "Em análise", desc: "Em andamento" },
-      { val: "resolvido",  label: "Resolvido",  desc: "Concluído" },
-    ];
-
+    card.className = `kanban-card tipo-${p.tipo}`;
+    card.draggable = true;
+    card.dataset.id     = p.id;
+    card.dataset.status = p.status;
+    card.dataset.tipo   = p.tipo;
+    card.style.animationDelay = `${idx * .04}s`;
     card.innerHTML = `
-      <div class="ped-card-top">
-        <div class="ped-card-left">
-          <div class="ped-card-meta">
-            ${p.instituicoes?.nome ? `<span class="ped-inst-name">${esc(p.instituicoes.nome)}</span><span class="ped-sep">·</span>` : ""}
-            <span class="ped-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? "Outro"}</span>
-            <span class="ped-sep">·</span>
-            <span class="ped-data">${fmtData(p.criado_em)}</span>
-          </div>
-          <div class="ped-card-titulo">${esc(p.titulo)}</div>
-        </div>
-
-        <!-- Status dropdown -->
-        <div class="ped-status-wrap">
-          <button class="ped-status ${p.status}" id="status-btn-${p.id}">
-            ${statusLabel[p.status]}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="ped-status-dropdown" id="status-dd-${p.id}">
-            <div class="ped-dd-label">Alterar status</div>
-            ${opcoes.map(o => `
-              <button class="ped-dd-opt" data-status="${o.val}" data-id="${p.id}">
-                <div class="ped-dd-dot"></div>
-                <div class="ped-dd-info">
-                  <div class="ped-dd-name">${o.label}</div>
-                  <div class="ped-dd-desc">${o.desc}</div>
-                </div>
-                ${p.status === o.val ? `<svg class="ped-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>` : ""}
-              </button>`).join("")}
-          </div>
-        </div>
+      <div class="kanban-card-inst">
+        ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
+        <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? "Outro"}</span>
       </div>
-      <div class="ped-card-desc">${esc(p.descricao)}</div>
+      <div class="kanban-card-title">${esc(p.titulo)}</div>
+      <div class="kanban-card-desc">${esc(p.descricao)}</div>
+      <div class="kanban-card-foot">
+        <span class="kanban-card-date">${fmtData(p.criado_em)}</span>
+        <span class="kanban-drag-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="margin-right:3px"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          arrastar
+        </span>
+      </div>
     `;
 
-    // Toggle dropdown
-    const btn = card.querySelector(`#status-btn-${p.id}`);
-    const dd  = card.querySelector(`#status-dd-${p.id}`);
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isOpen = dd.classList.contains("open");
-      fecharDropdowns();
-      if (!isOpen) { dd.classList.add("open"); btn.classList.add("open"); }
+    // Drag & Drop handlers
+    card.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", p.id);
+      e.dataTransfer.effectAllowed = "move";
+      setTimeout(() => card.classList.add("dragging"), 0);
     });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
 
-    // Selecionar opção
-    dd.querySelectorAll(".ped-dd-opt").forEach(opt => {
-      opt.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (opt.dataset.status !== p.status) mudarStatus(opt.dataset.id, opt.dataset.status, card);
-        else fecharDropdowns();
-      });
+    return card;
+  };
+
+  // Cria colunas e popula com cards
+  colunas.forEach(col => {
+    const items = todos.filter(p => p.status === col.id);
+    const colEl = document.createElement("div");
+    colEl.className = "kanban-col";
+    colEl.dataset.colStatus = col.id;
+    colEl.innerHTML = `
+      <div class="kanban-col-head">
+        <div class="kanban-col-dot ${col.id}"></div>
+        <div class="kanban-col-name">${col.label}</div>
+        <div class="kanban-col-count ${items.length > 0 ? "has-items" : ""}" id="count-${col.id}">${items.length}</div>
+      </div>
+      <div class="kanban-cards" id="cards-${col.id}">
+        ${items.length === 0 ? `
+          <div class="kanban-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="opacity:.3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <p>Nenhuma solicitação</p>
+          </div>` : ""}
+      </div>
+    `;
+    wrap.appendChild(colEl);
+
+    // Popula cards
+    const cardsArea = colEl.querySelector(".kanban-cards");
+    items.forEach((p, idx) => cardsArea.appendChild(criarCard(p, idx)));
+
+    // Drop zone handlers
+    colEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      colEl.classList.add("drag-over");
     });
-
-    listEl.appendChild(card);
+    colEl.addEventListener("dragleave", (e) => {
+      if (!colEl.contains(e.relatedTarget)) colEl.classList.remove("drag-over");
+    });
+    colEl.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      colEl.classList.remove("drag-over");
+      const pedidoId = e.dataTransfer.getData("text/plain");
+      const cardEl   = document.querySelector(`.kanban-card[data-id="${pedidoId}"]`);
+      if (!cardEl || cardEl.dataset.status === col.id) return;
+      await mudarStatus(pedidoId, col.id, cardEl, colEl);
+    });
   });
+
+  // Atualiza os contadores de cada coluna
+  function atualizarContadoresKanban() {
+    colunas.forEach(col => {
+      const n = document.querySelectorAll(`.kanban-card[data-status="${col.id}"]`).length;
+      const el = document.getElementById(`count-${col.id}`);
+      if (el) { el.textContent = n; el.className = `kanban-col-count ${n > 0 ? "has-items" : ""}`; }
+    });
+  }
 }
 
 // ══ ANOTAÇÕES (legado — substituído por Pedidos no ADM) ═══════════════════════
