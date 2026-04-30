@@ -4,6 +4,11 @@ import { applyNavRole }  from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 
+let _clockInterval = null;
+function clearClock() {
+  if (_clockInterval) { clearInterval(_clockInterval); _clockInterval = null; }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -105,6 +110,7 @@ async function atualizarBadgePedidos() {
 
 // ══ VIEW 1: DASHBOARD (read-only) ════════════════════════════════════════════
 async function renderDashboard() {
+  clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
   const hoje    = new Date().toISOString().split("T")[0];
@@ -139,21 +145,26 @@ async function renderDashboard() {
   const nCham   = (chamadas ?? []).length;
   const nAbr    = (chamadas ?? []).filter(c => c.aberta).length;
 
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
 
   root.innerHTML = `
     <!-- Banner executivo -->
     <div class="dash-banner">
+      <div class="dash-banner-dots"></div>
+      <div class="dash-banner-glow1"></div>
+      <div class="dash-banner-glow2"></div>
       <div class="dash-banner-left">
         <div class="dash-greeting">${greeting}</div>
         <div class="dash-title">Painel Administrativo</div>
         <div class="dash-subtitle">${dataFmt}</div>
+        ${nAbr > 0
+          ? `<div class="dash-live-pill"><span class="dash-live-dot"></span>${nAbr} chamada${nAbr>1?"s":""} aberta${nAbr>1?"s":""}</div>`
+          : `<div class="dash-live-pill quiet">Nenhuma chamada aberta</div>`
+        }
       </div>
       <div class="dash-banner-right">
-        <div class="dash-date-chip">
-          <strong>${hora}</strong>
-          ${nAbr > 0 ? `<span style="color:#fbbf24;font-size:.7rem;font-weight:600">${nAbr} chamada${nAbr>1?"s":""} aberta${nAbr>1?"s":""}</span>` : `<span>Nenhuma chamada aberta</span>`}
-        </div>
+        <div class="dash-clock" id="dash-clock">${hora}</div>
+        <div class="dash-clock-label">horário atual</div>
       </div>
     </div>
 
@@ -170,7 +181,7 @@ async function renderDashboard() {
         <div class="dash-stat-icon green">${svgAluno()}</div>
         <div class="dash-stat-info">
           <div class="dash-stat-num">${nAlunos}</div>
-          <div class="dash-stat-lbl">Alunos</div>
+          <div class="dash-stat-lbl">Alunos cadastrados</div>
         </div>
       </div>
       <div class="dash-stat-card" style="animation-delay:.15s">
@@ -209,10 +220,19 @@ async function renderDashboard() {
         </div>`
     }
   `;
+
+  // Live clock — ticks every second
+  const clockEl = document.getElementById("dash-clock");
+  if (clockEl) {
+    _clockInterval = setInterval(() => {
+      clockEl.textContent = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    }, 1000);
+  }
 }
 
 // ══ VIEW 2: INSTITUIÇÕES (lista + detalhe) ════════════════════════════════════
 async function renderInstituicoes() {
+  clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
   const hoje = new Date().toISOString().split("T")[0];
@@ -263,41 +283,53 @@ async function renderInstituicoes() {
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
            <p>Nenhuma instituição cadastrada ainda.</p>
          </div>`
-      : `<div class="il-list" id="il-list"></div>`
+      : `<div class="ig-grid" id="ig-grid"></div>`
     }
   `;
 
   document.getElementById("btn-nova-inst").addEventListener("click", abrirModalNovaInst);
 
   if (insts.length > 0) {
-    const list = document.getElementById("il-list");
+    const grid = document.getElementById("ig-grid");
     insts.forEach((inst, i) => {
       const na  = alunosPorInst[inst.id] ?? 0;
       const np  = profsPorInst [inst.id] ?? 0;
       const nc  = chamPorInst  [inst.id] ?? 0;
       const pal = PALETTE[(inst.nome.charCodeAt(0) || 0) % PALETTE.length];
 
-      const row = document.createElement("div");
-      row.className = "il-row";
-      row.style.animationDelay = `${i * .04}s`;
-      row.innerHTML = `
-        <div class="il-initial" style="background:${pal.bg};color:${pal.fg}">${esc(inst.nome.charAt(0).toUpperCase())}</div>
-        <span class="il-row-name">${esc(inst.nome)}</span>
-        <div class="il-row-stats">
-          <span class="il-stat"><strong>${na}</strong> alunos</span>
-          <span class="il-stat"><strong>${np}</strong> prof.</span>
-          ${nc > 0 ? `<span class="il-stat active"><strong>${nc}</strong> hoje</span>` : ""}
+      const card = document.createElement("div");
+      card.className = "ig-card";
+      card.style.cssText = `animation-delay:${i * .05}s; --card-fg:${pal.fg}; --card-bg:${pal.bg}`;
+      card.innerHTML = `
+        <div class="ig-card-avatar" style="background:${pal.bg};color:${pal.fg}">${esc(inst.nome.charAt(0).toUpperCase())}</div>
+        <div class="ig-card-name">${esc(inst.nome)}</div>
+        <div class="ig-card-stats">
+          <div class="ig-stat">
+            <span class="ig-stat-num">${na}</span>
+            <span class="ig-stat-lbl">alunos</span>
+          </div>
+          <div class="ig-stat-div"></div>
+          <div class="ig-stat">
+            <span class="ig-stat-num">${np}</span>
+            <span class="ig-stat-lbl">prof.</span>
+          </div>
+          ${nc > 0 ? `
+          <div class="ig-stat-div"></div>
+          <div class="ig-stat">
+            <span class="ig-stat-num" style="color:#16a34a">${nc}</span>
+            <span class="ig-stat-lbl" style="color:#16a34a">hoje</span>
+          </div>` : ""}
         </div>
-        <svg class="il-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
       `;
-      row.addEventListener("click", () => renderInstDetalhe(inst.id, inst.nome));
-      list.appendChild(row);
+      card.addEventListener("click", () => renderInstDetalhe(inst.id, inst.nome));
+      grid.appendChild(card);
     });
   }
 }
 
 // ── Detalhe de uma instituição ────────────────────────────────────────────────
 async function renderInstDetalhe(instId, instNome) {
+  clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
   const hoje = new Date().toISOString().split("T")[0];
@@ -528,6 +560,7 @@ async function renderInstDetalhe(instId, instNome) {
 
 // ══ VIEW 3: SUPORTE — KANBAN ═════════════════════════════════════════════════
 async function renderPedidos() {
+  clearClock();
   root.classList.add("kanban-mode");
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
