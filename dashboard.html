@@ -297,82 +297,111 @@
     .notes-empty-title { font-size: .95rem; font-weight: 700; color: var(--text-2); margin-bottom: 5px; }
     .notes-empty-sub { font-size: .8rem; color: var(--text-3); }
 
-    /* ══ PEDIDOS ═════════════════════════════════════════════════════════ */
-    .ped-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+    /* ══ SUPORTE ═════════════════════════════════════════════════════════ */
+    .ped-header { margin-bottom: 20px; }
     .ped-title  { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.55rem; font-weight: 700; color: var(--text); letter-spacing: -.025em; }
     .ped-subtitle { font-size: .8rem; color: var(--text-3); margin-top: 3px; }
 
     /* Tabs de status */
-    .ped-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 20px; }
-    .ped-tab {
-      padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
-      cursor: pointer; border: 1px solid var(--border); background: var(--surface-2);
-      color: var(--text-2); transition: all .13s; font-family: inherit;
+    .ped-tabs {
+      display: flex; gap: 2px; margin-bottom: 20px;
+      background: var(--surface-3); border-radius: 10px; padding: 3px;
+      width: fit-content;
     }
-    .ped-tab.active { background: var(--acc); border-color: var(--acc); color: white; }
+    .ped-tab {
+      padding: 7px 16px; border-radius: 8px; font-size: .78rem; font-weight: 600;
+      cursor: pointer; border: none; background: transparent;
+      color: var(--text-3); transition: all .15s; font-family: inherit;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ped-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .ped-tab-count {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 18px; height: 18px; padding: 0 5px;
-      background: rgba(255,255,255,.25); border-radius: 20px;
-      font-size: .64rem; font-weight: 800; margin-left: 5px;
+      border-radius: 20px; font-size: .62rem; font-weight: 800;
+      background: var(--surface-4); color: var(--text-3);
     }
-    .ped-tab:not(.active) .ped-tab-count { background: var(--surface-3); color: var(--text-3); }
+    .ped-tab.active .ped-tab-count { background: var(--acc-sub); color: var(--acc); }
 
-    /* Lista de pedidos */
-    .ped-list { display: flex; flex-direction: column; gap: 8px; }
+    /* Lista */
+    .ped-list { display: flex; flex-direction: column; gap: 6px; }
 
+    /* Card — borda esquerda colorida por tipo */
     .ped-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 13px; overflow: hidden;
-      animation: dashUp .3s cubic-bezier(.22,1,.36,1) both;
-      transition: border-color .15s;
+      border-radius: 12px; overflow: hidden;
+      animation: dashUp .28s cubic-bezier(.22,1,.36,1) both;
+      transition: box-shadow .15s, border-color .15s;
+      border-left: 3px solid var(--border);
     }
-    .ped-card:hover { border-color: var(--border-2); }
+    .ped-card:hover { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+    .ped-card.tipo-reclamacao { border-left-color: var(--red); }
+    .ped-card.tipo-melhoria   { border-left-color: var(--acc); }
+    .ped-card.tipo-outro      { border-left-color: #7c3aed; }
 
-    .ped-card-header {
-      display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px;
+    /* Cabeçalho do card */
+    .ped-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; padding: 14px 16px 0;
     }
-    .sup-tipo-icon {
-      width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
+    .ped-card-left { flex: 1; min-width: 0; }
+    .ped-card-meta {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 5px;
     }
-    .sup-tipo-icon.reclamacao { background: #fee2e2; color: var(--red); }
-    .sup-tipo-icon.melhoria   { background: #eff6ff; color: var(--acc); }
-    .sup-tipo-icon.outro      { background: #f5f3ff; color: #7c3aed; }
+    .ped-inst-name {
+      font-size: .72rem; font-weight: 700; color: var(--text-2);
+    }
+    .ped-sep { color: var(--border-2); }
+    .ped-tipo-pill {
+      font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      padding: 2px 7px; border-radius: 20px;
+    }
+    .ped-tipo-pill.reclamacao { background: #fee2e2; color: var(--red); }
+    .ped-tipo-pill.melhoria   { background: #eff6ff; color: var(--acc); }
+    .ped-tipo-pill.outro      { background: #f5f3ff; color: #7c3aed; }
+    .ped-data { font-size: .68rem; color: var(--text-3); }
 
-    .ped-card-body { flex: 1; min-width: 0; }
     .ped-card-titulo {
-      font-weight: 700; font-size: .9rem; color: var(--text); margin-bottom: 3px;
-    }
-    .ped-card-meta { font-size: .73rem; color: var(--text-3); margin-bottom: 6px; }
-    .ped-card-desc {
-      font-size: .84rem; color: var(--text-2); line-height: 1.55;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 12px;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-weight: 700; font-size: .93rem; color: var(--text);
+      letter-spacing: -.01em;
     }
 
-    .ped-card-footer {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px; border-top: 1px solid var(--border); background: var(--surface-2);
-      flex-wrap: wrap; gap: 8px;
-    }
-
-    /* Status badges */
+    /* Status badge no topo direito */
     .ped-status {
-      font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+      font-size: .6rem; font-weight: 700; padding: 4px 10px;
+      border-radius: 20px; white-space: nowrap; flex-shrink: 0;
     }
     .ped-status.pendente    { background: var(--amber-sub); color: var(--amber-text); border: 1px solid #fde68a; }
     .ped-status.em_analise  { background: #eff6ff; color: var(--acc); border: 1px solid #bfdbfe; }
     .ped-status.resolvido   { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
 
-    .ped-status-select {
-      font-size: .78rem; font-weight: 600; color: var(--text-2);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 5px 10px; background: var(--surface); cursor: pointer;
-      font-family: inherit; outline: none;
-      transition: border-color .13s;
+    /* Descrição */
+    .ped-card-desc {
+      margin: 10px 16px;
+      font-size: .84rem; color: var(--text-2); line-height: 1.6;
+      padding: 10px 12px;
+      background: var(--surface-2); border-radius: 8px;
     }
-    .ped-status-select:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-sub); }
+
+    /* Footer com ações rápidas */
+    .ped-card-actions {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 6px; padding: 10px 14px 12px;
+    }
+    .ped-action-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px; border-radius: 8px; font-size: .76rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: var(--surface-2);
+      color: var(--text-2); font-family: inherit;
+      transition: background .12s, border-color .12s, color .12s, transform .1s;
+    }
+    .ped-action-btn:hover { transform: translateY(-1px); }
+    .ped-action-btn:active { transform: scale(.97); }
+    .ped-action-btn.analise:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--acc); }
+    .ped-action-btn.resolver:hover { background: #dcfce7; border-color: #86efac; color: #14532d; }
+    .ped-action-btn.reabrir:hover  { background: var(--amber-sub); border-color: #fde68a; color: var(--amber-text); }
 
     /* Empty */
     .ped-empty {

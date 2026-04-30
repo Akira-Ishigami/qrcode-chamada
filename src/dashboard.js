@@ -579,48 +579,63 @@ async function renderPedidos(filtroAtivo = "pendente") {
     return;
   }
 
-  const tipoIcon = {
-    reclamacao: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-    melhoria:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
-    outro:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-  };
-  const tipoLabel = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const tipoLabel  = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
   const statusLabel = { pendente: "Pendente", em_analise: "Em análise", resolvido: "Resolvido" };
   const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
 
+  // Ação de avançar status
+  const mudarStatus = async (id, novoStatus) => {
+    const { error: err } = await supabaseAdmin
+      .from("pedidos").update({ status: novoStatus }).eq("id", id);
+    if (err) { showToast("Erro ao atualizar.", "error"); return; }
+    showToast("Status atualizado!", "success");
+    renderPedidos(filtroAtivo);
+  };
+
   lista.forEach((p, i) => {
+    // Botão de ação contextual por status atual
+    let actionBtn = "";
+    if (p.status === "pendente") {
+      actionBtn = `<button class="ped-action-btn analise" data-id="${p.id}" data-next="em_analise">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
+        Iniciar análise
+      </button>`;
+    } else if (p.status === "em_analise") {
+      actionBtn = `
+        <button class="ped-action-btn reabrir" data-id="${p.id}" data-next="pendente">Pendente</button>
+        <button class="ped-action-btn resolver" data-id="${p.id}" data-next="resolvido">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+          Marcar Resolvido
+        </button>`;
+    } else {
+      actionBtn = `<button class="ped-action-btn reabrir" data-id="${p.id}" data-next="pendente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+        Reabrir
+      </button>`;
+    }
+
     const card = document.createElement("div");
-    card.className = "ped-card";
-    card.style.animationDelay = `${i * .05}s`;
+    card.className = `ped-card tipo-${p.tipo}`;
+    card.style.animationDelay = `${i * .04}s`;
     card.innerHTML = `
-      <div class="ped-card-header">
-        <div class="sup-tipo-icon ${p.tipo}">${tipoIcon[p.tipo] ?? tipoIcon.outro}</div>
-        <div class="ped-card-body">
-          <div class="ped-card-titulo">${esc(p.titulo)}</div>
+      <div class="ped-card-top">
+        <div class="ped-card-left">
           <div class="ped-card-meta">
-            ${p.instituicoes?.nome ? `<strong>${esc(p.instituicoes.nome)}</strong> · ` : ""}
-            ${tipoLabel[p.tipo] ?? "Outro"} · ${fmtData(p.criado_em)}
+            ${p.instituicoes?.nome ? `<span class="ped-inst-name">${esc(p.instituicoes.nome)}</span><span class="ped-sep">·</span>` : ""}
+            <span class="ped-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? "Outro"}</span>
+            <span class="ped-sep">·</span>
+            <span class="ped-data">${fmtData(p.criado_em)}</span>
           </div>
-          <div class="ped-card-desc">${esc(p.descricao)}</div>
+          <div class="ped-card-titulo">${esc(p.titulo)}</div>
         </div>
-      </div>
-      <div class="ped-card-footer">
         <span class="ped-status ${p.status}">${statusLabel[p.status]}</span>
-        <select class="ped-status-select" data-id="${p.id}">
-          <option value="pendente"   ${p.status==="pendente"   ? "selected":""}>Pendente</option>
-          <option value="em_analise" ${p.status==="em_analise" ? "selected":""}>Em análise</option>
-          <option value="resolvido"  ${p.status==="resolvido"  ? "selected":""}>Resolvido</option>
-        </select>
       </div>
+      <div class="ped-card-desc">${esc(p.descricao)}</div>
+      <div class="ped-card-actions">${actionBtn}</div>
     `;
 
-    card.querySelector(".ped-status-select").addEventListener("change", async (e) => {
-      const novoStatus = e.target.value;
-      const { error: err } = await supabaseAdmin
-        .from("pedidos").update({ status: novoStatus }).eq("id", p.id);
-      if (err) { showToast("Erro ao atualizar.", "error"); return; }
-      showToast("Status atualizado!", "success");
-      renderPedidos(filtroAtivo);
+    card.querySelectorAll("[data-next]").forEach(btn => {
+      btn.addEventListener("click", () => mudarStatus(btn.dataset.id, btn.dataset.next));
     });
 
     listEl.appendChild(card);

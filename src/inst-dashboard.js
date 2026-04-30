@@ -170,81 +170,131 @@ async function renderPedidos(profile) {
   const lista = pedidos ?? [];
   const statusLabel = { pendente: "Pendente", em_analise: "Em análise", resolvido: "Resolvido" };
   const tipoLabel   = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric" });
+
+  // Seletor de tipo como pills clicáveis
+  const tipoAtual = { value: "melhoria" };
 
   root.innerHTML = `
-    <div style="margin-bottom:28px">
-      <div style="font-family:'Outfit',sans-serif;font-size:1.45rem;font-weight:700;color:var(--text);letter-spacing:-.025em">
-        Suporte
-      </div>
-      <div style="font-size:.8rem;color:var(--text-3);margin-top:3px">
-        Envie reclamações ou sugestões de melhoria para o administrador
-      </div>
+    <div style="margin-bottom:24px">
+      <div style="font-family:'Outfit',sans-serif;font-size:1.45rem;font-weight:700;color:var(--text);letter-spacing:-.025em">Suporte</div>
+      <div style="font-size:.8rem;color:var(--text-3);margin-top:3px">Envie reclamações ou sugestões de melhoria ao administrador</div>
     </div>
 
     <!-- Formulário nova solicitação -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:28px">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)">
         Nova solicitação
       </div>
-      <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:140px">
-            <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Tipo</label>
-            <select id="sup-tipo" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none">
-              <option value="reclamacao">Reclamação</option>
-              <option value="melhoria" selected>Pedido de melhoria</option>
-              <option value="outro">Outro</option>
-            </select>
-          </div>
-          <div style="flex:2;min-width:200px">
-            <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Título <span style="color:var(--red)">*</span></label>
-            <input id="sup-titulo" type="text" placeholder="Resumo em uma linha" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none" maxlength="100"/>
-          </div>
-        </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+
+        <!-- Tipo como pills -->
         <div>
-          <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Descrição <span style="color:var(--red)">*</span></label>
-          <textarea id="sup-desc" rows="4" placeholder="Descreva em detalhes..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none;resize:vertical;line-height:1.6"></textarea>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Tipo</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="tipo-pills">
+            <button class="tipo-pill active" data-tipo="melhoria" style="padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--acc);background:var(--acc-sub);color:var(--acc)">
+              📈 Melhoria
+            </button>
+            <button class="tipo-pill" data-tipo="reclamacao" style="padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2)">
+              ⚠️ Reclamação
+            </button>
+            <button class="tipo-pill" data-tipo="outro" style="padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2)">
+              💬 Outro
+            </button>
+          </div>
         </div>
+
+        <!-- Título -->
+        <div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">
+            Título <span style="color:var(--red)">*</span>
+          </div>
+          <input id="sup-titulo" type="text" placeholder="Resumo em uma linha" maxlength="100"
+            style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .13s"
+            onfocus="this.style.borderColor='var(--acc)';this.style.background='#fff'"
+            onblur="this.style.borderColor='var(--border)';this.style.background='var(--surface-2)'"
+          />
+        </div>
+
+        <!-- Descrição -->
+        <div>
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">
+            Descrição <span style="color:var(--red)">*</span>
+          </div>
+          <textarea id="sup-desc" rows="4" placeholder="Descreva com detalhes o que aconteceu ou o que gostaria de melhorar..."
+            style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none;resize:vertical;line-height:1.65;box-sizing:border-box;transition:border-color .13s"
+            onfocus="this.style.borderColor='var(--acc)';this.style.background='#fff'"
+            onblur="this.style.borderColor='var(--border)';this.style.background='var(--surface-2)'"
+          ></textarea>
+        </div>
+
+        <!-- Ação -->
         <div style="display:flex;align-items:center;gap:12px">
-          <button id="btn-enviar-sup" style="padding:10px 22px;background:var(--acc);color:white;border:none;border-radius:9px;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .13s;box-shadow:0 2px 8px var(--acc-glow)">
+          <button id="btn-enviar-sup"
+            style="padding:10px 22px;background:var(--acc);color:white;border:none;border-radius:9px;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px var(--acc-glow);transition:background .13s,transform .12s">
             Enviar solicitação
           </button>
-          <span id="sup-feedback" style="font-size:.82rem;font-weight:600;min-height:16px"></span>
+          <span id="sup-feedback" style="font-size:.82rem;font-weight:600"></span>
         </div>
       </div>
     </div>
 
-    <!-- Lista dos pedidos enviados -->
-    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:12px">
+    <!-- Histórico -->
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span style="width:12px;height:2px;background:var(--text-3);border-radius:2px;display:inline-block"></span>
       Minhas solicitações (${lista.length})
     </div>
     <div id="sup-lista">
       ${lista.length === 0
-        ? `<div style="background:var(--surface);border:1px dashed var(--border-2);border-radius:13px;padding:40px 24px;text-align:center;color:var(--text-3);font-size:.875rem">
-             Nenhuma solicitação enviado ainda.
+        ? `<div style="background:var(--surface);border:1px dashed var(--border-2);border-radius:12px;padding:48px 24px;text-align:center;color:var(--text-3);font-size:.875rem">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.25;display:block;margin:0 auto 12px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+             Nenhuma solicitação enviada ainda.
            </div>`
-        : lista.map((p, i) => `
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:8px;animation:dashUp .3s cubic-bezier(.22,1,.36,1) ${i*.05}s both">
-            <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px">
+        : lista.map((p, i) => {
+          const statusConf = {
+            pendente:   { label: "Pendente",   bg: "var(--amber-sub)", color: "var(--amber-text)", border: "#fde68a" },
+            em_analise: { label: "Em análise", bg: "#eff6ff",          color: "var(--acc)",        border: "#bfdbfe" },
+            resolvido:  { label: "Resolvido",  bg: "#dcfce7",          color: "#14532d",           border: "#86efac" },
+          }[p.status] ?? { label: p.status, bg: "var(--surface-3)", color: "var(--text-3)", border: "var(--border)" };
+          const tipoColors = { reclamacao: "#ef4444", melhoria: "var(--acc)", outro: "#7c3aed" };
+          return `
+          <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${tipoColors[p.tipo]??'var(--border)'};border-radius:12px;margin-bottom:8px;overflow:hidden;animation:idashUp .28s cubic-bezier(.22,1,.36,1) ${i*.04}s both">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px">
               <div style="flex:1;min-width:0">
-                <div style="font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:3px">${esc(p.titulo)}</div>
-                <div style="font-size:.73rem;color:var(--text-3);margin-bottom:8px">
-                  ${tipoLabel[p.tipo]??"Outro"} · ${new Date(p.criado_em).toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"numeric"})}
+                <div style="font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:4px">${esc(p.titulo)}</div>
+                <div style="font-size:.72rem;color:var(--text-3)">
+                  ${tipoLabel[p.tipo]??"Outro"} · ${fmtData(p.criado_em)}
                 </div>
-                <div style="font-size:.84rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;line-height:1.55">${esc(p.descricao)}</div>
               </div>
-              <span class="ped-status ${p.status}">${statusLabel[p.status]??"—"}</span>
+              <span style="font-size:.6rem;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;background:${statusConf.bg};color:${statusConf.color};border:1px solid ${statusConf.border}">
+                ${statusConf.label}
+              </span>
             </div>
-          </div>`).join("")}
+            <div style="padding:0 16px 14px;font-size:.84rem;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:12px">
+              ${esc(p.descricao)}
+            </div>
+          </div>`}).join("")}
     </div>
   `;
 
-  // Foco e submit
+  // Pills de tipo
+  root.querySelectorAll(".tipo-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tipoAtual.value = btn.dataset.tipo;
+      root.querySelectorAll(".tipo-pill").forEach(b => {
+        const active = b === btn;
+        b.style.background = active ? "var(--acc-sub)" : "var(--surface-2)";
+        b.style.borderColor = active ? "var(--acc)" : "var(--border)";
+        b.style.color = active ? "var(--acc)" : "var(--text-2)";
+      });
+    });
+  });
+
   const btnEnviar  = document.getElementById("btn-enviar-sup");
   const feedback   = document.getElementById("sup-feedback");
 
   btnEnviar.addEventListener("click", async () => {
-    const tipo    = document.getElementById("sup-tipo").value;
+    const tipo    = tipoAtual.value;
     const titulo  = document.getElementById("sup-titulo").value.trim();
     const descricao = document.getElementById("sup-desc").value.trim();
 
