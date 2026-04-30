@@ -28,11 +28,9 @@ async function init() {
     if (inst && instNameEl) instNameEl.textContent = inst.nome;
   }
 
-  // Verifica se veio do link "Suporte" da sidebar
-  if (window.__showPedidos) {
-    window.__showPedidos = false;
-    const navPed = document.getElementById("nav-suporte-inst");
-    if (navPed) navPed.classList.add("active");
+  // Verifica se veio do link "Suporte" via URL param ?view=suporte
+  const urlView = new URLSearchParams(window.location.search).get("view");
+  if (urlView === "suporte") {
     await renderPedidos(profile);
     return;
   }
