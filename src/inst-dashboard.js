@@ -28,10 +28,10 @@ async function init() {
     if (inst && instNameEl) instNameEl.textContent = inst.nome;
   }
 
-  // Verifica se veio do link "Pedidos" da sidebar
+  // Verifica se veio do link "Suporte" da sidebar
   if (window.__showPedidos) {
     window.__showPedidos = false;
-    const navPed = document.getElementById("nav-pedidos-inst");
+    const navPed = document.getElementById("nav-suporte-inst");
     if (navPed) navPed.classList.add("active");
     await renderPedidos(profile);
     return;
@@ -178,23 +178,23 @@ async function renderPedidos(profile) {
   root.innerHTML = `
     <div style="margin-bottom:28px">
       <div style="font-family:'Outfit',sans-serif;font-size:1.45rem;font-weight:700;color:var(--text);letter-spacing:-.025em">
-        Pedidos e Reclamações
+        Suporte
       </div>
       <div style="font-size:.8rem;color:var(--text-3);margin-top:3px">
         Envie reclamações ou sugestões de melhoria para o administrador
       </div>
     </div>
 
-    <!-- Formulário novo pedido -->
+    <!-- Formulário nova solicitação -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:28px">
       <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)">
-        Novo pedido
+        Nova solicitação
       </div>
       <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:140px">
             <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Tipo</label>
-            <select id="ped-tipo" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none">
+            <select id="sup-tipo" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none">
               <option value="reclamacao">Reclamação</option>
               <option value="melhoria" selected>Pedido de melhoria</option>
               <option value="outro">Outro</option>
@@ -202,30 +202,30 @@ async function renderPedidos(profile) {
           </div>
           <div style="flex:2;min-width:200px">
             <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Título <span style="color:var(--red)">*</span></label>
-            <input id="ped-titulo" type="text" placeholder="Resumo em uma linha" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none" maxlength="100"/>
+            <input id="sup-titulo" type="text" placeholder="Resumo em uma linha" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none" maxlength="100"/>
           </div>
         </div>
         <div>
           <label style="display:block;font-size:.68rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Descrição <span style="color:var(--red)">*</span></label>
-          <textarea id="ped-desc" rows="4" placeholder="Descreva em detalhes..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none;resize:vertical;line-height:1.6"></textarea>
+          <textarea id="sup-desc" rows="4" placeholder="Descreva em detalhes..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:.875rem;background:var(--surface-2);color:var(--text);font-family:inherit;outline:none;resize:vertical;line-height:1.6"></textarea>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
-          <button id="btn-enviar-ped" style="padding:10px 22px;background:var(--acc);color:white;border:none;border-radius:9px;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .13s;box-shadow:0 2px 8px var(--acc-glow)">
-            Enviar pedido
+          <button id="btn-enviar-sup" style="padding:10px 22px;background:var(--acc);color:white;border:none;border-radius:9px;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .13s;box-shadow:0 2px 8px var(--acc-glow)">
+            Enviar solicitação
           </button>
-          <span id="ped-feedback" style="font-size:.82rem;font-weight:600;min-height:16px"></span>
+          <span id="sup-feedback" style="font-size:.82rem;font-weight:600;min-height:16px"></span>
         </div>
       </div>
     </div>
 
     <!-- Lista dos pedidos enviados -->
     <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:12px">
-      Meus pedidos (${lista.length})
+      Minhas solicitações (${lista.length})
     </div>
-    <div id="ped-lista">
+    <div id="sup-lista">
       ${lista.length === 0
         ? `<div style="background:var(--surface);border:1px dashed var(--border-2);border-radius:13px;padding:40px 24px;text-align:center;color:var(--text-3);font-size:.875rem">
-             Nenhum pedido enviado ainda.
+             Nenhuma solicitação enviado ainda.
            </div>`
         : lista.map((p, i) => `
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:8px;animation:dashUp .3s cubic-bezier(.22,1,.36,1) ${i*.05}s both">
@@ -244,13 +244,13 @@ async function renderPedidos(profile) {
   `;
 
   // Foco e submit
-  const btnEnviar  = document.getElementById("btn-enviar-ped");
-  const feedback   = document.getElementById("ped-feedback");
+  const btnEnviar  = document.getElementById("btn-enviar-sup");
+  const feedback   = document.getElementById("sup-feedback");
 
   btnEnviar.addEventListener("click", async () => {
-    const tipo    = document.getElementById("ped-tipo").value;
-    const titulo  = document.getElementById("ped-titulo").value.trim();
-    const descricao = document.getElementById("ped-desc").value.trim();
+    const tipo    = document.getElementById("sup-tipo").value;
+    const titulo  = document.getElementById("sup-titulo").value.trim();
+    const descricao = document.getElementById("sup-desc").value.trim();
 
     if (!titulo)    { feedback.style.color = "var(--red)"; feedback.textContent = "Informe o título."; return; }
     if (!descricao) { feedback.style.color = "var(--red)"; feedback.textContent = "Informe a descrição."; return; }
@@ -262,12 +262,12 @@ async function renderPedidos(profile) {
       .from("pedidos")
       .insert({ instituicao_id: instId, tipo, titulo, descricao });
 
-    btnEnviar.disabled = false; btnEnviar.textContent = "Enviar pedido";
+    btnEnviar.disabled = false; btnEnviar.textContent = "Enviar solicitação";
 
     if (error) {
       feedback.style.color = "var(--red)"; feedback.textContent = "Erro: " + error.message;
     } else {
-      feedback.style.color = "var(--green)"; feedback.textContent = "Pedido enviado com sucesso!";
+      feedback.style.color = "var(--green)"; feedback.textContent = "Solicitação enviada com sucesso!";
       setTimeout(() => renderPedidos(profile), 1200);
     }
   });

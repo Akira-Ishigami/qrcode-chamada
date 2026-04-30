@@ -52,8 +52,8 @@ async function init() {
     window.scrollTo(0, 0);
     renderInstituicoes();
   });
-  document.getElementById("nav-pedidos").addEventListener("click", () => {
-    setActive("nav-pedidos");
+  document.getElementById("nav-suporte").addEventListener("click", () => {
+    setActive("nav-suporte");
     window.scrollTo(0, 0);
     renderPedidos();
   });
@@ -88,7 +88,7 @@ function setupRealtime() {
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
-      if (active === "nav-pedidos") renderPedidos();
+      if (active === "nav-suporte") renderPedidos();
       atualizarBadgePedidos();
     })
     .subscribe();
@@ -99,7 +99,7 @@ async function atualizarBadgePedidos() {
   const { count } = await supabaseAdmin
     .from("pedidos").select("id", { count: "exact", head: true })
     .eq("status", "pendente");
-  const badge = document.getElementById("badge-pedidos");
+  const badge = document.getElementById("badge-suporte");
   if (!badge) return;
   if (count > 0) { badge.textContent = count; badge.style.display = ""; }
   else           { badge.style.display = "none"; }
@@ -528,7 +528,7 @@ async function renderPedidos(filtroAtivo = "pendente") {
   const contagem = { pendente: pendentes.length, em_analise: analise.length, resolvido: resolvidos.length };
 
   // Atualiza badge na sidebar
-  const badge = document.getElementById("badge-pedidos");
+  const badge = document.getElementById("badge-suporte");
   if (badge) {
     if (pendentes.length > 0) { badge.textContent = pendentes.length; badge.style.display = ""; }
     else { badge.style.display = "none"; }
@@ -537,8 +537,8 @@ async function renderPedidos(filtroAtivo = "pendente") {
   root.innerHTML = `
     <div class="ped-header">
       <div>
-        <div class="ped-title">Pedidos</div>
-        <div class="ped-subtitle">Reclamações e pedidos de melhoria das instituições</div>
+        <div class="ped-title">Suporte</div>
+        <div class="ped-subtitle">Suporte — Reclamações e melhorias</div>
       </div>
     </div>
 
@@ -574,7 +574,7 @@ async function renderPedidos(filtroAtivo = "pendente") {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <p>Nenhum pedido ${filtroAtivo !== "todos" ? "nesta categoria" : "ainda"}.</p>
+        <p>Nenhuma solicitação ${filtroAtivo !== "todos" ? "nesta categoria" : "ainda"}.</p>
       </div>`;
     return;
   }
@@ -594,7 +594,7 @@ async function renderPedidos(filtroAtivo = "pendente") {
     card.style.animationDelay = `${i * .05}s`;
     card.innerHTML = `
       <div class="ped-card-header">
-        <div class="ped-tipo-icon ${p.tipo}">${tipoIcon[p.tipo] ?? tipoIcon.outro}</div>
+        <div class="sup-tipo-icon ${p.tipo}">${tipoIcon[p.tipo] ?? tipoIcon.outro}</div>
         <div class="ped-card-body">
           <div class="ped-card-titulo">${esc(p.titulo)}</div>
           <div class="ped-card-meta">
