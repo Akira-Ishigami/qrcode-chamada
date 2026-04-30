@@ -52,16 +52,17 @@ async function init() {
     window.scrollTo(0, 0);
     renderInstituicoes();
   });
-  document.getElementById("nav-anotacoes").addEventListener("click", () => {
-    setActive("nav-anotacoes");
+  document.getElementById("nav-pedidos").addEventListener("click", () => {
+    setActive("nav-pedidos");
     window.scrollTo(0, 0);
-    renderAnotacoes();
+    renderPedidos();
   });
 
   // Realtime — atualiza a view ativa quando o banco muda
   setupRealtime();
 
   await renderDashboard();
+  await atualizarBadgePedidos();
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
@@ -85,7 +86,23 @@ function setupRealtime() {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
       if (active === "nav-instituicoes") renderInstituicoes();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-pedidos") renderPedidos();
+      atualizarBadgePedidos();
+    })
     .subscribe();
+}
+
+// Atualiza o badge de pendentes na sidebar
+async function atualizarBadgePedidos() {
+  const { count } = await supabaseAdmin
+    .from("pedidos").select("id", { count: "exact", head: true })
+    .eq("status", "pendente");
+  const badge = document.getElementById("badge-pedidos");
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = ""; }
+  else           { badge.style.display = "none"; }
 }
 
 // ══ VIEW 1: DASHBOARD (read-only) ════════════════════════════════════════════
@@ -489,8 +506,134 @@ async function renderInstDetalhe(instId, instNome) {
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 }
 
-// ══ VIEW 3: ANOTAÇÕES ════════════════════════════════════════════════════════
+// ══ VIEW 3: PEDIDOS (reclamações e melhorias das instituições) ════════════════
+async function renderPedidos(filtroAtivo = "pendente") {
+  root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
+
+  const { data: pedidos, error } = await supabaseAdmin
+    .from("pedidos")
+    .select("id, tipo, titulo, descricao, status, criado_em, instituicoes(nome)")
+    .order("criado_em", { ascending: false });
+
+  if (error) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar pedidos: ${error.message}</div>`;
+    return;
+  }
+
+  const todos     = pedidos ?? [];
+  const pendentes = todos.filter(p => p.status === "pendente");
+  const analise   = todos.filter(p => p.status === "em_analise");
+  const resolvidos= todos.filter(p => p.status === "resolvido");
+
+  const contagem = { pendente: pendentes.length, em_analise: analise.length, resolvido: resolvidos.length };
+
+  // Atualiza badge na sidebar
+  const badge = document.getElementById("badge-pedidos");
+  if (badge) {
+    if (pendentes.length > 0) { badge.textContent = pendentes.length; badge.style.display = ""; }
+    else { badge.style.display = "none"; }
+  }
+
+  root.innerHTML = `
+    <div class="ped-header">
+      <div>
+        <div class="ped-title">Pedidos</div>
+        <div class="ped-subtitle">Reclamações e pedidos de melhoria das instituições</div>
+      </div>
+    </div>
+
+    <div class="ped-tabs">
+      ${[
+        { id: "pendente",   label: "Pendentes" },
+        { id: "em_analise", label: "Em análise" },
+        { id: "resolvido",  label: "Resolvidos" },
+        { id: "todos",      label: "Todos" },
+      ].map(t => `
+        <button class="ped-tab ${filtroAtivo === t.id ? "active" : ""}" data-filtro="${t.id}">
+          ${t.label}
+          <span class="ped-tab-count">${t.id === "todos" ? todos.length : (contagem[t.id] ?? 0)}</span>
+        </button>`).join("")}
+    </div>
+
+    <div class="ped-list" id="ped-list"></div>
+  `;
+
+  // Tabs
+  root.querySelectorAll(".ped-tab").forEach(btn => {
+    btn.addEventListener("click", () => renderPedidos(btn.dataset.filtro));
+  });
+
+  const lista = filtroAtivo === "todos" ? todos
+    : todos.filter(p => p.status === filtroAtivo);
+
+  const listEl = document.getElementById("ped-list");
+
+  if (lista.length === 0) {
+    listEl.innerHTML = `
+      <div class="ped-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>Nenhum pedido ${filtroAtivo !== "todos" ? "nesta categoria" : "ainda"}.</p>
+      </div>`;
+    return;
+  }
+
+  const tipoIcon = {
+    reclamacao: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    melhoria:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+    outro:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  };
+  const tipoLabel = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const statusLabel = { pendente: "Pendente", em_analise: "Em análise", resolvido: "Resolvido" };
+  const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+
+  lista.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "ped-card";
+    card.style.animationDelay = `${i * .05}s`;
+    card.innerHTML = `
+      <div class="ped-card-header">
+        <div class="ped-tipo-icon ${p.tipo}">${tipoIcon[p.tipo] ?? tipoIcon.outro}</div>
+        <div class="ped-card-body">
+          <div class="ped-card-titulo">${esc(p.titulo)}</div>
+          <div class="ped-card-meta">
+            ${p.instituicoes?.nome ? `<strong>${esc(p.instituicoes.nome)}</strong> · ` : ""}
+            ${tipoLabel[p.tipo] ?? "Outro"} · ${fmtData(p.criado_em)}
+          </div>
+          <div class="ped-card-desc">${esc(p.descricao)}</div>
+        </div>
+      </div>
+      <div class="ped-card-footer">
+        <span class="ped-status ${p.status}">${statusLabel[p.status]}</span>
+        <select class="ped-status-select" data-id="${p.id}">
+          <option value="pendente"   ${p.status==="pendente"   ? "selected":""}>Pendente</option>
+          <option value="em_analise" ${p.status==="em_analise" ? "selected":""}>Em análise</option>
+          <option value="resolvido"  ${p.status==="resolvido"  ? "selected":""}>Resolvido</option>
+        </select>
+      </div>
+    `;
+
+    card.querySelector(".ped-status-select").addEventListener("change", async (e) => {
+      const novoStatus = e.target.value;
+      const { error: err } = await supabaseAdmin
+        .from("pedidos").update({ status: novoStatus }).eq("id", p.id);
+      if (err) { showToast("Erro ao atualizar.", "error"); return; }
+      showToast("Status atualizado!", "success");
+      renderPedidos(filtroAtivo);
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+// ══ ANOTAÇÕES (legado — substituído por Pedidos no ADM) ═══════════════════════
 function renderAnotacoes() {
+  // Mantido para compatibilidade, redireciona para pedidos
+  renderPedidos();
+}
+
+function _renderAnotacoesLegado() {
   const storageKey = `adm_notes_v2_${window._adminId || "local"}`;
   const COLORS     = ["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#06b6d4"];
   const timers     = {};

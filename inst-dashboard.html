@@ -113,6 +113,12 @@
       to   { opacity: 1; transform: none; }
     }
 
+    /* ── Status badges (pedidos) ── */
+    .ped-status { font-size:.62rem;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0; }
+    .ped-status.pendente   { background:var(--amber-sub);color:var(--amber-text);border:1px solid #fde68a; }
+    .ped-status.em_analise { background:#eff6ff;color:var(--acc);border:1px solid #bfdbfe; }
+    .ped-status.resolvido  { background:#dcfce7;color:#14532d;border:1px solid #86efac; }
+
     @media (max-width: 900px) { .idash-stats { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 600px) {
       .idash-stats  { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -190,6 +196,10 @@
       <a href="relatorio-dia.html" class="sidebar-link" data-role="instituicao professor">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         Rel. do Dia
+      </a>
+      <a href="inst-dashboard.html#pedidos" class="sidebar-link" id="nav-pedidos-inst" data-role="instituicao" onclick="window.__showPedidos=true">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        Pedidos
       </a>
     </nav>
     <div class="sidebar-footer">

@@ -88,6 +88,26 @@ CREATE POLICY "auth_all_chamadas"     ON chamadas     FOR ALL TO authenticated U
 CREATE POLICY "auth_all_presencas"    ON presencas    FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ═══════════════════════════════════════════════════════════════════════════
+--  PEDIDOS — Reclamações e pedidos de melhoria das instituições para o ADM
+--  Execute no SQL Editor do Supabase
+-- ═══════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS pedidos (
+  id             uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  instituicao_id uuid        NOT NULL REFERENCES instituicoes(id) ON DELETE CASCADE,
+  tipo           text        NOT NULL DEFAULT 'melhoria'
+                             CHECK (tipo IN ('reclamacao', 'melhoria', 'outro')),
+  titulo         text        NOT NULL,
+  descricao      text        NOT NULL,
+  status         text        NOT NULL DEFAULT 'pendente'
+                             CHECK (status IN ('pendente', 'em_analise', 'resolvido')),
+  criado_em      timestamptz DEFAULT now()
+);
+
+ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all_pedidos" ON pedidos FOR ALL TO anon         USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_pedidos" ON pedidos FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- ═══════════════════════════════════════════════════════════════════════════
 --  REALTIME — habilita publicação das tabelas
 --  Execute no SQL Editor do Supabase para ativar as subscrições realtime
 -- ═══════════════════════════════════════════════════════════════════════════
