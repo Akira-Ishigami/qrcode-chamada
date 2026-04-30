@@ -104,33 +104,17 @@ async function renderPage(profile) {
       </div>
       <button class="btn btn-primary" id="btn-novo">${SVG_PLUS}&nbsp; Novo Professor</button>
     </div>
-    <div class="prof-table-wrap">
-      <table class="prof-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>Email</th>
-            <th>Nível</th>
-            <th style="width:56px"></th>
-          </tr>
-        </thead>
-        <tbody id="prof-tbody">
-          ${profilesCache.length ? profilesCache.map(buildRow).join("") : `
-            <tr><td colspan="4">
-              <div class="prof-empty">${SVG_USER_BIG}<p>Nenhum usuário cadastrado.</p></div>
-            </td></tr>`}
-        </tbody>
-      </table>
-    </div>`;
+    ${profilesCache.length
+      ? `<div class="prof-grid" id="prof-grid">${profilesCache.map(buildCard).join("")}</div>`
+      : `<div class="prof-empty">${SVG_USER_BIG}<p>Nenhum professor cadastrado ainda.</p></div>`
+    }`;
 
-  // ── Botão Novo Usuário ───────────────────────────────────────────────────────
   document.getElementById("btn-novo").addEventListener("click", () => modalNovoUsuario());
 
-  // ── Event delegation nos botões ⋮ e itens do menu ───────────────────────────
-  const tbody = document.getElementById("prof-tbody");
-  if (!tbody) return;
+  const grid = document.getElementById("prof-grid");
+  if (!grid) return;
 
-  tbody.addEventListener("click", async (e) => {
+  grid.addEventListener("click", async (e) => {
     // Botão ⋮
     const dotsBtn = e.target.closest(".action-btn[data-id]");
     if (dotsBtn) {
@@ -165,22 +149,20 @@ async function renderPage(profile) {
   });
 }
 
-// ─── Linha da tabela ──────────────────────────────────────────────────────────
-function buildRow(p) {
+// ─── Card de professor ────────────────────────────────────────────────────────
+const CARD_PALETTES = [
+  ["#dbeafe","#1d4ed8"], ["#dcfce7","#15803d"], ["#fce7f3","#be185d"],
+  ["#fef9c3","#a16207"], ["#ede9fe","#6d28d9"], ["#ffedd5","#c2410c"],
+];
+
+function buildCard(p) {
   const initials = (p.nome || p.email || "?")
     .split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-  const badge = `<span class="badge badge-professor">Professor</span>`;
+  const [bg, fg] = CARD_PALETTES[((p.nome || p.email || "").charCodeAt(0) || 0) % CARD_PALETTES.length];
+
   return `
-    <tr>
-      <td>
-        <div class="prof-name-cell">
-          <div class="prof-avatar">${esc(initials)}</div>
-          <div class="prof-name-info"><strong>${esc(p.nome || "—")}</strong></div>
-        </div>
-      </td>
-      <td style="color:var(--text-2)">${esc(p.email || "—")}</td>
-      <td>${badge}</td>
-      <td class="action-cell">
+    <div class="prof-card">
+      <div class="action-cell prof-card-menu-wrap">
         <button class="action-btn" data-id="${p.id}" title="Ações">${SVG_DOTS}</button>
         <div class="action-menu" id="menu-${p.id}">
           <button class="action-menu-item" data-action="editar" data-id="${p.id}">
@@ -197,8 +179,14 @@ function buildRow(p) {
             Excluir usuário
           </button>
         </div>
-      </td>
-    </tr>`;
+      </div>
+      <div class="prof-card-avatar" style="background:${bg};color:${fg}">${esc(initials)}</div>
+      <div class="prof-card-name">${esc(p.nome || "—")}</div>
+      <div class="prof-card-email">${esc(p.email || "—")}</div>
+      <div class="prof-card-footer">
+        <span class="badge badge-professor">Professor</span>
+      </div>
+    </div>`;
 }
 
 // ─── Modal: Novo professor ────────────────────────────────────────────────────

@@ -96,16 +96,45 @@ async function renderPage(profile) {
   root.innerHTML = `
     <div class="rd-header">
       <div>
+        <div class="rd-eyebrow">Relatório</div>
         <div class="rd-title">Relatório do Dia</div>
-        <div class="rd-subtitle">${nome ? `Olá, ${esc(nome)} · ` : ""}${dataFormatada}</div>
+        <div class="rd-subtitle">${nome ? `Olá, ${esc(nome)}` : ""}</div>
+      </div>
+      <div class="rd-date-pill">
+        <div class="rd-date-dot"></div>
+        ${dataFormatada}
       </div>
     </div>
 
     ${detalhes.length > 0 ? `
       <div class="rd-stats">
-        <div class="rd-stat green"><span class="rd-num">${totalPresentes}</span><span class="rd-lbl">Presentes</span></div>
-        <div class="rd-stat red"><span class="rd-num">${totalAusentes}</span><span class="rd-lbl">Ausentes</span></div>
-        <div class="rd-stat blue"><span class="rd-num">${detalhes.length}</span><span class="rd-lbl">Chamadas</span></div>
+        <div class="rd-stat green" style="animation-delay:0s">
+          <div class="rd-stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="rd-stat-info">
+            <div class="rd-num">${totalPresentes}</div>
+            <div class="rd-lbl">Presentes</div>
+          </div>
+        </div>
+        <div class="rd-stat red" style="animation-delay:.06s">
+          <div class="rd-stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div class="rd-stat-info">
+            <div class="rd-num">${totalAusentes}</div>
+            <div class="rd-lbl">Ausentes</div>
+          </div>
+        </div>
+        <div class="rd-stat blue" style="animation-delay:.12s">
+          <div class="rd-stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="rd-stat-info">
+            <div class="rd-num">${detalhes.length}</div>
+            <div class="rd-lbl">Chamadas</div>
+          </div>
+        </div>
       </div>
     ` : ""}
 
@@ -116,6 +145,7 @@ async function renderPage(profile) {
       <div class="rd-sem-chamada">
         ${turmasSemChamada.map(t => `
           <div class="rd-turma-row">
+            <div class="rd-turma-dot"></div>
             <span class="rd-turma-nome">${esc(t.nome)}</span>
             ${t.professor ? `<span class="rd-turma-meta">${esc(t.professor)}</span>` : ""}
             ${t.instituicoes ? `<span class="rd-turma-inst">${esc(t.instituicoes.nome)}</span>` : ""}
@@ -146,10 +176,14 @@ async function renderPage(profile) {
       ? `<span class="badge-aberta">Aberta</span>`
       : `<span class="badge-encerrada">Encerrada</span>`;
 
+    const inicial = (turma?.nome || "?").charAt(0).toUpperCase();
+    const pctClass = pct >= 75 ? "green" : pct >= 50 ? "orange" : "red";
+
     const card = document.createElement("div");
     card.className = "rd-card";
     card.innerHTML = `
       <div class="rd-card-header" onclick="this.closest('.rd-card').classList.toggle('open')">
+        <div class="rd-card-avatar">${inicial}</div>
         <div class="rd-card-info">
           <div class="rd-card-nome">${esc(turma?.nome || "—")}</div>
           <div class="rd-card-meta">
@@ -159,26 +193,31 @@ async function renderPage(profile) {
           </div>
         </div>
         <div class="rd-card-badges">
-          <span class="rd-pct ${pct >= 75 ? "green" : pct >= 50 ? "orange" : "red"}">${pct}%</span>
           <span class="badge-presente">${presentes.length} ✓</span>
           <span class="badge-ausente">${ausentes.length} ✗</span>
           ${statusBadge}
         </div>
-        <svg class="rd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
+        <svg class="rd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="rd-progress">
+        <div class="rd-progress-top">
+          <span class="rd-progress-label">Frequência</span>
+          <span class="rd-progress-pct ${pctClass}">${pct}%</span>
+        </div>
+        <div class="rd-bar-bg">
+          <div class="rd-bar-fill ${pctClass}" style="width:${pct}%"></div>
+        </div>
       </div>
       <div class="rd-alunos">
+        <div class="rd-alunos-head"><span>Aluno</span><span>Status</span></div>
         ${[...presentes.map(a => ({ ...a, presente: true })), ...ausentes.map(a => ({ ...a, presente: false }))]
           .sort((a, b) => a.nome.localeCompare(b.nome))
           .map(a => `
             <div class="rd-aluno-row">
+              <div class="rd-aluno-dot ${a.presente ? "p" : "a"}"></div>
               <span class="rd-aluno-nome">${esc(a.nome)}</span>
-              <span class="${a.presente ? "dot-presente" : "dot-ausente"}">
-                ${a.presente ? "✓ Presente" : "✗ Ausente"}
-              </span>
-            </div>
-          `).join("")}
+              <span class="rd-aluno-status ${a.presente ? "p" : "a"}">${a.presente ? "Presente" : "Ausente"}</span>
+            </div>`).join("")}
       </div>
     `;
     lista.appendChild(card);

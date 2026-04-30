@@ -251,6 +251,12 @@ const SVG_ALUNO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 </svg>`;
 
+const ALUNO_PALETTES = [
+  ["#dbeafe","#1d4ed8"], ["#dcfce7","#15803d"], ["#fce7f3","#be185d"],
+  ["#fef9c3","#a16207"], ["#ede9fe","#6d28d9"], ["#ffedd5","#c2410c"],
+  ["#cffafe","#0e7490"], ["#fef2f2","#b91c1c"],
+];
+
 function renderAlunos() {
   countBadge.textContent = alunosFiltrados.length;
   btnDlAll.disabled      = alunosFiltrados.length === 0;
@@ -266,54 +272,36 @@ function renderAlunos() {
     return;
   }
 
-  alunosList.className = "alunos-list alunos-container";
-  alunosList.innerHTML = "";
-
-  const SVG_TEL  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
-  const SVG_CAL  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
-  const SVG_DOC  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-  const SVG_PIN  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   const SVG_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
   const SVG_DL   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
 
+  alunosList.className = "alunos-list alunos-card-grid";
+  alunosList.innerHTML = "";
+
   alunosFiltrados.forEach((a, i) => {
     const initials = a.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
-    const nasc = a.data_nascimento
-      ? new Date(a.data_nascimento + "T12:00:00").toLocaleDateString("pt-BR")
-      : null;
+    const [bg, fg] = ALUNO_PALETTES[(a.nome.charCodeAt(0) || 0) % ALUNO_PALETTES.length];
 
-    const tags = [
-      a.telefone    ? `<span class="aluno-tag">${SVG_TEL}${a.telefone}</span>` : "",
-      nasc          ? `<span class="aluno-tag">${SVG_CAL}${nasc}</span>` : "",
-      a.id_estadual ? `<span class="aluno-tag">${SVG_DOC}${a.id_estadual}</span>` : "",
-      a.endereco    ? `<span class="aluno-tag">${SVG_PIN}${a.endereco}</span>` : "",
-    ].filter(Boolean).join("");
+    const card = document.createElement("div");
+    card.className = "aluno-card";
+    card.style.animationDelay = `${i * 0.04}s`;
 
-    const row = document.createElement("div");
-    row.className = "aluno-row";
-    row.style.animationDelay = `${i * 0.04}s`;
-
-    row.innerHTML = `
-      <div class="aluno-avatar">
-        ${a.foto_url ? `<img src="${a.foto_url}" alt="${initials}" />` : initials}
+    card.innerHTML = `
+      <div class="aluno-card-avatar" style="background:${bg};color:${fg}">
+        ${a.foto_url ? `<img src="${a.foto_url}" alt="${initials}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />` : initials}
       </div>
-      <div class="aluno-info">
-        <div class="aluno-name-line">
-          <span class="aluno-name">${a.nome}</span>
-          <span class="aluno-mat">${a.matricula}</span>
-        </div>
-        ${tags ? `<div class="aluno-tags">${tags}</div>` : ""}
-      </div>
-      <div class="aluno-actions">
-        ${a.turma?.nome ? `<span class="aluno-badge-turma">${a.turma.nome}</span>` : ""}
-        <button class="aluno-btn-edit" title="Editar">${SVG_EDIT}</button>
-        <button class="aluno-btn-qr" data-id="${a.id}">${SVG_DL} QR</button>
+      <div class="aluno-card-name">${a.nome}</div>
+      <div class="aluno-card-mat">${a.matricula}</div>
+      ${a.turma?.nome ? `<span class="aluno-card-turma">${a.turma.nome}</span>` : ""}
+      <div class="aluno-card-actions">
+        <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT} Editar</button>
+        <button class="aluno-btn-qr aluno-card-btn" data-id="${a.id}">${SVG_DL} QR</button>
       </div>
     `;
 
-    row.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
-    row.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQR(a));
-    alunosList.appendChild(row);
+    card.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
+    card.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQR(a));
+    alunosList.appendChild(card);
   });
 }
 

@@ -451,170 +451,104 @@ async function renderInstDetalhe(instId, instNome) {
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 }
 
-// ══ VIEW 3: ANOTAÇÕES ════════════════════════════════════════════════════════
-function renderAnotacoes() {
-  const storageKey = `adm_notes_v2_${window._adminId || "local"}`;
-  const COLORS     = ["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#06b6d4"];
-  const timers     = {};
+// ══ VIEW 3: FEEDBACKS (Kanban) ═══════════════════════════════════════════════
+async function renderAnotacoes() {
+  root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const loadNotes = () => JSON.parse(localStorage.getItem(storageKey) || "[]");
-  const saveNotes = (notes) => localStorage.setItem(storageKey, JSON.stringify(notes));
+  const { data: feedbacks, error } = await supabaseAdmin
+    .from("feedbacks")
+    .select("id, instituicao_id, tipo, titulo, descricao, status, criado_em, instituicoes(nome)")
+    .order("criado_em", { ascending: false });
 
-  const fmtDate = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString("pt-BR", { day:"numeric", month:"short" }) + " " +
-           d.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  if (error) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar feedbacks: ${error.message}</div>`;
+    return;
+  }
+
+  const COLS = {
+    aberto:     { label: "Aberto",     dot: "#f59e0b", items: [] },
+    em_analise: { label: "Em Análise", dot: "#a78bfa", items: [] },
+    resolvido:  { label: "Resolvido",  dot: "#00e87a", items: [] },
   };
 
-  const newNote = () => ({
-    id: crypto.randomUUID(),
-    title: "", content: "",
-    color: COLORS[0],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
+  (feedbacks ?? []).forEach(f => { if (COLS[f.status]) COLS[f.status].items.push(f); });
 
-  const renderGrid = () => {
-    const notes = loadNotes();
-    const grid  = document.getElementById("notes-grid");
-    if (!grid) return;
-
-    if (notes.length === 0) {
-      grid.innerHTML = `
-        <div class="notes-empty">
-          <div class="notes-empty-icon">
-            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" width="52" height="52">
-              <rect x="8" y="6" width="32" height="36" rx="4"/>
-              <line x1="16" y1="16" x2="32" y2="16"/>
-              <line x1="16" y1="23" x2="28" y2="23"/>
-              <line x1="16" y1="30" x2="22" y2="30"/>
-            </svg>
-          </div>
-          <div class="notes-empty-title">Nenhuma anotação ainda</div>
-          <div class="notes-empty-sub">Clique em "Nova nota" para começar</div>
-        </div>`;
-      return;
-    }
-
-    grid.innerHTML = notes.map((note, i) => `
-      <div class="note-card" data-id="${note.id}" style="--note-color:${note.color};animation-delay:${i * .045}s">
-        <button class="note-del" data-id="${note.id}" title="Excluir">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <div class="note-inner">
-          <input  class="note-title"   data-id="${note.id}" placeholder="Título" value="${esc(note.title)}" maxlength="80"/>
-          <textarea class="note-content" data-id="${note.id}" placeholder="Escreva aqui…" rows="4">${esc(note.content)}</textarea>
-        </div>
-        <div class="note-footer">
-          <div class="note-colors">
-            ${COLORS.map(c => `<div class="note-color-dot${note.color===c?" active":""}" data-id="${note.id}" data-color="${c}" style="background:${c}"></div>`).join("")}
-          </div>
-          <div class="note-timestamp">${fmtDate(note.updatedAt)}</div>
-        </div>
-      </div>`).join("");
-
-    grid.querySelectorAll(".note-content").forEach(ta => {
-      ta.style.height = "auto";
-      ta.style.height = ta.scrollHeight + "px";
-    });
-
-    attachEvents();
-  };
-
-  const attachEvents = () => {
-    const grid = document.getElementById("notes-grid");
-    if (!grid) return;
-
-    grid.querySelectorAll(".note-title").forEach(inp => {
-      inp.addEventListener("input", () => scheduleAutosave(inp.dataset.id));
-    });
-
-    grid.querySelectorAll(".note-content").forEach(ta => {
-      ta.addEventListener("input", () => {
-        ta.style.height = "auto";
-        ta.style.height = ta.scrollHeight + "px";
-        scheduleAutosave(ta.dataset.id);
-      });
-    });
-
-    grid.querySelectorAll(".note-color-dot").forEach(dot => {
-      dot.addEventListener("click", () => {
-        const { id, color } = dot.dataset;
-        const notes = loadNotes();
-        const note  = notes.find(n => n.id === id);
-        if (!note) return;
-        note.color = color;
-        note.updatedAt = new Date().toISOString();
-        saveNotes(notes);
-        const card = grid.querySelector(`.note-card[data-id="${id}"]`);
-        if (card) {
-          card.style.setProperty("--note-color", color);
-          card.querySelectorAll(".note-color-dot").forEach(d => d.classList.toggle("active", d.dataset.color === color));
-          const ts = card.querySelector(".note-timestamp");
-          if (ts) ts.textContent = fmtDate(note.updatedAt);
-        }
-      });
-    });
-
-    grid.querySelectorAll(".note-del").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id   = btn.dataset.id;
-        const card = grid.querySelector(`.note-card[data-id="${id}"]`);
-        if (!card) return;
-        card.classList.add("removing");
-        card.addEventListener("animationend", () => {
-          saveNotes(loadNotes().filter(n => n.id !== id));
-          renderGrid();
-        }, { once: true });
-      });
-    });
-  };
-
-  const scheduleAutosave = (id) => {
-    clearTimeout(timers[id]);
-    timers[id] = setTimeout(() => {
-      const grid = document.getElementById("notes-grid");
-      if (!grid) return;
-      const titleEl   = grid.querySelector(`.note-title[data-id="${id}"]`);
-      const contentEl = grid.querySelector(`.note-content[data-id="${id}"]`);
-      if (!titleEl || !contentEl) return;
-      const notes = loadNotes();
-      const note  = notes.find(n => n.id === id);
-      if (!note) return;
-      note.title     = titleEl.value;
-      note.content   = contentEl.value;
-      note.updatedAt = new Date().toISOString();
-      saveNotes(notes);
-      const ts = grid.querySelector(`.note-card[data-id="${id}"] .note-timestamp`);
-      if (ts) ts.textContent = fmtDate(note.updatedAt);
-    }, 900);
-  };
+  const total = (feedbacks ?? []).length;
 
   root.innerHTML = `
-    <div class="notes-header">
+    <div class="fb-header">
       <div>
-        <div class="notes-title">Anotações</div>
-        <div class="notes-subtitle">Salvas localmente neste navegador</div>
+        <div class="fb-title">Feedbacks</div>
+        <div class="fb-subtitle">${total} relato${total !== 1 ? "s" : ""} de instituições · arraste para mover</div>
       </div>
-      <button class="notes-btn-new" id="btn-nova-nota">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nova nota
-      </button>
     </div>
-    <div class="notes-grid" id="notes-grid"></div>
+    <div class="fb-board">
+      ${Object.entries(COLS).map(([key, col]) => `
+        <div class="fb-col">
+          <div class="fb-col-head">
+            <div class="fb-col-dot" style="background:${col.dot};box-shadow:0 0 6px ${col.dot}80"></div>
+            <span class="fb-col-title">${col.label}</span>
+            <span class="fb-col-count">${col.items.length}</span>
+          </div>
+          <div class="fb-col-body" data-col="${key}">
+            ${col.items.length === 0
+              ? `<div class="fb-empty">Solte aqui</div>`
+              : col.items.map(f => fbCard(f)).join("")}
+          </div>
+        </div>`).join("")}
+    </div>
   `;
 
-  renderGrid();
-
-  document.getElementById("btn-nova-nota").addEventListener("click", () => {
-    const notes = loadNotes();
-    notes.unshift(newNote());
-    saveNotes(notes);
-    renderGrid();
-    setTimeout(() => {
-      document.getElementById("notes-grid")?.querySelector(".note-title")?.focus();
-    }, 60);
+  // ── Drag & drop ──────────────────────────────────────────────────────────
+  root.querySelectorAll(".fb-card").forEach(card => {
+    card.setAttribute("draggable", "true");
+    card.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", card.dataset.id);
+      e.dataTransfer.effectAllowed = "move";
+      setTimeout(() => card.classList.add("fb-dragging"), 0);
+    });
+    card.addEventListener("dragend", () => card.classList.remove("fb-dragging"));
   });
+
+  root.querySelectorAll(".fb-col-body").forEach(zone => {
+    zone.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; zone.classList.add("fb-drag-over"); });
+    zone.addEventListener("dragleave", e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove("fb-drag-over"); });
+    zone.addEventListener("drop", async e => {
+      e.preventDefault();
+      zone.classList.remove("fb-drag-over");
+      const id        = e.dataTransfer.getData("text/plain");
+      const newStatus = zone.dataset.col;
+      if (!id || !newStatus) return;
+
+      // Optimistic: disable all cards while saving
+      root.querySelectorAll(".fb-card").forEach(c => c.style.pointerEvents = "none");
+      const { error: upErr } = await supabaseAdmin.from("feedbacks").update({ status: newStatus }).eq("id", id);
+      if (!upErr) await renderAnotacoes();
+      else { showToast("Erro ao mover.", "error"); root.querySelectorAll(".fb-card").forEach(c => c.style.pointerEvents = ""); }
+    });
+  });
+}
+
+function fbCard(f) {
+  const isBug = f.tipo === "bug";
+  const date  = new Date(f.criado_em).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+
+  return `
+    <div class="fb-card" data-id="${f.id}">
+      <div class="fb-card-top">
+        <span class="fb-tipo ${isBug ? "bug" : "melhoria"}">${isBug ? "Bug" : "Melhoria"}</span>
+        <span class="fb-inst">${esc(f.instituicoes?.nome ?? "—")}</span>
+      </div>
+      <div class="fb-card-title">${esc(f.titulo)}</div>
+      ${f.descricao ? `<div class="fb-card-desc">${esc(f.descricao)}</div>` : ""}
+      <div class="fb-card-foot">
+        <span class="fb-date">${date}</span>
+        <span class="fb-drag-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
+          arraste
+        </span>
+      </div>
+    </div>`;
 }
 
 // ══ MODAIS ════════════════════════════════════════════════════════════════════
