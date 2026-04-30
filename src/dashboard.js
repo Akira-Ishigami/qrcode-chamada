@@ -579,12 +579,25 @@ async function renderPedidos(filtroAtivo = "pendente") {
     return;
   }
 
-  const tipoLabel  = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const tipoLabel   = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
   const statusLabel = { pendente: "Pendente", em_analise: "Em análise", resolvido: "Resolvido" };
+  const statusDesc  = { pendente: "Aguardando análise", em_analise: "Em andamento", resolvido: "Concluído" };
   const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
 
-  // Ação de avançar status
-  const mudarStatus = async (id, novoStatus) => {
+  // Fecha todos os dropdowns abertos
+  const fecharDropdowns = () => {
+    document.querySelectorAll(".ped-status-dropdown.open").forEach(d => {
+      d.classList.remove("open");
+      d.previousElementSibling?.classList.remove("open");
+    });
+  };
+
+  // Fecha ao clicar fora
+  document.addEventListener("click", fecharDropdowns, { once: false });
+
+  // Atualizar status
+  const mudarStatus = async (id, novoStatus, card) => {
+    fecharDropdowns();
     const { error: err } = await supabaseAdmin
       .from("pedidos").update({ status: novoStatus }).eq("id", id);
     if (err) { showToast("Erro ao atualizar.", "error"); return; }
@@ -593,30 +606,16 @@ async function renderPedidos(filtroAtivo = "pendente") {
   };
 
   lista.forEach((p, i) => {
-    // Botão de ação contextual por status atual
-    let actionBtn = "";
-    if (p.status === "pendente") {
-      actionBtn = `<button class="ped-action-btn analise" data-id="${p.id}" data-next="em_analise">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
-        Iniciar análise
-      </button>`;
-    } else if (p.status === "em_analise") {
-      actionBtn = `
-        <button class="ped-action-btn reabrir" data-id="${p.id}" data-next="pendente">Pendente</button>
-        <button class="ped-action-btn resolver" data-id="${p.id}" data-next="resolvido">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
-          Marcar Resolvido
-        </button>`;
-    } else {
-      actionBtn = `<button class="ped-action-btn reabrir" data-id="${p.id}" data-next="pendente">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
-        Reabrir
-      </button>`;
-    }
-
     const card = document.createElement("div");
     card.className = `ped-card tipo-${p.tipo}`;
     card.style.animationDelay = `${i * .04}s`;
+
+    const opcoes = [
+      { val: "pendente",   label: "Pendente",   desc: "Aguardando análise" },
+      { val: "em_analise", label: "Em análise", desc: "Em andamento" },
+      { val: "resolvido",  label: "Resolvido",  desc: "Concluído" },
+    ];
+
     card.innerHTML = `
       <div class="ped-card-top">
         <div class="ped-card-left">
@@ -628,14 +627,47 @@ async function renderPedidos(filtroAtivo = "pendente") {
           </div>
           <div class="ped-card-titulo">${esc(p.titulo)}</div>
         </div>
-        <span class="ped-status ${p.status}">${statusLabel[p.status]}</span>
+
+        <!-- Status dropdown -->
+        <div class="ped-status-wrap">
+          <button class="ped-status ${p.status}" id="status-btn-${p.id}">
+            ${statusLabel[p.status]}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="ped-status-dropdown" id="status-dd-${p.id}">
+            <div class="ped-dd-label">Alterar status</div>
+            ${opcoes.map(o => `
+              <button class="ped-dd-opt" data-status="${o.val}" data-id="${p.id}">
+                <div class="ped-dd-dot"></div>
+                <div class="ped-dd-info">
+                  <div class="ped-dd-name">${o.label}</div>
+                  <div class="ped-dd-desc">${o.desc}</div>
+                </div>
+                ${p.status === o.val ? `<svg class="ped-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>` : ""}
+              </button>`).join("")}
+          </div>
+        </div>
       </div>
       <div class="ped-card-desc">${esc(p.descricao)}</div>
-      <div class="ped-card-actions">${actionBtn}</div>
     `;
 
-    card.querySelectorAll("[data-next]").forEach(btn => {
-      btn.addEventListener("click", () => mudarStatus(btn.dataset.id, btn.dataset.next));
+    // Toggle dropdown
+    const btn = card.querySelector(`#status-btn-${p.id}`);
+    const dd  = card.querySelector(`#status-dd-${p.id}`);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = dd.classList.contains("open");
+      fecharDropdowns();
+      if (!isOpen) { dd.classList.add("open"); btn.classList.add("open"); }
+    });
+
+    // Selecionar opção
+    dd.querySelectorAll(".ped-dd-opt").forEach(opt => {
+      opt.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (opt.dataset.status !== p.status) mudarStatus(opt.dataset.id, opt.dataset.status, card);
+        else fecharDropdowns();
+      });
     });
 
     listEl.appendChild(card);

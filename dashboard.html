@@ -368,14 +368,58 @@
       letter-spacing: -.01em;
     }
 
-    /* Status badge no topo direito */
+    /* Status badge clicável (dropdown trigger) */
+    .ped-status-wrap { position: relative; flex-shrink: 0; }
+
     .ped-status {
-      font-size: .6rem; font-weight: 700; padding: 4px 10px;
-      border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .6rem; font-weight: 700; padding: 5px 10px;
+      border-radius: 20px; white-space: nowrap; cursor: pointer;
+      user-select: none; transition: opacity .13s, transform .1s;
     }
-    .ped-status.pendente    { background: var(--amber-sub); color: var(--amber-text); border: 1px solid #fde68a; }
-    .ped-status.em_analise  { background: #eff6ff; color: var(--acc); border: 1px solid #bfdbfe; }
-    .ped-status.resolvido   { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+    .ped-status:hover { opacity: .85; transform: translateY(-1px); }
+    .ped-status:active { transform: scale(.97); }
+    .ped-status svg { transition: transform .2s; }
+    .ped-status.open svg { transform: rotate(180deg); }
+    .ped-status.pendente   { background: var(--amber-sub); color: var(--amber-text); border: 1px solid #fde68a; }
+    .ped-status.em_analise { background: #eff6ff; color: var(--acc); border: 1px solid #bfdbfe; }
+    .ped-status.resolvido  { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+
+    /* Dropdown do status */
+    .ped-status-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 8px 32px rgba(13,21,38,.14), 0 2px 8px rgba(13,21,38,.08);
+      min-width: 210px; overflow: hidden;
+      opacity: 0; transform: translateY(-6px) scale(.97);
+      pointer-events: none;
+      transition: opacity .18s cubic-bezier(.22,1,.36,1), transform .18s cubic-bezier(.22,1,.36,1);
+    }
+    .ped-status-dropdown.open {
+      opacity: 1; transform: none; pointer-events: all;
+    }
+    .ped-dd-label {
+      font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-3); padding: 10px 14px 6px;
+    }
+    .ped-dd-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; cursor: pointer; transition: background .11s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: inherit;
+    }
+    .ped-dd-opt:hover { background: var(--surface-2); }
+    .ped-dd-opt:last-child { border-radius: 0 0 12px 12px; }
+    .ped-dd-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .ped-dd-opt[data-status="pendente"]   .ped-dd-dot { background: var(--amber); }
+    .ped-dd-opt[data-status="em_analise"] .ped-dd-dot { background: var(--acc); }
+    .ped-dd-opt[data-status="resolvido"]  .ped-dd-dot { background: var(--green); }
+    .ped-dd-info { display: flex; flex-direction: column; gap: 1px; }
+    .ped-dd-name { font-size: .82rem; font-weight: 600; color: var(--text); }
+    .ped-dd-desc { font-size: .68rem; color: var(--text-3); }
+    .ped-dd-check { margin-left: auto; color: var(--green); flex-shrink: 0; }
 
     /* Descrição */
     .ped-card-desc {
@@ -384,24 +428,6 @@
       padding: 10px 12px;
       background: var(--surface-2); border-radius: 8px;
     }
-
-    /* Footer com ações rápidas */
-    .ped-card-actions {
-      display: flex; align-items: center; justify-content: flex-end;
-      gap: 6px; padding: 10px 14px 12px;
-    }
-    .ped-action-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 6px 13px; border-radius: 8px; font-size: .76rem; font-weight: 600;
-      cursor: pointer; border: 1px solid var(--border); background: var(--surface-2);
-      color: var(--text-2); font-family: inherit;
-      transition: background .12s, border-color .12s, color .12s, transform .1s;
-    }
-    .ped-action-btn:hover { transform: translateY(-1px); }
-    .ped-action-btn:active { transform: scale(.97); }
-    .ped-action-btn.analise:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--acc); }
-    .ped-action-btn.resolver:hover { background: #dcfce7; border-color: #86efac; color: #14532d; }
-    .ped-action-btn.reabrir:hover  { background: var(--amber-sub); border-color: #fde68a; color: var(--amber-text); }
 
     /* Empty */
     .ped-empty {
