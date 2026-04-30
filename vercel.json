@@ -1,0 +1,29 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/login",          "destination": "/login.html" },
+    { "source": "/dashboard",      "destination": "/dashboard.html" },
+    { "source": "/inst-dashboard", "destination": "/inst-dashboard.html" },
+    { "source": "/chamada",        "destination": "/chamada.html" },
+    { "source": "/cadastro",       "destination": "/cadastro.html" },
+    { "source": "/turmas",         "destination": "/turmas.html" },
+    { "source": "/professores",    "destination": "/professores.html" },
+    { "source": "/horarios",       "destination": "/horarios.html" },
+    { "source": "/relatorio",      "destination": "/relatorio.html" },
+    { "source": "/relatorio-dia",  "destination": "/relatorio-dia.html" },
+    { "source": "/minhas-turmas",  "destination": "/minhas-turmas.html" },
+    { "source": "/qr-teste",       "destination": "/qr-teste.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options",        "value": "DENY" },
+        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
