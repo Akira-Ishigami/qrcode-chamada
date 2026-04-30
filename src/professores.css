@@ -22,7 +22,7 @@
 
 .prof-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 0 0 20px;
+  border-radius: 16px; padding: 0 0 16px;
   display: flex; flex-direction: column; align-items: center;
   text-align: center; position: relative; overflow: hidden;
   transition: box-shadow .18s, transform .18s, border-color .18s;
@@ -30,48 +30,62 @@
   box-shadow: 0 1px 3px rgba(13,21,38,.05);
 }
 .prof-card::before {
-  content: ''; display: block; height: 52px; width: 100%; flex-shrink: 0;
+  content: ''; display: block; height: 56px; width: 100%; flex-shrink: 0;
   background: linear-gradient(135deg, #eff6ff, #dbeafe);
   border-bottom: 1px solid #bfdbfe;
 }
 .prof-card:hover {
   box-shadow: 0 6px 24px rgba(13,21,38,.09);
-  transform: translateY(-2px);
-  border-color: #bfdbfe;
+  transform: translateY(-2px); border-color: #bfdbfe;
 }
 @keyframes profCardIn {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
 
-.prof-card-menu-wrap {
-  position: absolute; top: 12px; right: 12px; z-index: 1;
-}
-
 .prof-card-avatar {
   width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 1.4rem;
-  margin-top: -34px; margin-bottom: 12px;
+  margin-top: -34px; margin-bottom: 10px;
   box-shadow: 0 0 0 3px white, 0 3px 12px rgba(0,0,0,.1);
   position: relative; z-index: 1;
 }
-
 .prof-card-name {
   font-weight: 700; font-size: .95rem; color: var(--text);
   margin-bottom: 4px; line-height: 1.25; padding: 0 14px;
   word-break: break-word;
 }
 .prof-card-email {
-  font-size: .73rem; color: var(--text-3); margin-bottom: 16px;
+  font-size: .73rem; color: var(--text-3); margin-bottom: 12px;
   line-height: 1.4; padding: 0 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   max-width: 100%;
 }
-.prof-card-footer {
-  margin-top: auto;
-  display: flex; align-items: center; justify-content: center;
+.prof-card-badge { margin-bottom: 14px; }
+
+/* Botões de ação visíveis */
+.prof-card-actions {
+  display: flex; gap: 6px; padding: 0 12px; width: 100%; box-sizing: border-box;
+  border-top: 1px solid var(--border); padding-top: 12px; margin-top: 2px;
 }
+.pc-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 6px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  font-size: .72rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background .13s, border-color .13s, color .13s;
+  white-space: nowrap;
+}
+.pc-btn:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--acc); }
+.pc-btn-del {
+  flex: 0; padding: 7px 10px; color: var(--text-3);
+  border-color: var(--border);
+}
+.pc-btn-del:hover { background: var(--red-sub); border-color: #fca5a5; color: var(--red); }
+
+/* Remove menu antigo */
+.prof-card-menu-wrap, .prof-card-footer { display: none; }
 
 /* Legacy avatar (still used in some places) */
 .prof-avatar {

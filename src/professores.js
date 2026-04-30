@@ -111,41 +111,14 @@ async function renderPage(profile) {
 
   document.getElementById("btn-novo").addEventListener("click", () => modalNovoUsuario());
 
-  const grid = document.getElementById("prof-grid");
-  if (!grid) return;
-
-  grid.addEventListener("click", async (e) => {
-    // Botão ⋮
-    const dotsBtn = e.target.closest(".action-btn[data-id]");
-    if (dotsBtn) {
-      e.stopPropagation();
-      const menu = document.getElementById("menu-" + dotsBtn.dataset.id);
-      if (!menu) return;
-      if (currentMenu && currentMenu !== menu) closeAllMenus();
-      if (menu.classList.contains("open")) {
-        closeAllMenus();
-        return;
-      }
-      // Posiciona o menu com fixed usando coordenadas do botão
-      const rect = dotsBtn.getBoundingClientRect();
-      menu.style.top  = (rect.bottom + 4) + "px";
-      menu.style.left = (rect.right - 200) + "px";
-      menu.classList.add("open");
-      currentMenu = menu;
-      return;
-    }
-
-    // Item do menu
-    const item = e.target.closest(".action-menu-item[data-action]");
-    if (item) {
-      const { id, action } = item.dataset;
-      closeAllMenus();
-      const p = profilesCache.find((x) => x.id === id);
-      if (!p) return;
-      if (action === "editar")  modalEditar(p);
-      if (action === "turmas")  await modalTurmas(p);
-      if (action === "excluir") modalExcluir(p);
-    }
+  // Bind direto em cada card
+  document.querySelectorAll(".prof-card[data-prof-id]").forEach(card => {
+    const id = card.dataset.profId;
+    const p  = profilesCache.find(x => x.id === id);
+    if (!p) return;
+    card.querySelector(".pc-btn-edit")?.addEventListener("click",   ()  => modalEditar(p));
+    card.querySelector(".pc-btn-turmas")?.addEventListener("click", async () => modalTurmas(p));
+    card.querySelector(".pc-btn-del")?.addEventListener("click",    ()  => modalExcluir(p));
   });
 }
 
@@ -161,30 +134,25 @@ function buildCard(p) {
   const [bg, fg] = CARD_PALETTES[((p.nome || p.email || "").charCodeAt(0) || 0) % CARD_PALETTES.length];
 
   return `
-    <div class="prof-card">
-      <div class="action-cell prof-card-menu-wrap">
-        <button class="action-btn" data-id="${p.id}" title="Ações">${SVG_DOTS}</button>
-        <div class="action-menu" id="menu-${p.id}">
-          <button class="action-menu-item" data-action="editar" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Editar dados
-          </button>
-          <button class="action-menu-item" data-action="turmas" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Atribuir turmas
-          </button>
-          <div class="action-menu-sep"></div>
-          <button class="action-menu-item danger" data-action="excluir" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            Excluir usuário
-          </button>
-        </div>
-      </div>
+    <div class="prof-card" data-prof-id="${p.id}">
       <div class="prof-card-avatar" style="background:${bg};color:${fg}">${esc(initials)}</div>
       <div class="prof-card-name">${esc(p.nome || "—")}</div>
       <div class="prof-card-email">${esc(p.email || "—")}</div>
-      <div class="prof-card-footer">
+      <div class="prof-card-badge">
         <span class="badge badge-professor">Professor</span>
+      </div>
+      <div class="prof-card-actions">
+        <button class="pc-btn pc-btn-edit" title="Editar dados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+        <button class="pc-btn pc-btn-turmas" title="Atribuir turmas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Turmas
+        </button>
+        <button class="pc-btn pc-btn-del" title="Excluir professor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
       </div>
     </div>`;
 }

@@ -753,44 +753,9 @@ let _adminInstId = null;
   if (!_adminInstId) carregarFiltroInstituicoes();
 
   if (_adminInstId) {
-    // Instituição: mostra picker de turma antes de carregar alunos
     await carregarFiltroTurmasDaInst(_adminInstId);
-    mostrarTurmaPicker();
   } else {
-    carregarAlunos();
+    carregarFiltroInstituicoes();
   }
+  carregarAlunos();
 })();
-
-// ─── Turma picker ─────────────────────────────────────────────────────────────
-function mostrarTurmaPicker() {
-  const SVG_CLASS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-  const opts = Array.from(filterTurma.options).filter(o => o.value);
-
-  alunosList.className = "alunos-list";
-  alunosList.innerHTML = `
-    <div class="turma-picker">
-      <div class="turma-picker-icon">${SVG_CLASS}</div>
-      <h3>Selecione uma turma</h3>
-      <p>Escolha uma turma para ver os alunos ou visualize todos de uma vez</p>
-      <div class="turma-picker-grid">
-        <button class="turma-picker-btn all" data-turma="">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Todas as turmas
-        </button>
-        ${opts.map(o => `
-          <button class="turma-picker-btn" data-turma="${o.value}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-            ${o.text}
-          </button>
-        `).join("")}
-      </div>
-    </div>
-  `;
-
-  alunosList.querySelectorAll(".turma-picker-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      filterTurma.value = btn.dataset.turma;
-      carregarAlunos();
-    });
-  });
-}

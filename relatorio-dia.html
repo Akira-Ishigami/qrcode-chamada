@@ -128,29 +128,46 @@
     /* ── Sem chamada ── */
     .rd-section-title {
       font-size: .6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .12em; color: var(--text-3); margin: 28px 0 10px;
+      letter-spacing: .14em; color: var(--text-3); margin: 28px 0 10px;
       display: flex; align-items: center; gap: 10px;
     }
     .rd-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-    .rd-sem-chamada { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+    .rd-sem-chamada { display: flex; flex-direction: column; gap: 8px; }
+
     .rd-turma-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; border-left: 3px solid #cbd5e1;
+      transition: border-color .13s, box-shadow .13s;
     }
-    .rd-turma-row:last-child { border-bottom: none; }
-    .rd-turma-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-2); flex-shrink: 0; }
+    .rd-turma-row:hover { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+
+    .rd-turma-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #cbd5e1; flex-shrink: 0;
+    }
     .rd-turma-nome { font-weight: 600; font-size: .875rem; color: var(--text); flex: 1; }
-    .rd-turma-meta { font-size: .73rem; color: var(--text-3); }
-    .rd-turma-inst { font-size: .7rem; color: var(--text-3); background: var(--surface-2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
+    .rd-turma-meta {
+      font-size: .72rem; color: var(--text-3); font-weight: 500;
+      background: var(--surface-2); border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
+    .rd-turma-inst {
+      font-size: .7rem; color: var(--text-3);
+      background: var(--surface-2); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
+    }
 
     /* ── Empty ── */
     .rd-empty {
       display: flex; flex-direction: column; align-items: center;
-      padding: 64px 20px; color: var(--text-3); gap: 12px; text-align: center;
+      padding: 56px 20px; color: var(--text-3); gap: 10px; text-align: center;
       background: var(--surface); border: 1px dashed var(--border-2); border-radius: 14px;
     }
-    .rd-empty p { font-size: .875rem; font-weight: 500; }
+    .rd-empty svg { opacity: .2; color: var(--acc); }
+    .rd-empty p { font-size: .875rem; font-weight: 500; color: var(--text-2); }
 
     @keyframes rdUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
