@@ -141,14 +141,23 @@ async function renderPage(profile) {
     <div id="chamadas-list"></div>
 
     ${turmasSemChamada.length > 0 ? `
-      <div class="rd-section-title">Sem chamada hoje</div>
+      <div class="rd-sem-head">
+        <span class="rd-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Sem chamada hoje
+        </span>
+        <span class="rd-sem-count">${turmasSemChamada.length} turma${turmasSemChamada.length !== 1 ? "s" : ""}</span>
+      </div>
       <div class="rd-sem-chamada">
-        ${turmasSemChamada.map(t => `
-          <div class="rd-turma-row">
-            <div class="rd-turma-dot"></div>
-            <span class="rd-turma-nome">${esc(t.nome)}</span>
-            ${t.professor ? `<span class="rd-turma-meta">${esc(t.professor)}</span>` : ""}
+        ${turmasSemChamada.map((t, i) => `
+          <div class="rd-turma-row" style="animation-delay:${i * .05}s">
+            <div class="rd-turma-initial">${esc(t.nome.charAt(0).toUpperCase())}</div>
+            <div class="rd-turma-info">
+              <div class="rd-turma-nome">${esc(t.nome)}</div>
+              ${t.professor ? `<div class="rd-turma-prof">${esc(t.professor)}</div>` : ""}
+            </div>
             ${t.instituicoes ? `<span class="rd-turma-inst">${esc(t.instituicoes.nome)}</span>` : ""}
+            <span class="rd-turma-meta">Pendente</span>
           </div>
         `).join("")}
       </div>

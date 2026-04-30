@@ -331,37 +331,67 @@ async function modalTurmas(p) {
     .eq("instituicao_id", _instId)
     .order("nome");
 
-  const lista = turmas || [];
-  // turmas já atribuídas a este professor (pelo nome no campo text)
+  const lista    = turmas || [];
   const atribSet = new Set(lista.filter(t => t.professor === profNome).map(t => t.id));
 
+  const SVG_HOUSE  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+  const SVG_CHECK  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>`;
+
   const items = lista.length === 0
-    ? `<p style="padding:12px;color:var(--text-3);font-size:.85rem">Nenhuma turma cadastrada.</p>`
-    : lista.map(t => `
-        <label class="turma-check-item">
-          <input type="checkbox" value="${t.id}" ${atribSet.has(t.id) ? "checked" : ""} />
-          <span>${esc(t.nome)}</span>
-          ${t.professor && t.professor !== profNome
-            ? `<span style="font-size:.75rem;color:var(--text-3);margin-left:4px">· ${esc(t.professor)}</span>`
-            : ""}
-        </label>`).join("");
+    ? `<p style="padding:16px;color:var(--text-3);font-size:.84rem;text-align:center">Nenhuma turma cadastrada nesta instituição.</p>`
+    : lista.map(t => {
+        const sel      = atribSet.has(t.id);
+        const outroProf = t.professor && t.professor !== profNome;
+        return `
+          <div class="tc-item${sel ? " selected" : ""}" data-id="${t.id}">
+            <input type="checkbox" value="${t.id}"${sel ? " checked" : ""} />
+            <div class="tc-item-icon">${SVG_HOUSE}</div>
+            <div class="tc-item-body">
+              <div class="tc-item-name">${esc(t.nome)}</div>
+              ${outroProf ? `<div class="tc-item-sub">Atribuída a ${esc(t.professor)}</div>` : ""}
+            </div>
+            <div class="tc-item-check">${SVG_CHECK}</div>
+          </div>`;
+      }).join("");
 
   openModal(`
-    <div class="modal-title">Atribuir turmas</div>
-    <p style="font-size:.85rem;color:var(--text-2);margin-bottom:14px">
-      Selecione as turmas de <strong>${esc(profNome)}</strong>:
-    </p>
-    <div class="modal-field">
-      <div class="turmas-check-list">${items}</div>
+    <div class="tc-modal-head">
+      <div class="tc-modal-icon">${SVG_HOUSE}</div>
+      <div>
+        <div class="modal-title" style="margin-bottom:1px">Turmas do professor</div>
+        <p style="font-size:.76rem;color:var(--text-3);margin:0">${esc(profNome)}</p>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="t-cancel">Cancelar</button>
-      <button class="btn btn-primary" id="t-save">Salvar</button>
+    <div class="tc-item-grid" id="tc-grid">${items}</div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <button class="btn btn-ghost" id="t-edit-dados" style="color:var(--acc);border-color:var(--border-acc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar dados
+      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" id="t-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="t-save">Salvar</button>
+      </div>
     </div>
   `, () => {
+    // Toggle card selection
+    document.querySelectorAll(".tc-item").forEach(item => {
+      item.addEventListener("click", () => {
+        item.classList.toggle("selected");
+        const cb = item.querySelector("input[type='checkbox']");
+        if (cb) cb.checked = !cb.checked;
+      });
+    });
+
+    document.getElementById("t-edit-dados").addEventListener("click", () => {
+      closeModal();
+      modalEditar(p);
+    });
+
     document.getElementById("t-cancel").addEventListener("click", closeModal);
+
     document.getElementById("t-save").addEventListener("click", async () => {
-      const checks    = [...document.querySelectorAll(".turmas-check-list input[type=checkbox]")];
+      const checks    = [...document.querySelectorAll("#tc-grid input[type=checkbox]")];
       const novas     = new Set(checks.filter(c => c.checked).map(c => c.value));
       const remover   = [...atribSet].filter(id => !novas.has(id));
       const adicionar = [...novas].filter(id => !atribSet.has(id));

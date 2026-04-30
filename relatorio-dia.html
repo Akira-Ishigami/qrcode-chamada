@@ -126,32 +126,47 @@
     .badge-ausente   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
 
     /* ── Sem chamada ── */
+    .rd-sem-head {
+      display: flex; align-items: center; gap: 10px; margin: 28px 0 12px;
+    }
     .rd-section-title {
       font-size: .6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .14em; color: var(--text-3); margin: 28px 0 10px;
-      display: flex; align-items: center; gap: 10px;
+      letter-spacing: .14em; color: var(--text-3);
+      display: flex; align-items: center; gap: 7px; flex: 1;
     }
     .rd-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .rd-sem-count {
+      font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e; white-space: nowrap;
+    }
 
-    .rd-sem-chamada { display: flex; flex-direction: column; gap: 8px; }
+    .rd-sem-chamada { display: flex; flex-direction: column; gap: 10px; }
 
     .rd-turma-row {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 14px;
       padding: 14px 16px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; border-left: 3px solid #cbd5e1;
-      transition: border-color .13s, box-shadow .13s;
+      background: var(--surface); border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      border-radius: 12px;
+      transition: box-shadow .15s, transform .15s;
+      animation: rdUp .28s cubic-bezier(.22,1,.36,1) both;
     }
-    .rd-turma-row:hover { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+    .rd-turma-row:hover { box-shadow: 0 4px 16px rgba(245,158,11,.1); transform: translateX(2px); }
 
-    .rd-turma-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #cbd5e1; flex-shrink: 0;
+    .rd-turma-initial {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 1rem;
     }
-    .rd-turma-nome { font-weight: 600; font-size: .875rem; color: var(--text); flex: 1; }
+    .rd-turma-info { flex: 1; min-width: 0; }
+    .rd-turma-nome { font-weight: 700; font-size: .9rem; color: var(--text); }
+    .rd-turma-prof { font-size: .73rem; color: var(--text-3); margin-top: 2px; }
+
+    .rd-turma-dot  { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; }
     .rd-turma-meta {
-      font-size: .72rem; color: var(--text-3); font-weight: 500;
-      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: .71rem; color: #92400e; font-weight: 600;
+      background: #fef9c3; border: 1px solid #fde68a;
       padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
     }
     .rd-turma-inst {
