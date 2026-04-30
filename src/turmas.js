@@ -6,6 +6,7 @@ const root = document.getElementById("page-root");
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let instAtualId   = null;
 let instAtualNome = "";
+let _isInstRole   = false; // oculta breadcrumb para role "instituicao"
 
 // ─── Ícones SVG reutilizáveis ────────────────────────────────────────────────
 const SVG_INST = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24">
@@ -172,11 +173,12 @@ async function renderTurmas(instId, instNome) {
   const lista = data ?? [];
 
   root.innerHTML = `
+    ${!_isInstRole ? `
     <div class="tv-breadcrumb">
       <button class="tv-btn-back" id="btn-back">${SVG_BACK} Instituições</button>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:#cbd5e1"><polyline points="9 18 15 12 9 6"/></svg>
       <span class="tv-bc-name">${instNome}</span>
-    </div>
+    </div>` : ""}
 
     <div class="tv-header">
       <div class="tv-header-left">
@@ -197,7 +199,7 @@ async function renderTurmas(instId, instNome) {
         <button class="tv-btn-add green" id="btn-add-turma-empty">${SVG_PLUS} Criar Turma</button>
       </div>
     ` : `
-      <div class="tv-grid" id="turma-grid"></div>
+      <div class="turma-card-grid" id="turma-grid"></div>
     `}
   `;
 
@@ -210,26 +212,25 @@ async function renderTurmas(instId, instNome) {
     lista.forEach((t, i) => {
       const card   = document.createElement("div");
       const letter = t.nome.charAt(0).toUpperCase();
-      card.className = "tv-card turma-card";
-      card.style.animationDelay = `${i * 0.05}s`;
+      card.className = "tc-card";
+      card.style.animationDelay = `${i * 0.06}s`;
 
       const subParts = [];
       if (t.professor) subParts.push(t.professor);
       if (t.horario)   subParts.push(t.horario);
 
       card.innerHTML = `
-        <div class="tvc-avatar turma">${letter}</div>
-        <div class="tvc-body">
-          <div class="tvc-name">${t.nome}</div>
-          ${subParts.length ? `<div class="tvc-sub">${subParts.join(" · ")}</div>` : ""}
-        </div>
-        <div class="tvc-right">
-          <span class="tvc-badge turma">Ativa</span>
-        </div>
-        <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
+        <button class="tc-del" title="Excluir">${SVG_TRASH}</button>
+        <div class="tc-initial">${letter}</div>
+        <div class="tc-name">${t.nome}</div>
+        ${subParts.length ? `<div class="tc-info">${subParts.join(" · ")}</div>` : ""}
+        <div class="tc-badge-row"><span class="tc-badge">Ativa</span></div>
       `;
 
-      card.querySelector(".tvc-del").addEventListener("click", () => deletarTurma(t.id, t.nome));
+      card.querySelector(".tc-del").addEventListener("click", e => {
+        e.stopPropagation();
+        deletarTurma(t.id, t.nome);
+      });
       grid.appendChild(card);
     });
   }
@@ -369,11 +370,12 @@ async function init() {
     return;
   }
 
-  // instituicao: vê turmas da sua instituição
+  // instituicao: vê turmas da sua instituição (sem breadcrumb)
   if (!profile.instituicao_id) {
     root.innerHTML = `<div class="tv-error">Conta não vinculada a uma instituição. Contate o administrador.</div>`;
     return;
   }
+  _isInstRole = true;
   const { data: inst } = await supabase
     .from("instituicoes").select("nome").eq("id", profile.instituicao_id).single();
   renderTurmas(profile.instituicao_id, inst?.nome || "Minha Instituição");
