@@ -86,7 +86,7 @@ const btnDlAll     = document.getElementById("btn-dl-all");
 async function carregarTurmas(instId, selecionarId = null) {
   selTurma.innerHTML = '<option value="">Carregando turmas…</option>';
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("turmas").select("id, nome")
     .eq("instituicao_id", instId).order("nome");
 
@@ -181,7 +181,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
 async function carregarAlunos() {
   alunosList.innerHTML = `<div class="list-empty"><p>Carregando...</p></div>`;
 
-  let alunosQuery = supabase
+  let alunosQuery = supabaseAdmin
     .from("alunos")
     .select(`
       id, nome, matricula, foto_url, telefone, data_nascimento, id_estadual, endereco,
