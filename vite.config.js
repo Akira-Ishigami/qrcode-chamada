@@ -27,6 +27,7 @@ export default defineConfig(({ command }) => ({
         "minhas-turmas.html",
         "dashboard.html",
         "inst-dashboard.html",
+        "suporte.html",
       ],
     },
   },
