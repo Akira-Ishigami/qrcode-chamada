@@ -14,20 +14,33 @@
     @media (min-width: 769px) { #page-root { padding: 32px 36px !important; } }
 
     /* ── Header ── */
-    .rd-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
-    .rd-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.45rem; font-weight: 700; color: var(--text); letter-spacing: -.025em; }
-    .rd-subtitle { font-size: .8rem; color: var(--text-3); margin-top: 3px; text-transform: capitalize; }
+    .rd-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+    .rd-eyebrow { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--acc); margin-bottom: 5px; }
+    .rd-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.65rem; font-weight: 800; color: var(--text); letter-spacing: -.03em; line-height: 1.1; }
+    .rd-subtitle { font-size: .82rem; color: var(--text-3); margin-top: 4px; text-transform: capitalize; }
+    .rd-date-pill {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 7px 14px; font-size: .73rem; color: var(--text-2); font-weight: 600;
+      display: flex; align-items: center; gap: 7px; white-space: nowrap; flex-shrink: 0;
+    }
+    .rd-date-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; box-shadow: 0 0 0 2px #dcfce7; }
 
     /* ── Stats ── */
-    .rd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; max-width: 400px; }
+    .rd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
     .rd-stat {
-      display: flex; align-items: center; gap: 12px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 16px; display: flex; align-items: center; gap: 14px;
       animation: rdUp .3s cubic-bezier(.22,1,.36,1) both;
+      transition: box-shadow .15s, transform .15s;
     }
-    .rd-num { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.8rem; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
-    .rd-lbl { font-size: .68rem; font-weight: 600; color: var(--text-3); }
+    .rd-stat:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .rd-stat-icon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .rd-stat.green .rd-stat-icon { background: #dcfce7; color: #16a34a; }
+    .rd-stat.red   .rd-stat-icon { background: #fee2e2; color: #dc2626; }
+    .rd-stat.blue  .rd-stat-icon { background: #eff6ff; color: #2563eb; }
+    .rd-stat-info {}
+    .rd-num { font-family: 'Outfit', system-ui, sans-serif; font-size: 2rem; font-weight: 800; line-height: 1; letter-spacing: -.04em; }
+    .rd-lbl { font-size: .67rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
     .rd-stat.green .rd-num { color: #16a34a; }
     .rd-stat.red   .rd-num { color: #dc2626; }
     .rd-stat.blue  .rd-num { color: #2563eb; }
@@ -35,73 +48,148 @@
     /* ── Cards de chamada ── */
     .rd-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 13px; margin-bottom: 10px; overflow: hidden;
+      border-radius: 14px; margin-bottom: 10px; overflow: hidden;
       animation: rdUp .28s cubic-bezier(.22,1,.36,1) both;
+      transition: border-color .15s, box-shadow .15s;
     }
+    .rd-card:hover { border-color: var(--border-2); }
+    .rd-card.open  { border-color: var(--border-acc); box-shadow: 0 0 0 3px var(--acc-sub); }
+
     .rd-card-header {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 18px; cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px; cursor: pointer; user-select: none;
       transition: background .12s;
     }
     .rd-card-header:hover { background: var(--surface-2); }
+
+    .rd-card-avatar {
+      width: 44px; height: 44px; border-radius: 11px; flex-shrink: 0;
+      background: #eff6ff; color: var(--acc);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 1.15rem;
+    }
     .rd-card-info { flex: 1; min-width: 0; }
-    .rd-card-nome { font-weight: 700; font-size: .9rem; color: var(--text); }
-    .rd-card-meta { font-size: .74rem; color: var(--text-3); margin-top: 2px; }
+    .rd-card-nome { font-weight: 700; font-size: .95rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rd-card-meta { font-size: .73rem; color: var(--text-3); margin-top: 2px; }
     .rd-card-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
-    .rd-chevron { color: var(--text-3); flex-shrink: 0; transition: transform .2s; }
+    .rd-chevron { color: var(--text-3); flex-shrink: 0; transition: transform .22s; }
     .rd-card.open .rd-chevron { transform: rotate(90deg); }
 
-    /* ── % frequência ── */
-    .rd-pct { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
-    .rd-pct.green  { background: #dcfce7; color: #166534; }
+    /* ── Barra de frequência ── */
+    .rd-progress {
+      padding: 0 18px 14px;
+    }
+    .rd-progress-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .rd-progress-label { font-size: .68rem; font-weight: 600; color: var(--text-3); }
+    .rd-progress-pct   { font-family: 'Outfit', system-ui, sans-serif; font-size: .75rem; font-weight: 800; }
+    .rd-progress-pct.green  { color: #16a34a; }
+    .rd-progress-pct.orange { color: #ea580c; }
+    .rd-progress-pct.red    { color: #dc2626; }
+    .rd-bar-bg { height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+    .rd-bar-fill { height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.22,1,.36,1); }
+    .rd-bar-fill.green  { background: linear-gradient(90deg,#16a34a,#4ade80); }
+    .rd-bar-fill.orange { background: linear-gradient(90deg,#ea580c,#fb923c); }
+    .rd-bar-fill.red    { background: linear-gradient(90deg,#dc2626,#f87171); }
+
+    /* ── % frequência badge ── */
+    .rd-pct { font-size: .72rem; font-weight: 800; padding: 3px 9px; border-radius: 7px; font-family: 'Outfit', system-ui, sans-serif; }
+    .rd-pct.green  { background: #dcfce7; color: #14532d; }
     .rd-pct.orange { background: #ffedd5; color: #9a3412; }
     .rd-pct.red    { background: #fee2e2; color: #991b1b; }
 
-    /* ── Lista de alunos (accordion) ── */
+    /* ── Lista de alunos accordion ── */
     .rd-alunos { display: none; border-top: 1px solid var(--border); }
     .rd-card.open .rd-alunos { display: block; }
+    .rd-alunos-head {
+      display: grid; grid-template-columns: 1fr auto;
+      padding: 8px 18px; background: var(--surface-2);
+      font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+    }
     .rd-aluno-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 9px 18px; border-bottom: 1px solid var(--border); font-size: .83rem;
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 18px; border-bottom: 1px solid var(--border); font-size: .84rem;
     }
     .rd-aluno-row:last-child { border-bottom: none; }
-    .rd-aluno-nome { color: var(--text); font-weight: 500; }
+    .rd-aluno-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .rd-aluno-dot.p { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
+    .rd-aluno-dot.a { background: #dc2626; box-shadow: 0 0 0 2px #fee2e2; }
+    .rd-aluno-nome { flex: 1; font-weight: 500; color: var(--text); }
+    .rd-aluno-status { font-size: .68rem; font-weight: 700; }
+    .rd-aluno-status.p { color: #16a34a; }
+    .rd-aluno-status.a { color: #dc2626; }
 
     /* ── Badges ── */
-    .badge-aberta    { background: #dcfce7; color: #166534; border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; white-space: nowrap; }
-    .badge-encerrada { background: var(--surface-3); color: var(--text-3); border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; }
-    .badge-presente  { background: #dcfce7; color: #166534; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
-    .badge-ausente   { background: #fee2e2; color: #991b1b; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
-    .dot-presente { color: #16a34a; font-weight: 700; font-size: .78rem; }
-    .dot-ausente  { color: #dc2626; font-weight: 700; font-size: .78rem; }
+    .badge-aberta    { background: #dcfce7; color: #14532d; border: 1px solid #86efac; border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; white-space: nowrap; }
+    .badge-encerrada { background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; font-size: .65rem; font-weight: 700; }
+    .badge-presente  { background: #dcfce7; color: #14532d; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
+    .badge-ausente   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 6px; padding: 3px 8px; font-size: .68rem; font-weight: 700; }
 
-    /* ── Sem chamada hoje ── */
+    /* ── Sem chamada ── */
+    .rd-sem-head {
+      display: flex; align-items: center; gap: 10px; margin: 28px 0 12px;
+    }
     .rd-section-title {
       font-size: .6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: var(--text-3); margin: 24px 0 10px;
+      letter-spacing: .14em; color: var(--text-3);
+      display: flex; align-items: center; gap: 7px; flex: 1;
     }
-    .rd-sem-chamada {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden;
+    .rd-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .rd-sem-count {
+      font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e; white-space: nowrap;
     }
+
+    .rd-sem-chamada { display: flex; flex-direction: column; gap: 10px; }
+
     .rd-turma-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface); border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      border-radius: 12px;
+      transition: box-shadow .15s, transform .15s;
+      animation: rdUp .28s cubic-bezier(.22,1,.36,1) both;
     }
-    .rd-turma-row:last-child { border-bottom: none; }
-    .rd-turma-nome { font-weight: 600; font-size: .875rem; color: var(--text); flex: 1; }
-    .rd-turma-meta { font-size: .74rem; color: var(--text-3); }
+    .rd-turma-row:hover { box-shadow: 0 4px 16px rgba(245,158,11,.1); transform: translateX(2px); }
+
+    .rd-turma-initial {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: 1rem;
+    }
+    .rd-turma-info { flex: 1; min-width: 0; }
+    .rd-turma-nome { font-weight: 700; font-size: .9rem; color: var(--text); }
+    .rd-turma-prof { font-size: .73rem; color: var(--text-3); margin-top: 2px; }
+
+    .rd-turma-dot  { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; }
+    .rd-turma-meta {
+      font-size: .71rem; color: #92400e; font-weight: 600;
+      background: #fef9c3; border: 1px solid #fde68a;
+      padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
     .rd-turma-inst {
-      font-size: .7rem; color: var(--text-3); background: var(--surface-2);
-      border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px;
-      margin-left: auto; flex-shrink: 0;
+      font-size: .7rem; color: var(--text-3);
+      background: var(--surface-2); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
     }
 
     /* ── Empty ── */
-    .rd-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--text-3); gap: 10px; }
-    .rd-empty p { font-size: .875rem; }
+    .rd-empty {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 56px 20px; color: var(--text-3); gap: 10px; text-align: center;
+      background: var(--surface); border: 1px dashed var(--border-2); border-radius: 14px;
+    }
+    .rd-empty svg { opacity: .2; color: var(--acc); }
+    .rd-empty p { font-size: .875rem; font-weight: 500; color: var(--text-2); }
 
     @keyframes rdUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    @media (max-width: 640px) {
+      .rd-stats { grid-template-columns: 1fr 1fr; }
+      .rd-stat.blue { grid-column: 1 / -1; }
+    }
   </style>
 </head>
 <body>
@@ -161,21 +249,21 @@
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         Professores
       </a>
-            <a href="chamada.html" class="sidebar-link " data-role="professor">
+            <a href="suporte.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        Suporte
+      </a>
+      <a href="relatorio-dia.html" class="sidebar-link active" data-role="instituicao professor">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        Rel. do Dia
+      </a>
+      <a href="chamada.html" class="sidebar-link " data-role="professor">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg></div>
         Chamada
       </a>
       <a href="minhas-turmas.html" class="sidebar-link " data-role="professor">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
         Minhas Turmas
-      </a>
-      <a href="relatorio-dia.html" class="sidebar-link active" data-role="instituicao professor">
-        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-        Rel. do Dia
-      </a>
-      <a href="inst-dashboard.html?view=suporte" class="sidebar-link" data-role="instituicao">
-        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-        Suporte
       </a>
     </nav>
     <div class="sidebar-footer">

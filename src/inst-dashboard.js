@@ -2,6 +2,15 @@ import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
 
+function showToast(msg, type = "") {
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
 const root = document.getElementById("page-root");
 
 async function init() {
@@ -89,40 +98,162 @@ async function render(profile) {
       </div>
     </div>
 
-    <div class="idash-stats">
-      ${stat("blue",   svgTurma(), nTurmas, "Turmas",      0)}
-      ${stat("green",  svgAluno(), nAlunos, "Alunos",      1)}
-      ${stat("purple", svgProf(),  nProfs,  "Professores", 2)}
-      ${stat("orange", svgQr(),    nCham,   nAbertas ? `Chamadas <span style="font-size:.6rem;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:middle">${nAbertas} abertas</span>` : "Chamadas hoje", 3)}
-    </div>
-
-    <div class="idash-nav-strip">
-      ${pill("turmas.html",       svgTurma(), "Turmas",      0)}
-      ${pill("cadastro.html",     svgAluno(), "Alunos",      1)}
-      ${pill("professores.html",  svgProf(),  "Professores", 2)}
-      ${pill("relatorio-dia.html",svgRel(),   "Rel. do Dia", 3)}
-    </div>
-
-    <div class="idash-section-head">
-      <span class="idash-section-title">Chamadas de Hoje</span>
-      ${nAbertas > 0 ? `<span style="font-size:.7rem;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;padding:3px 10px;border-radius:20px">${nAbertas} aberta${nAbertas > 1 ? "s" : ""}</span>` : ""}
-    </div>
-
-    ${nCham > 0 ? `
-      <div class="idash-chamadas">
-        ${(chamadas ?? []).map((c, i) => `
-          <div class="idash-cham-row" style="animation-delay:${i * .04}s">
-            <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
-            <div class="idash-cham-info">
-              <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
-              ${c.turmas?.professor ? `<div class="idash-cham-meta">${esc(c.turmas.professor)}</div>` : ""}
-            </div>
-            <span class="idash-cham-badge ${c.aberta ? "aberta" : "fechada"}">${c.aberta ? "Aberta" : "Encerrada"}</span>
-          </div>
-        `).join("")}
+    <div class="idash-body">
+      <div class="idash-stats">
+        ${stat("blue",   svgTurma(), nTurmas, "Turmas",      0)}
+        ${stat("green",  svgAluno(), nAlunos, "Alunos",      1)}
+        ${stat("purple", svgProf(),  nProfs,  "Professores", 2)}
+        ${stat("orange", svgQr(),    nCham,   nAbertas ? `Chamadas hoje<br><span style="font-size:.62rem;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;margin-top:2px;display:inline-block">${nAbertas} aberta${nAbertas>1?"s":""}</span>` : "Chamadas hoje", 3)}
       </div>
-    ` : `<div class="idash-empty-box">Nenhuma chamada registrada hoje.</div>`}
+
+      <div class="idash-nav-strip">
+        ${pill("turmas.html",        svgTurma(), "Turmas",      0)}
+        ${pill("cadastro.html",      svgAluno(), "Alunos",      1)}
+        ${pill("professores.html",   svgProf(),  "Professores", 2)}
+        ${pill("relatorio-dia.html", svgRel(),   "Rel. do Dia", 3)}
+      </div>
+
+      <div class="idash-section-head">
+        <span class="idash-section-title">Chamadas de Hoje</span>
+        ${nAbertas > 0 ? `<span style="font-size:.68rem;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;padding:3px 11px;border-radius:20px">${nAbertas} aberta${nAbertas > 1 ? "s" : ""}</span>` : ""}
+      </div>
+
+      ${nCham > 0 ? `
+        <div class="idash-chamadas">
+          ${(chamadas ?? []).map((c, i) => `
+            <div class="idash-cham-row ${c.aberta ? "aberta-row" : ""}" style="animation-delay:${i * .04}s">
+              <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
+              <div class="idash-cham-info">
+                <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
+                ${c.turmas?.professor ? `<div class="idash-cham-meta">${esc(c.turmas.professor)}</div>` : ""}
+              </div>
+              <span class="idash-cham-badge ${c.aberta ? "aberta" : "fechada"}">${c.aberta ? "Aberta" : "Encerrada"}</span>
+            </div>
+          `).join("")}
+        </div>
+      ` : `<div class="idash-empty-box">Nenhuma chamada registrada hoje.</div>`}
+
+      <div class="fb-section-head">
+        <span class="fb-section-label">Meus Feedbacks</span>
+        <button class="fb-btn-new" id="btn-novo-feedback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Relatar
+        </button>
+      </div>
+      <div id="fb-list-wrap"></div>
+    </div>
   `;
+
+  // Carrega feedbacks da instituição
+  await renderFeedbackList(instId);
+
+  document.getElementById("btn-novo-feedback").addEventListener("click", () => abrirModalFeedback(instId));
+}
+
+async function renderFeedbackList(instId) {
+  const wrap = document.getElementById("fb-list-wrap");
+  if (!wrap) return;
+
+  const { data: feedbacks, error } = await supabase
+    .from("feedbacks")
+    .select("id, tipo, titulo, descricao, status, criado_em")
+    .eq("instituicao_id", instId)
+    .order("criado_em", { ascending: false })
+    .limit(20);
+
+  if (error || !feedbacks?.length) {
+    wrap.innerHTML = `<div class="idash-empty-box" style="margin-top:0">Nenhum relato enviado ainda.</div>`;
+    return;
+  }
+
+  const STATUS_LABEL = { aberto: "Aberto", em_analise: "Em análise", resolvido: "Resolvido" };
+
+  wrap.innerHTML = `
+    <div class="fb-list">
+      ${feedbacks.map((f, i) => `
+        <div class="fb-item" style="animation-delay:${i * .04}s">
+          <div class="fb-item-main">
+            <div class="fb-item-title">${esc(f.titulo)}</div>
+            ${f.descricao ? `<div class="fb-item-desc">${esc(f.descricao)}</div>` : ""}
+            <div class="fb-item-meta">
+              <span class="fb-chip ${f.tipo}">${f.tipo === "bug" ? "Bug" : "Melhoria"}</span>
+              <span class="fb-chip ${f.status}">${STATUS_LABEL[f.status] ?? f.status}</span>
+              <span class="fb-date-lbl">${new Date(f.criado_em).toLocaleDateString("pt-BR", { day:"numeric", month:"short", year:"numeric" })}</span>
+            </div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
+function abrirModalFeedback(instId) {
+  const overlay = document.createElement("div");
+  overlay.className = "tv-modal-overlay";
+  overlay.innerHTML = `
+    <div class="tv-modal-card">
+      <div class="tv-modal-head">
+        <div class="tv-modal-icon inst">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div><h2>Novo Relato</h2><p>Bug ou sugestão de melhoria</p></div>
+        <button class="tv-modal-x" id="fb-modal-x">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="tv-modal-body">
+        <label class="tv-label">Tipo <span style="color:var(--red)">*</span></label>
+        <select class="tv-input" id="fb-tipo">
+          <option value="bug">🐛 Bug — algo não está funcionando</option>
+          <option value="melhoria">✨ Melhoria — sugestão de funcionalidade</option>
+        </select>
+        <label class="tv-label">Título <span style="color:var(--red)">*</span></label>
+        <input class="tv-input" id="fb-titulo" placeholder="Descreva brevemente o problema ou sugestão" maxlength="120" autocomplete="off"/>
+        <label class="tv-label">Detalhes</label>
+        <textarea class="tv-input" id="fb-desc" rows="3" placeholder="Explique com mais detalhes (opcional)" style="resize:vertical"></textarea>
+        <div class="tv-modal-err" id="fb-err"></div>
+      </div>
+      <div class="tv-modal-foot">
+        <button class="tv-btn-ghost" id="fb-cancel">Cancelar</button>
+        <button class="tv-btn-add" id="fb-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Enviar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add("open"), 10);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector("#fb-modal-x").addEventListener("click", fechar);
+  overlay.querySelector("#fb-cancel").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  overlay.querySelector("#fb-titulo").focus();
+
+  overlay.querySelector("#fb-ok").addEventListener("click", async () => {
+    const err    = overlay.querySelector("#fb-err");
+    const btn    = overlay.querySelector("#fb-ok");
+    const tipo   = overlay.querySelector("#fb-tipo").value;
+    const titulo = overlay.querySelector("#fb-titulo").value.trim();
+    const desc   = overlay.querySelector("#fb-desc").value.trim();
+
+    err.textContent = "";
+    if (!titulo) { err.textContent = "Informe o título."; return; }
+
+    btn.disabled = true; btn.textContent = "Enviando…";
+
+    const { error } = await supabase.from("feedbacks").insert({
+      instituicao_id: instId, tipo, titulo, descricao: desc,
+    });
+
+    if (error) {
+      err.textContent = error.message;
+      btn.disabled = false; btn.textContent = "Enviar";
+      return;
+    }
+
+    fechar();
+    showToast("Relato enviado!", "success");
+    await renderFeedbackList(instId);
+  });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -132,7 +263,7 @@ function esc(s) {
 
 function stat(color, icon, num, lbl, idx) {
   return `
-    <div class="idash-stat" style="animation-delay:${idx * .06}s">
+    <div class="idash-stat ${color}" style="animation-delay:${idx * .07}s">
       <div class="idash-stat-icon ${color}">${icon}</div>
       <div class="idash-stat-info">
         <div class="idash-stat-num">${num}</div>
@@ -143,9 +274,9 @@ function stat(color, icon, num, lbl, idx) {
 
 function pill(href, icon, label, idx) {
   return `
-    <a href="${href}" class="idash-nav-pill" style="animation-delay:${idx * .05}s">
-      ${icon}
-      ${label}
+    <a href="${href}" class="idash-nav-pill" style="animation-delay:${idx * .06}s">
+      <div class="idash-nav-pill-icon">${icon}</div>
+      <span>${label}</span>
     </a>`;
 }
 

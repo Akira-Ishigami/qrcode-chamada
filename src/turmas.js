@@ -7,6 +7,7 @@ const root = document.getElementById("page-root");
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let instAtualId   = null;
 let instAtualNome = "";
+let _isInstRole   = false; // oculta breadcrumb para role "instituicao"
 
 // ─── Ícones SVG reutilizáveis ────────────────────────────────────────────────
 const SVG_INST = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24">
@@ -34,6 +35,11 @@ const SVG_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
   <path d="M10 11v6"/><path d="M14 11v6"/>
   <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+</svg>`;
+
+const SVG_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
 </svg>`;
 
 const SVG_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
@@ -173,11 +179,12 @@ async function renderTurmas(instId, instNome) {
   const lista = data ?? [];
 
   root.innerHTML = `
+    ${!_isInstRole ? `
     <div class="tv-breadcrumb">
       <button class="tv-btn-back" id="btn-back">${SVG_BACK} Instituições</button>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:#cbd5e1"><polyline points="9 18 15 12 9 6"/></svg>
       <span class="tv-bc-name">${instNome}</span>
-    </div>
+    </div>` : ""}
 
     <div class="tv-header">
       <div class="tv-header-left">
@@ -198,7 +205,7 @@ async function renderTurmas(instId, instNome) {
         <button class="tv-btn-add green" id="btn-add-turma-empty">${SVG_PLUS} Criar Turma</button>
       </div>
     ` : `
-      <div class="tv-grid" id="turma-grid"></div>
+      <div class="turma-card-grid" id="turma-grid"></div>
     `}
   `;
 
@@ -211,26 +218,30 @@ async function renderTurmas(instId, instNome) {
     lista.forEach((t, i) => {
       const card   = document.createElement("div");
       const letter = t.nome.charAt(0).toUpperCase();
-      card.className = "tv-card turma-card";
-      card.style.animationDelay = `${i * 0.05}s`;
+      card.className = "tc-card";
+      card.style.animationDelay = `${i * 0.06}s`;
 
       const subParts = [];
       if (t.professor) subParts.push(t.professor);
       if (t.horario)   subParts.push(t.horario);
 
       card.innerHTML = `
-        <div class="tvc-avatar turma">${letter}</div>
-        <div class="tvc-body">
-          <div class="tvc-name">${t.nome}</div>
-          ${subParts.length ? `<div class="tvc-sub">${subParts.join(" · ")}</div>` : ""}
-        </div>
-        <div class="tvc-right">
-          <span class="tvc-badge turma">Ativa</span>
-        </div>
-        <button class="tvc-del" title="Excluir">${SVG_TRASH}</button>
+        <button class="tc-edit" title="Editar">${SVG_EDIT}</button>
+        <button class="tc-del" title="Excluir">${SVG_TRASH}</button>
+        <div class="tc-initial">${letter}</div>
+        <div class="tc-name">${t.nome}</div>
+        ${subParts.length ? `<div class="tc-info">${subParts.join(" · ")}</div>` : ""}
+        <div class="tc-badge-row"><span class="tc-badge">Ativa</span></div>
       `;
 
-      card.querySelector(".tvc-del").addEventListener("click", () => deletarTurma(t.id, t.nome));
+      card.querySelector(".tc-edit").addEventListener("click", e => {
+        e.stopPropagation();
+        abrirModalEditar(t);
+      });
+      card.querySelector(".tc-del").addEventListener("click", e => {
+        e.stopPropagation();
+        deletarTurma(t.id, t.nome);
+      });
       grid.appendChild(card);
     });
   }
@@ -327,6 +338,87 @@ function abrirModal(tipo) {
   });
 }
 
+// ─── Modal Editar Turma ───────────────────────────────────────────────────────
+function abrirModalEditar(t) {
+  document.getElementById("tv-modal")?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "tv-modal";
+  overlay.className = "tv-modal-overlay";
+
+  overlay.innerHTML = `
+    <div class="tv-modal-card">
+      <div class="tv-modal-head">
+        <div class="tv-modal-icon turma">${SVG_TURMA}</div>
+        <div>
+          <h2>Editar Turma</h2>
+          <p>${instAtualNome}</p>
+        </div>
+        <button class="tv-modal-x" id="modal-x">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="tv-modal-body">
+        <div>
+          <label class="tv-label">Nome da turma <span style="color:var(--red)">*</span></label>
+          <input class="tv-input" id="me-nome" value="${t.nome}" autocomplete="off" />
+        </div>
+        <div>
+          <label class="tv-label">Professor</label>
+          <input class="tv-input" id="me-professor" value="${t.professor || ""}" placeholder="Nome do professor" autocomplete="off" />
+        </div>
+        <div>
+          <label class="tv-label">Horário</label>
+          <input class="tv-input" id="me-horario" value="${t.horario || ""}" placeholder="Ex: Seg/Qua 19h" autocomplete="off" />
+        </div>
+        <div class="tv-modal-err" id="modal-err"></div>
+      </div>
+      <div class="tv-modal-foot">
+        <button class="tv-btn-ghost" id="modal-cancel">Cancelar</button>
+        <button class="tv-btn-add green" id="modal-ok">
+          ${SVG_EDIT} Salvar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add("open"), 10);
+
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.getElementById("modal-x").addEventListener("click", fechar);
+  document.getElementById("modal-cancel").addEventListener("click", fechar);
+  setTimeout(() => document.getElementById("me-nome")?.focus(), 150);
+
+  document.getElementById("modal-ok").addEventListener("click", async () => {
+    const err = document.getElementById("modal-err");
+    err.textContent = "";
+    const nome      = document.getElementById("me-nome")?.value.trim();
+    const professor = document.getElementById("me-professor")?.value.trim() || null;
+    const horario   = document.getElementById("me-horario")?.value.trim() || null;
+
+    if (!nome) { err.textContent = "Informe o nome da turma."; return; }
+
+    const btn = document.getElementById("modal-ok");
+    btn.disabled = true;
+    btn.innerHTML = `<svg style="animation:spin .8s linear infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando...`;
+
+    const { error } = await supabase.from("turmas").update({ nome, professor, horario }).eq("id", t.id);
+    if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_EDIT} Salvar`; return; }
+
+    fechar();
+    showToast(`Turma "${nome}" atualizada!`, "success");
+    renderTurmas(instAtualId, instAtualNome);
+  });
+
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
+  });
+}
+
 // ─── Deletar ──────────────────────────────────────────────────────────────────
 async function deletarInstituicao(id, nome) {
   if (!confirm(`Excluir "${nome}"? Só é possível se não houver turmas vinculadas.`)) return;
@@ -370,11 +462,12 @@ async function init() {
     return;
   }
 
-  // instituicao: vê turmas da sua instituição
+  // instituicao: vê turmas da sua instituição (sem breadcrumb)
   if (!profile.instituicao_id) {
     root.innerHTML = `<div class="tv-error">Conta não vinculada a uma instituição. Contate o administrador.</div>`;
     return;
   }
+  _isInstRole = true;
   const { data: inst } = await supabase
     .from("instituicoes").select("nome").eq("id", profile.instituicao_id).single();
   renderTurmas(profile.instituicao_id, inst?.nome || "Minha Instituição");

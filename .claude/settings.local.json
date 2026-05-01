@@ -6,7 +6,10 @@
       "Bash(npx skills:*)",
       "Bash(grep -E \"\\\\.\\(js|json\\)$\")",
       "Bash(cargo --version)",
-      "Bash(rustc --version)"
+      "Bash(rustc --version)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

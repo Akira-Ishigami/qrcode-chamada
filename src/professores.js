@@ -1,5 +1,4 @@
-import { supabase }      from "./supabase.js";
-import { supabaseAdmin } from "./supabaseAdmin.js";
+import { supabase } from "./supabase.js";
 import { podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
@@ -105,101 +104,57 @@ async function renderPage(profile) {
       </div>
       <button class="btn btn-primary" id="btn-novo">${SVG_PLUS}&nbsp; Novo Professor</button>
     </div>
-    <div class="prof-table-wrap">
-      <table class="prof-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>Email</th>
-            <th>Nível</th>
-            <th style="width:56px"></th>
-          </tr>
-        </thead>
-        <tbody id="prof-tbody">
-          ${profilesCache.length ? profilesCache.map(buildRow).join("") : `
-            <tr><td colspan="4">
-              <div class="prof-empty">${SVG_USER_BIG}<p>Nenhum usuário cadastrado.</p></div>
-            </td></tr>`}
-        </tbody>
-      </table>
-    </div>`;
+    ${profilesCache.length
+      ? `<div class="prof-grid" id="prof-grid">${profilesCache.map(buildCard).join("")}</div>`
+      : `<div class="prof-empty">${SVG_USER_BIG}<p>Nenhum professor cadastrado ainda.</p></div>`
+    }`;
 
-  // ── Botão Novo Usuário ───────────────────────────────────────────────────────
   document.getElementById("btn-novo").addEventListener("click", () => modalNovoUsuario());
 
-  // ── Event delegation nos botões ⋮ e itens do menu ───────────────────────────
-  const tbody = document.getElementById("prof-tbody");
-  if (!tbody) return;
-
-  tbody.addEventListener("click", async (e) => {
-    // Botão ⋮
-    const dotsBtn = e.target.closest(".action-btn[data-id]");
-    if (dotsBtn) {
-      e.stopPropagation();
-      const menu = document.getElementById("menu-" + dotsBtn.dataset.id);
-      if (!menu) return;
-      if (currentMenu && currentMenu !== menu) closeAllMenus();
-      if (menu.classList.contains("open")) {
-        closeAllMenus();
-        return;
-      }
-      // Posiciona o menu com fixed usando coordenadas do botão
-      const rect = dotsBtn.getBoundingClientRect();
-      menu.style.top  = (rect.bottom + 4) + "px";
-      menu.style.left = (rect.right - 200) + "px";
-      menu.classList.add("open");
-      currentMenu = menu;
-      return;
-    }
-
-    // Item do menu
-    const item = e.target.closest(".action-menu-item[data-action]");
-    if (item) {
-      const { id, action } = item.dataset;
-      closeAllMenus();
-      const p = profilesCache.find((x) => x.id === id);
-      if (!p) return;
-      if (action === "editar")  modalEditar(p);
-      if (action === "turmas")  await modalTurmas(p);
-      if (action === "excluir") modalExcluir(p);
-    }
+  // Bind direto em cada card
+  document.querySelectorAll(".prof-card[data-prof-id]").forEach(card => {
+    const id = card.dataset.profId;
+    const p  = profilesCache.find(x => x.id === id);
+    if (!p) return;
+    card.querySelector(".pc-btn-edit")?.addEventListener("click",   ()  => modalEditar(p));
+    card.querySelector(".pc-btn-turmas")?.addEventListener("click", async () => modalTurmas(p));
+    card.querySelector(".pc-btn-del")?.addEventListener("click",    ()  => modalExcluir(p));
   });
 }
 
-// ─── Linha da tabela ──────────────────────────────────────────────────────────
-function buildRow(p) {
+// ─── Card de professor ────────────────────────────────────────────────────────
+const CARD_PALETTES = [
+  ["#dbeafe","#1d4ed8"], ["#dcfce7","#15803d"], ["#fce7f3","#be185d"],
+  ["#fef9c3","#a16207"], ["#ede9fe","#6d28d9"], ["#ffedd5","#c2410c"],
+];
+
+function buildCard(p) {
   const initials = (p.nome || p.email || "?")
     .split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
-  const badge = `<span class="badge badge-professor">Professor</span>`;
+  const [bg, fg] = CARD_PALETTES[((p.nome || p.email || "").charCodeAt(0) || 0) % CARD_PALETTES.length];
+
   return `
-    <tr>
-      <td>
-        <div class="prof-name-cell">
-          <div class="prof-avatar">${esc(initials)}</div>
-          <div class="prof-name-info"><strong>${esc(p.nome || "—")}</strong></div>
-        </div>
-      </td>
-      <td style="color:var(--text-2)">${esc(p.email || "—")}</td>
-      <td>${badge}</td>
-      <td class="action-cell">
-        <button class="action-btn" data-id="${p.id}" title="Ações">${SVG_DOTS}</button>
-        <div class="action-menu" id="menu-${p.id}">
-          <button class="action-menu-item" data-action="editar" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Editar dados
-          </button>
-          <button class="action-menu-item" data-action="turmas" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Atribuir turmas
-          </button>
-          <div class="action-menu-sep"></div>
-          <button class="action-menu-item danger" data-action="excluir" data-id="${p.id}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            Excluir usuário
-          </button>
-        </div>
-      </td>
-    </tr>`;
+    <div class="prof-card" data-prof-id="${p.id}">
+      <div class="prof-card-avatar" style="background:${bg};color:${fg}">${esc(initials)}</div>
+      <div class="prof-card-name">${esc(p.nome || "—")}</div>
+      <div class="prof-card-email">${esc(p.email || "—")}</div>
+      <div class="prof-card-badge">
+        <span class="badge badge-professor">Professor</span>
+      </div>
+      <div class="prof-card-actions">
+        <button class="pc-btn pc-btn-edit" title="Editar dados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+        <button class="pc-btn pc-btn-turmas" title="Atribuir turmas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Turmas
+        </button>
+        <button class="pc-btn pc-btn-del" title="Excluir professor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+      </div>
+    </div>`;
 }
 
 // ─── Modal: Novo professor ────────────────────────────────────────────────────
@@ -239,7 +194,7 @@ function modalNovoUsuario() {
       const btn = document.getElementById("m-save");
       btn.disabled = true; btn.textContent = "Criando…";
 
-      
+      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
       if (!supabaseAdmin) {
         showToast("Service key não configurada no .env", "error");
         btn.disabled = false; btn.textContent = "Criar professor"; return;
@@ -303,7 +258,7 @@ function modalEditar(p) {
       const btn = document.getElementById("e-save");
       btn.disabled = true; btn.textContent = "Salvando…";
 
-      
+      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       const updates = { email, user_metadata: { nome } };
@@ -311,7 +266,7 @@ function modalEditar(p) {
       const { error: ae } = await supabaseAdmin.auth.admin.updateUserById(p.id, updates);
       if (ae) { showToast("Erro: " + ae.message, "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
-      await supabaseAdmin.from("profiles").update({ nome, email }).eq("id", p.id);
+      await supabase.from("profiles").update({ nome, email }).eq("id", p.id);
       showToast("Dados atualizados!", "success");
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });
@@ -352,11 +307,11 @@ function modalNivel(p) {
       const btn = document.getElementById("n-save");
       btn.disabled = true; btn.textContent = "Salvando…";
 
-      
+      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       await supabaseAdmin.auth.admin.updateUserById(p.id, { user_metadata: { role } });
-      const { error } = await supabaseAdmin.from("profiles").update({ role }).eq("id", p.id);
+      const { error } = await supabase.from("profiles").update({ role }).eq("id", p.id);
       if (error) { showToast("Erro: " + error.message, "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
       showToast("Nível atualizado!", "success");
@@ -372,43 +327,71 @@ async function modalTurmas(p) {
 
   const { data: turmas } = await supabase
     .from("turmas")
-    .select("id, nome, professor, professor_id")
+    .select("id, nome, professor")
     .eq("instituicao_id", _instId)
     .order("nome");
 
-  const lista = turmas || [];
-  // turmas já atribuídas a este professor (por id ou por nome legado)
-  const atribSet = new Set(
-    lista.filter(t => t.professor_id === p.id || t.professor === profNome).map(t => t.id)
-  );
+  const lista    = turmas || [];
+  const atribSet = new Set(lista.filter(t => t.professor === profNome).map(t => t.id));
+
+  const SVG_HOUSE  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+  const SVG_CHECK  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>`;
 
   const items = lista.length === 0
-    ? `<p style="padding:12px;color:var(--text-3);font-size:.85rem">Nenhuma turma cadastrada.</p>`
-    : lista.map(t => `
-        <label class="turma-check-item">
-          <input type="checkbox" value="${t.id}" ${atribSet.has(t.id) ? "checked" : ""} />
-          <span>${esc(t.nome)}</span>
-          ${t.professor && t.professor !== profNome
-            ? `<span style="font-size:.75rem;color:var(--text-3);margin-left:4px">· ${esc(t.professor)}</span>`
-            : ""}
-        </label>`).join("");
+    ? `<p style="padding:16px;color:var(--text-3);font-size:.84rem;text-align:center">Nenhuma turma cadastrada nesta instituição.</p>`
+    : lista.map(t => {
+        const sel      = atribSet.has(t.id);
+        const outroProf = t.professor && t.professor !== profNome;
+        return `
+          <div class="tc-item${sel ? " selected" : ""}" data-id="${t.id}">
+            <input type="checkbox" value="${t.id}"${sel ? " checked" : ""} />
+            <div class="tc-item-icon">${SVG_HOUSE}</div>
+            <div class="tc-item-body">
+              <div class="tc-item-name">${esc(t.nome)}</div>
+              ${outroProf ? `<div class="tc-item-sub">Atribuída a ${esc(t.professor)}</div>` : ""}
+            </div>
+            <div class="tc-item-check">${SVG_CHECK}</div>
+          </div>`;
+      }).join("");
 
   openModal(`
-    <div class="modal-title">Atribuir turmas</div>
-    <p style="font-size:.85rem;color:var(--text-2);margin-bottom:14px">
-      Selecione as turmas de <strong>${esc(profNome)}</strong>:
-    </p>
-    <div class="modal-field">
-      <div class="turmas-check-list">${items}</div>
+    <div class="tc-modal-head">
+      <div class="tc-modal-icon">${SVG_HOUSE}</div>
+      <div>
+        <div class="modal-title" style="margin-bottom:1px">Turmas do professor</div>
+        <p style="font-size:.76rem;color:var(--text-3);margin:0">${esc(profNome)}</p>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="t-cancel">Cancelar</button>
-      <button class="btn btn-primary" id="t-save">Salvar</button>
+    <div class="tc-item-grid" id="tc-grid">${items}</div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <button class="btn btn-ghost" id="t-edit-dados" style="color:var(--acc);border-color:var(--border-acc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar dados
+      </button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" id="t-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="t-save">Salvar</button>
+      </div>
     </div>
   `, () => {
+    // Toggle card selection
+    document.querySelectorAll(".tc-item").forEach(item => {
+      item.addEventListener("click", () => {
+        item.classList.toggle("selected");
+        const cb = item.querySelector("input[type='checkbox']");
+        if (cb) cb.checked = !cb.checked;
+      });
+    });
+
+    document.getElementById("t-edit-dados").addEventListener("click", () => {
+      closeModal();
+      modalEditar(p);
+    });
+
     document.getElementById("t-cancel").addEventListener("click", closeModal);
+
     document.getElementById("t-save").addEventListener("click", async () => {
-      const checks    = [...document.querySelectorAll(".turmas-check-list input[type=checkbox]")];
+      const checks    = [...document.querySelectorAll("#tc-grid input[type=checkbox]")];
       const novas     = new Set(checks.filter(c => c.checked).map(c => c.value));
       const remover   = [...atribSet].filter(id => !novas.has(id));
       const adicionar = [...novas].filter(id => !atribSet.has(id));
@@ -417,9 +400,9 @@ async function modalTurmas(p) {
       btn.disabled = true; btn.textContent = "Salvando…";
 
       if (remover.length)
-        await supabaseAdmin.from("turmas").update({ professor: null, professor_id: null }).in("id", remover);
+        await supabase.from("turmas").update({ professor: null }).in("id", remover);
       if (adicionar.length)
-        await supabaseAdmin.from("turmas").update({ professor: profNome, professor_id: p.id }).in("id", adicionar);
+        await supabase.from("turmas").update({ professor: profNome }).in("id", adicionar);
 
       showToast("Turmas atualizadas!", "success");
       closeModal();
@@ -444,7 +427,7 @@ function modalExcluir(p) {
       const btn = document.getElementById("x-confirm");
       btn.disabled = true; btn.textContent = "Excluindo…";
 
-      
+      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
       if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Excluir"; return; }
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(p.id);
