@@ -1,6 +1,7 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
+import { gerarCracha, downloadCracha, buscarCrachaConfig } from "./cracha.js";
 
 const root = document.getElementById("page-root");
 
@@ -506,6 +507,10 @@ async function renderInstDetalhe(instId, instNome) {
                   <span class="det-aluno-num">${i+1}</span>
                   <span class="det-aluno-nome">${esc(a.nome)}</span>
                   ${a.matricula ? `<span class="det-aluno-mat">${esc(a.matricula)}</span>` : ""}
+                  <button class="det-cracha-btn" data-aluno-id="${esc(a.id)}" title="Baixar crachá">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
+                    Crachá
+                  </button>
                 </div>`).join("")
           }
         </div>
@@ -556,6 +561,28 @@ async function renderInstDetalhe(instId, instNome) {
   document.getElementById("btn-back").addEventListener("click", () => renderInstituicoes());
   document.getElementById("btn-reset").addEventListener("click", () => abrirModalResetSenha(instId, instNome));
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
+
+  // Botões de crachá nos alunos
+  const crachaConfig = await buscarCrachaConfig(supabaseAdmin, instId);
+  root.querySelectorAll(".det-cracha-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const alunoId = btn.dataset.alunoId;
+      const aluno   = [...gruposTurma.flatMap(t => t.alunos), ...semTurma].find(a => a.id === alunoId);
+      if (!aluno) return;
+      btn.disabled = true; btn.style.opacity = "0.5";
+      try {
+        // Monta objeto aluno com turma
+        const turmaInfo = gruposTurma.find(t => t.alunos.some(a => a.id === alunoId));
+        const alunoComTurma = { ...aluno, turma: turmaInfo ? { nome: turmaInfo.nome } : null };
+        const dataUrl = await gerarCracha(alunoComTurma, crachaConfig, instNome);
+        downloadCracha(dataUrl, aluno.nome);
+      } catch (e) {
+        showToast("Erro ao gerar crachá.", "error");
+      } finally {
+        btn.disabled = false; btn.style.opacity = "";
+      }
+    });
+  });
 }
 
 // ══ VIEW 3: SUPORTE — KANBAN ═════════════════════════════════════════════════

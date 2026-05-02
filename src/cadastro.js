@@ -4,6 +4,9 @@ import { podeAdmin } from "./nav-role.js";
 import { abrirModalGerenciar, iniciarModalGerenciar } from "./gerenciar.js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
+import { gerarCracha, downloadCracha, buscarCrachaConfig } from "./cracha.js";
+
+let _crachaConfig = null; // carregado no init
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let todosAlunos = [];
@@ -273,8 +276,8 @@ function renderAlunos() {
     return;
   }
 
-  const SVG_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  const SVG_DL   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  const SVG_EDIT   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const SVG_CRACHA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>`;
 
   alunosList.className = "alunos-list alunos-card-grid";
   alunosList.innerHTML = "";
@@ -296,12 +299,12 @@ function renderAlunos() {
       ${a.turma?.nome ? `<span class="aluno-card-turma">${a.turma.nome}</span>` : ""}
       <div class="aluno-card-actions">
         <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT} Editar</button>
-        <button class="aluno-btn-qr aluno-card-btn" data-id="${a.id}">${SVG_DL} QR</button>
+        <button class="aluno-btn-cracha aluno-card-btn" data-id="${a.id}">${SVG_CRACHA} Crachá</button>
       </div>
     `;
 
     card.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
-    card.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQR(a));
+    card.querySelector(".aluno-btn-cracha").addEventListener("click", () => baixarCrachaAluno(a));
     alunosList.appendChild(card);
   });
 }
@@ -617,27 +620,25 @@ async function gerarQRCard(aluno) {
 }
 
 // ─── Download QR individual ───────────────────────────────────────────────────
-async function baixarQR(aluno) {
+// ─── Baixar crachá individual ─────────────────────────────────────────────────
+async function baixarCrachaAluno(aluno) {
   const btn = alunosList.querySelector(`[data-id="${aluno.id}"]`);
-  if (btn) btn.style.opacity = "0.5";
+  if (btn) { btn.style.opacity = "0.5"; btn.disabled = true; }
 
   try {
-    const blob = await gerarQRCard(aluno);
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const nomeSafe = aluno.nome.replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
-    link.href     = url;
-    link.download = `QR_${nomeSafe}_${aluno.matricula}.png`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const { data: inst } = await supabaseAdmin
+      .from("instituicoes").select("nome").eq("id", aluno.inst?.id || _adminInstId).maybeSingle();
+    const instNome = inst?.nome || "";
+    const dataUrl  = await gerarCracha(aluno, _crachaConfig, instNome);
+    downloadCracha(dataUrl, aluno.nome);
   } catch (err) {
-    showToast("Erro ao gerar QR Code.", "error");
+    showToast("Erro ao gerar crachá.", "error");
   } finally {
-    if (btn) btn.style.opacity = "";
+    if (btn) { btn.style.opacity = ""; btn.disabled = false; }
   }
 }
 
-// ─── Download todos os QR Codes como ZIP ──────────────────────────────────────
+// ─── Download todos os crachás como ZIP ───────────────────────────────────────
 btnDlAll.addEventListener("click", async () => {
   if (!alunosFiltrados.length) return;
 
@@ -653,23 +654,27 @@ btnDlAll.addEventListener("click", async () => {
   `;
 
   try {
-    const zip = new JSZip();
+    const { data: inst } = await supabaseAdmin
+      .from("instituicoes").select("nome").eq("id", _adminInstId).maybeSingle();
+    const instNome = inst?.nome || "";
 
+    const zip = new JSZip();
     for (const aluno of alunosFiltrados) {
-      const blob     = await gerarQRCard(aluno);
-      const nomeSafe = aluno.nome.replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
-      zip.file(`QR_${nomeSafe}_${aluno.matricula}.png`, blob);
+      const dataUrl  = await gerarCracha(aluno, _crachaConfig, instNome);
+      const base64   = dataUrl.split(",")[1];
+      const nomeSafe = aluno.nome.normalize("NFD").replace(/[̀-ͯ]/g,"")
+        .replace(/[^a-zA-Z0-9 ]/g,"").trim().replace(/\s+/g,"_");
+      zip.file(`Cracha_${nomeSafe}.png`, base64, { base64: true });
     }
 
     const content = await zip.generateAsync({ type: "blob" });
     const url  = URL.createObjectURL(content);
     const link = document.createElement("a");
     link.href     = url;
-    link.download = "QRCodes_Alunos.zip";
+    link.download = "Crachas_Alunos.zip";
     link.click();
     URL.revokeObjectURL(url);
-
-    showToast(`${alunosFiltrados.length} QR Codes baixados com sucesso!`, "success");
+    showToast(`${alunosFiltrados.length} crachás baixados!`, "success");
   } catch (err) {
     showToast("Erro ao gerar ZIP: " + err.message, "error");
   } finally {
@@ -677,11 +682,11 @@ btnDlAll.addEventListener("click", async () => {
     btnDlAll.classList.remove("loading");
     btnDlAll.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <circle cx="12" cy="14" r="2"/><path d="M9 18h6"/>
       </svg>
-      Baixar todos os QR Codes
+      Baixar todos os crachás
     `;
   }
 });
@@ -755,6 +760,8 @@ let _adminInstId = null;
 
   if (_adminInstId) {
     await carregarFiltroTurmasDaInst(_adminInstId);
+    // Carrega configuração do crachá da instituição
+    _crachaConfig = await buscarCrachaConfig(supabaseAdmin, _adminInstId);
   } else {
     carregarFiltroInstituicoes();
   }

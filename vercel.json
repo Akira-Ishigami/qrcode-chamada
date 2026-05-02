@@ -15,6 +15,7 @@
     { "source": "/relatorio-dia",  "destination": "/relatorio-dia.html" },
     { "source": "/minhas-turmas",  "destination": "/minhas-turmas.html" },
     { "source": "/suporte",        "destination": "/suporte.html" },
+    { "source": "/cracha",         "destination": "/cracha.html" },
     { "source": "/qr-teste",       "destination": "/qr-teste.html" }
   ],
   "headers": [

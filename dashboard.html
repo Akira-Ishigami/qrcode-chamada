@@ -415,6 +415,16 @@
     .det-aluno-num  { font-size: .68rem; color: var(--text-3); font-weight: 600; width: 22px; text-align: right; flex-shrink: 0; }
     .det-aluno-nome { flex: 1; font-weight: 500; }
     .det-aluno-mat  { font-size: .7rem; color: var(--text-3); }
+    .det-cracha-btn {
+      margin-left: auto; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .65rem; font-weight: 600; color: var(--acc);
+      background: var(--acc-sub); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 8px; cursor: pointer;
+      font-family: inherit; transition: all .13s;
+    }
+    .det-cracha-btn:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .det-cracha-btn:disabled { opacity: .4; cursor: not-allowed; }
 
     /* Chamadas recentes */
     .det-cham-row { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-bottom: 1px solid var(--border); }
