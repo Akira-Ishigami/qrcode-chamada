@@ -481,6 +481,19 @@ async function renderInstDetalhe(instId, instNome) {
               </div>`
           }
         </div>
+
+        <!-- Crachá preview -->
+        <div class="det-section">
+          <div class="det-section-title" style="display:flex;align-items:center;justify-content:space-between">
+            Crachá da Instituição
+          </div>
+          <div id="det-cracha-box" class="det-cracha-box">
+            <div class="det-cracha-loading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="opacity:.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
+              <span>Gerando preview…</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -562,8 +575,41 @@ async function renderInstDetalhe(instId, instNome) {
   document.getElementById("btn-reset").addEventListener("click", () => abrirModalResetSenha(instId, instNome));
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 
-  // Botões de crachá nos alunos
+  // Preview do crachá da instituição (lado direito)
   const crachaConfig = await buscarCrachaConfig(supabaseAdmin, instId);
+  const crachaBox = document.getElementById("det-cracha-box");
+  if (crachaBox) {
+    try {
+      const demoAluno = {
+        nome: (alunos??[])[0]?.nome || "Aluno Demo",
+        matricula: (alunos??[])[0]?.matricula || "001",
+        foto_url: (alunos??[])[0]?.foto_url || null,
+        turma: { nome: (turmas??[])[0]?.nome || "Turma" },
+      };
+      const dataUrl = await gerarCracha(demoAluno, crachaConfig, instNome);
+      crachaBox.innerHTML = `
+        <img src="${dataUrl}"
+          class="det-cracha-img"
+          title="Clique para ampliar"
+          alt="Preview do crachá" />
+        <div class="det-cracha-hint">Clique para ampliar · Baseado no 1º aluno</div>
+      `;
+      crachaBox.querySelector("img").addEventListener("click", () => {
+        const overlay = document.createElement("div");
+        overlay.className = "cracha-lightbox";
+        overlay.innerHTML = `<img src="${dataUrl}" /><button class="cracha-lb-close">✕</button>`;
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add("open"), 10);
+        const close = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 250); };
+        overlay.querySelector(".cracha-lb-close").addEventListener("click", close);
+        overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+      });
+    } catch {
+      crachaBox.innerHTML = `<div class="det-cracha-loading"><span style="color:var(--text-3);font-size:.78rem">Sem configuração de crachá ainda.</span></div>`;
+    }
+  }
+
+  // Botões de crachá nos alunos
   root.querySelectorAll(".det-cracha-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       const alunoId = btn.dataset.alunoId;

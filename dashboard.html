@@ -426,6 +426,51 @@
     .det-cracha-btn:hover { background: #eff6ff; border-color: #bfdbfe; }
     .det-cracha-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+    /* Crachá preview box na lateral do ADM */
+    .det-cracha-box {
+      background: #f8fafc; border: 1px dashed var(--border-2);
+      border-radius: 12px; overflow: hidden;
+      min-height: 80px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+    }
+    .det-cracha-loading {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 20px; color: var(--text-3); font-size: .78rem;
+    }
+    .det-cracha-img {
+      width: 100%; display: block; cursor: zoom-in;
+      transition: opacity .15s;
+    }
+    .det-cracha-img:hover { opacity: .92; }
+    .det-cracha-hint {
+      font-size: .65rem; color: var(--text-3); padding: 6px 12px 10px;
+      text-align: center;
+    }
+
+    /* Lightbox */
+    .cracha-lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75);
+      z-index: 999; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .22s; backdrop-filter: blur(6px);
+      cursor: zoom-out;
+    }
+    .cracha-lightbox.open { opacity: 1; }
+    .cracha-lightbox img {
+      max-width: min(96vw, 960px); max-height: 90vh;
+      border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,.5);
+      transform: scale(.95); transition: transform .22s;
+    }
+    .cracha-lightbox.open img { transform: scale(1); }
+    .cracha-lb-close {
+      position: absolute; top: 16px; right: 20px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+      color: white; font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .13s;
+    }
+    .cracha-lb-close:hover { background: rgba(255,255,255,.28); }
+
     /* Chamadas recentes */
     .det-cham-row { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-bottom: 1px solid var(--border); }
     .det-cham-row:last-child { border-bottom: none; }

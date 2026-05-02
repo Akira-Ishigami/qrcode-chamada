@@ -154,9 +154,9 @@ async function atualizarPreview() {
 
   try {
     const dataUrl = await gerarCracha(DEMO_ALUNO, config, instNome || "Minha Instituição");
-    container.innerHTML = `<img src="${dataUrl}" style="max-width:100%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.1)" alt="Preview do crachá" />`;
+    container.innerHTML = `<img src="${dataUrl}" alt="Preview do crachá" />`;
   } catch (e) {
-    container.innerHTML = `<div class="preview-err">Erro no preview: ${e.message}</div>`;
+    container.innerHTML = `<div class="cc-preview-err">Erro no preview: ${e.message}</div>`;
   }
 }
 
