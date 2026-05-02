@@ -105,7 +105,13 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   ctx.clip();
 
   if (fotoImg) {
-    ctx.drawImage(fotoImg, px - pr, py - pr, pr * 2, pr * 2);
+    // Cover mode: recorta o centro sem distorcer
+    const iw = fotoImg.width, ih = fotoImg.height;
+    const size = pr * 2;
+    const scale = Math.max(size / iw, size / ih);
+    const sw = size / scale, sh = size / scale;
+    const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+    ctx.drawImage(fotoImg, sx, sy, sw, sh, px - pr, py - pr, size, size);
   } else {
     // Fundo + inicial
     ctx.fillStyle = cor1 + "18";
@@ -139,15 +145,50 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
     ctx.textAlign = "left";
     ctx.fillText(f.label, tx, y);
 
-    // Valor
+    // Valor — nome usa 2 linhas se necessário; outros diminuem fonte
     ctx.fillStyle = "#0f172a";
-    ctx.font = `bold ${f.big ? 15 : 12}px Arial, sans-serif`;
-    // Trunca se necessário
-    let val = f.value;
     const maxValW = CW - (tx - ox) - 14;
-    while (ctx.measureText(val).width > maxValW && val.length > 2) val = val.slice(0, -1);
-    if (val !== f.value) val += "…";
-    ctx.fillText(val, tx, y + (f.big ? 17 : 15));
+
+    if (f.big) {
+      // Nome: tenta caber em 1 linha reduzindo fonte, se não quebra em 2
+      let fs = 15;
+      ctx.font = `bold ${fs}px Arial, sans-serif`;
+      while (ctx.measureText(f.value).width > maxValW && fs > 10) {
+        fs--;
+        ctx.font = `bold ${fs}px Arial, sans-serif`;
+      }
+      if (ctx.measureText(f.value).width <= maxValW) {
+        ctx.fillText(f.value, tx, y + 17);
+      } else {
+        // Quebra em 2 linhas
+        const words = f.value.split(" ");
+        let line1 = "", line2 = "";
+        for (const w of words) {
+          const test = line1 ? line1 + " " + w : w;
+          if (!line2 && ctx.measureText(test).width <= maxValW) line1 = test;
+          else line2 = (line2 ? line2 + " " + w : w);
+        }
+        // Trunca linha2 se ainda longa
+        while (line2 && ctx.measureText(line2).width > maxValW && line2.length > 2)
+          line2 = line2.slice(0, -1);
+        if (line2 && !f.value.endsWith(line2.replace("…", ""))) line2 += "…";
+        ctx.fillText(line1, tx, y + 14);
+        if (line2) ctx.fillText(line2, tx, y + 27);
+      }
+    } else {
+      // Turma / Matrícula: encolhe fonte se necessário
+      let fs = 12;
+      ctx.font = `bold ${fs}px Arial, sans-serif`;
+      let val = f.value;
+      while (ctx.measureText(val).width > maxValW && fs > 9) {
+        fs--;
+        ctx.font = `bold ${fs}px Arial, sans-serif`;
+      }
+      // Trunca só se ainda não cabe
+      while (ctx.measureText(val).width > maxValW && val.length > 2) val = val.slice(0, -1);
+      if (val !== f.value) val += "…";
+      ctx.fillText(val, tx, y + 15);
+    }
 
     // Linha separadora
     if (i < fields.length - 1) {
