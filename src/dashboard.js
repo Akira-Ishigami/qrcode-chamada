@@ -694,26 +694,12 @@ async function renderPedidos() {
     card.dataset.tipo   = p.tipo;
     card.style.animationDelay = `${idx * .04}s`;
     card.innerHTML = `
-      <div class="kanban-card-top">
-        <div class="kanban-card-inst">
-          ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
-          <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? p.tipo}</span>
-        </div>
-        <svg class="kanban-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
+      <div class="kanban-card-inst">
+        ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
+        <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? p.tipo}</span>
       </div>
       <div class="kanban-card-title">${esc(p.titulo)}</div>
-      <div class="kanban-card-desc kanban-card-desc-short">${esc(p.descricao)}</div>
-      <div class="kanban-card-expand" style="display:none">
-        <div class="kanban-expand-label">Descrição completa</div>
-        <div class="kanban-expand-body">${esc(p.descricao)}</div>
-        <div class="kanban-expand-meta">
-          <span>${fmtData(p.criado_em)}</span>
-          <span class="kanban-expand-status ${p.status}">${
-            p.status === "aberto" ? "Aberto" :
-            p.status === "em_analise" ? "Em análise" : "Resolvido"
-          }</span>
-        </div>
-      </div>
+      <div class="kanban-card-desc">${esc(p.descricao)}</div>
       <div class="kanban-card-foot">
         <span class="kanban-card-date">${fmtData(p.criado_em)}</span>
         <span class="kanban-drag-hint">
@@ -723,7 +709,7 @@ async function renderPedidos() {
       </div>
     `;
 
-    // Click para expandir (distingue do drag)
+    // Click abre modal (distingue do drag)
     let dragOccurred = false;
     card.addEventListener("mousedown", () => { dragOccurred = false; });
     card.addEventListener("dragstart", (e) => {
@@ -735,13 +721,7 @@ async function renderPedidos() {
     card.addEventListener("dragend", () => card.classList.remove("dragging"));
     card.addEventListener("click", () => {
       if (dragOccurred) return;
-      const isOpen = card.classList.toggle("expanded");
-      const expand = card.querySelector(".kanban-card-expand");
-      const short  = card.querySelector(".kanban-card-desc-short");
-      const chevron = card.querySelector(".kanban-card-chevron");
-      expand.style.display  = isOpen ? "" : "none";
-      short.style.display   = isOpen ? "none" : "";
-      chevron.style.transform = isOpen ? "rotate(90deg)" : "";
+      abrirModalFeedback(p, tipoLabel, fmtData);
     });
 
     return card;
@@ -1169,6 +1149,50 @@ function confirmarExcluir(instId, instNome) {
       err.textContent = "Erro: " + (e.message ?? e);
       btn.disabled = false; btn.textContent = "Excluir";
     }
+  });
+}
+
+// ── Modal de detalhe de feedback (Suporte) ────────────────────────────────────
+function abrirModalFeedback(p, tipoLabel, fmtData) {
+  const statusLabel = { aberto: "Aberto", em_analise: "Em análise", resolvido: "Resolvido" };
+  const overlay = document.createElement("div");
+  overlay.className = "tv-modal-overlay";
+  overlay.innerHTML = `
+    <div class="tv-modal-card" style="max-width:520px">
+      <div class="tv-modal-head">
+        <div class="tv-modal-icon inst" style="background:#eff6ff;color:#2563eb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <h2 style="font-size:1rem;font-weight:800;color:var(--text);line-height:1.2">${esc(p.titulo)}</h2>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span style="font-size:.7rem;font-weight:700;color:var(--text-2)">${esc(p.instituicoes?.nome || "—")}</span>
+            <span class="kanban-tipo-pill ${p.tipo}" style="font-size:.6rem">${tipoLabel[p.tipo] ?? p.tipo}</span>
+            <span class="kanban-expand-status ${p.status}" style="font-size:.6rem">${statusLabel[p.status] || p.status}</span>
+          </div>
+        </div>
+        <button class="tv-modal-x" id="kfb-x">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="tv-modal-body" style="gap:14px">
+        <div>
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Descrição</div>
+          <div style="font-size:.875rem;color:var(--text-2);line-height:1.7;white-space:pre-wrap;background:var(--surface-2);border-radius:9px;padding:14px 16px;min-height:60px">${esc(p.descricao) || "<em style='opacity:.5'>Sem descrição</em>"}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:.72rem;color:var(--text-3)">
+          <span>Enviado em ${fmtData(p.criado_em)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add("open"), 10);
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
+  overlay.querySelector("#kfb-x").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
   });
 }
 
