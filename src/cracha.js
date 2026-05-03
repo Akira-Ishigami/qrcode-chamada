@@ -67,89 +67,97 @@ function fmtNasc(s) {
 }
 
 // ── Padrões decorativos ───────────────────────────────────────────────────────
+// Desenhado APÓS o fundo branco, clipado apenas na área do corpo (entre header e footer)
 function drawPadrao(ctx, ox, oy, cor1, padrao) {
+  if (!padrao || padrao === "limpo") return;
+
+  const bodyY = oy + HEADER;
+  const bodyH = CH - HEADER - FOOTER;
+
   ctx.save();
-  rr(ctx, ox, oy, CW, CH, CR);
+  // Clip apenas na área do corpo — não cobre header nem footer
+  ctx.beginPath();
+  ctx.rect(ox, bodyY, CW, bodyH);
   ctx.clip();
 
   if (padrao === "geometrico") {
-    // Triângulo top-left
-    ctx.fillStyle = cor1 + "20";
+    // Triângulo grande top-left
+    ctx.fillStyle = cor1 + "38";
     ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(ox + 180, oy);
-    ctx.lineTo(ox, oy + 140);
+    ctx.moveTo(ox, bodyY);
+    ctx.lineTo(ox + 200, bodyY);
+    ctx.lineTo(ox, bodyY + 160);
     ctx.closePath();
     ctx.fill();
     // Triângulo menor bottom-right
-    ctx.fillStyle = cor1 + "14";
+    ctx.fillStyle = cor1 + "28";
     ctx.beginPath();
-    ctx.moveTo(ox + CW, oy + CH);
-    ctx.lineTo(ox + CW - 120, oy + CH);
-    ctx.lineTo(ox + CW, oy + CH - 90);
+    ctx.moveTo(ox + CW, bodyY + bodyH);
+    ctx.lineTo(ox + CW - 130, bodyY + bodyH);
+    ctx.lineTo(ox + CW, bodyY + bodyH - 100);
     ctx.closePath();
     ctx.fill();
-    // Linha diagonal decorativa
-    ctx.strokeStyle = cor1 + "18";
-    ctx.lineWidth = 28;
+    // Linha diagonal de acento
+    ctx.strokeStyle = cor1 + "22";
+    ctx.lineWidth = 32;
     ctx.beginPath();
-    ctx.moveTo(ox, oy + CH - 60);
-    ctx.lineTo(ox + 80, oy + CH);
+    ctx.moveTo(ox, bodyY + bodyH - 30);
+    ctx.lineTo(ox + 60, bodyY + bodyH);
     ctx.stroke();
 
   } else if (padrao === "pontos") {
-    ctx.fillStyle = cor1 + "18";
-    for (let dx = 18; dx < CW; dx += 20) {
-      for (let dy = HEADER + 6; dy < CH - FOOTER - 4; dy += 20) {
+    ctx.fillStyle = cor1 + "40";
+    for (let dx = 16; dx < CW; dx += 20) {
+      for (let dy = 10; dy < bodyH - 6; dy += 20) {
         ctx.beginPath();
-        ctx.arc(ox + dx, oy + dy, 1.5, 0, Math.PI * 2);
+        ctx.arc(ox + dx, bodyY + dy, 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
   } else if (padrao === "diagonal") {
-    // Faixa diagonal no canto top-right
-    ctx.strokeStyle = cor1 + "16";
-    ctx.lineWidth = 22;
-    for (let i = 0; i < 5; i++) {
+    ctx.strokeStyle = cor1 + "35";
+    ctx.lineWidth = 20;
+    // Faixas diagonais no canto superior direito
+    for (let i = 0; i < 6; i++) {
       ctx.beginPath();
-      ctx.moveTo(ox + CW - 30 - i * 28, oy + HEADER);
-      ctx.lineTo(ox + CW, oy + HEADER + 30 + i * 28);
+      ctx.moveTo(ox + CW - 20 - i * 32, bodyY);
+      ctx.lineTo(ox + CW, bodyY + 20 + i * 32);
       ctx.stroke();
     }
-    // Espelho bottom-left
-    for (let i = 0; i < 3; i++) {
+    // Espelho inferior esquerdo
+    for (let i = 0; i < 4; i++) {
       ctx.beginPath();
-      ctx.moveTo(ox, oy + CH - FOOTER - i * 28);
-      ctx.lineTo(ox + 30 + i * 28, oy + CH - FOOTER);
+      ctx.moveTo(ox, bodyY + bodyH - i * 32);
+      ctx.lineTo(ox + i * 32, bodyY + bodyH);
       ctx.stroke();
     }
 
   } else if (padrao === "ondas") {
-    // Onda suave no fundo
-    ctx.fillStyle = cor1 + "0f";
+    // Onda principal
+    ctx.fillStyle = cor1 + "30";
     ctx.beginPath();
-    ctx.moveTo(ox, oy + CH * 0.6);
+    ctx.moveTo(ox, bodyY + bodyH * 0.55);
     ctx.bezierCurveTo(
-      ox + CW * 0.25, oy + CH * 0.45,
-      ox + CW * 0.6,  oy + CH * 0.75,
-      ox + CW,         oy + CH * 0.5
+      ox + CW * 0.28, bodyY + bodyH * 0.32,
+      ox + CW * 0.65, bodyY + bodyH * 0.78,
+      ox + CW,         bodyY + bodyH * 0.5
     );
-    ctx.lineTo(ox + CW, oy + CH - FOOTER);
-    ctx.lineTo(ox, oy + CH - FOOTER);
+    ctx.lineTo(ox + CW, bodyY + bodyH);
+    ctx.lineTo(ox, bodyY + bodyH);
     ctx.closePath();
     ctx.fill();
-    // Segunda onda
-    ctx.fillStyle = cor1 + "08";
+    // Onda secundária (mais clara)
+    ctx.fillStyle = cor1 + "18";
     ctx.beginPath();
-    ctx.moveTo(ox, oy + CH * 0.5);
+    ctx.moveTo(ox, bodyY + bodyH * 0.42);
     ctx.bezierCurveTo(
-      ox + CW * 0.3, oy + CH * 0.35,
-      ox + CW * 0.7, oy + CH * 0.65,
-      ox + CW,        oy + CH * 0.4
+      ox + CW * 0.35, bodyY + bodyH * 0.22,
+      ox + CW * 0.72, bodyY + bodyH * 0.62,
+      ox + CW,         bodyY + bodyH * 0.36
     );
-    ctx.lineTo(ox + CW, oy + CH - FOOTER);
-    ctx.lineTo(ox, oy + CH - FOOTER);
+    ctx.lineTo(ox + CW, bodyY + bodyH);
+    ctx.lineTo(ox, bodyY + bodyH);
     ctx.closePath();
     ctx.fill();
   }
