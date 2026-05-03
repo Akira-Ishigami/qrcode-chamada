@@ -271,17 +271,23 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
     ctx.drawImage(fotoImg, (fotoImg.width - sw) / 2, (fotoImg.height - sh) / 2, sw, sh,
                   photoX, photoY, photoW, photoH);
   } else {
-    // Fundo + silhueta carteirinha
-    ctx.fillStyle = "#dde4ec";
+    // Fundo cinza claro (igual ao profile placeholder padrão)
+    ctx.fillStyle = "#e8edf2";
     ctx.fillRect(photoX, photoY, photoW, photoH);
-    const cx = photoX + photoW / 2;
-    ctx.fillStyle = "#9fb0c0";
-    const hr = photoH * 0.155;
-    const hcy = photoY + photoH * 0.36;
-    ctx.beginPath(); ctx.arc(cx, hcy, hr, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx, photoY + photoH + 2, photoH * 0.45, photoH * 0.32, 0, Math.PI, 0, true);
-    ctx.fill();
+
+    const cx  = photoX + photoW / 2;
+    const ico = "#aab4bd"; // cor do ícone (cinza-azulado)
+
+    // Cabeça — círculo no terço superior
+    const headR  = photoW * 0.22;
+    const headCY = photoY + photoH * 0.36;
+    ctx.fillStyle = ico;
+    ctx.beginPath(); ctx.arc(cx, headCY, headR, 0, Math.PI * 2); ctx.fill();
+
+    // Ombros — círculo grande, apenas o topo visível (cortado)
+    const bodyR  = photoW * 0.50;
+    const bodyCY = photoY + photoH * 0.85 + bodyR;
+    ctx.beginPath(); ctx.arc(cx, bodyCY, bodyR, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 
