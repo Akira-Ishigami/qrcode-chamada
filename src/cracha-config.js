@@ -201,32 +201,41 @@ async function atualizarPreview() {
 
 // ── Salvar ────────────────────────────────────────────────────────────────────
 async function salvar() {
-  const btn = document.getElementById("btn-salvar");
-  btn.disabled = true;
-  btn.textContent = "Salvando…";
+  if (!instId) { showToast("Sessão inválida. Recarregue a página.", "error"); return; }
 
-  const cfg = getConfig();
-  const payload = {
-    instituicao_id: instId,
-    cor_principal:  cfg.cor_principal,
-    cor_secundaria: cfg.cor_secundaria,
-    logo_url:       cfg.logo_url,
-    padrao:         cfg.padrao,
-    fonte:          cfg.fonte,
-    atualizado_em:  new Date().toISOString(),
-  };
+  const btn     = document.getElementById("btn-salvar");
+  const origHTML = btn.innerHTML;
+  btn.disabled  = true;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="animation:spin .8s linear infinite"><circle cx="12" cy="12" r="10" stroke-opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg> Salvando…`;
 
-  const { error } = await supabaseAdmin
-    .from("cracha_config")
-    .upsert(payload, { onConflict: "instituicao_id" });
+  try {
+    const cfg = getConfig();
+    const payload = {
+      instituicao_id: instId,
+      cor_principal:  cfg.cor_principal,
+      cor_secundaria: cfg.cor_secundaria,
+      logo_url:       cfg.logo_url,
+      padrao:         cfg.padrao,
+      fonte:          cfg.fonte,
+      atualizado_em:  new Date().toISOString(),
+    };
 
-  btn.disabled = false;
-  btn.textContent = "Salvar configuração";
+    const { error } = await supabaseAdmin
+      .from("cracha_config")
+      .upsert(payload, { onConflict: "instituicao_id" });
 
-  if (error) {
-    showToast("Erro ao salvar: " + error.message, "error");
-  } else {
-    showToast("Configuração salva!", "success");
+    if (error) {
+      showToast("Erro ao salvar: " + error.message, "error");
+      console.error("Erro cracha_config upsert:", error);
+    } else {
+      showToast("Configuração salva!", "success");
+    }
+  } catch (e) {
+    showToast("Erro inesperado: " + e.message, "error");
+    console.error("Exceção ao salvar:", e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
   }
 }
 

@@ -165,6 +165,8 @@
     }
     .cs-pattern-opt:hover { border-color: #6b7280; color: #374151; }
     .cs-pattern-opt.selected { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    :root { --thumb-c: #2563eb; }
+
     .cs-pt-thumb {
       width: 48px; height: 30px; border-radius: 5px;
       background: #f3f4f6; overflow: hidden; position: relative;
@@ -175,23 +177,25 @@
     .cc-pt-geometrico::before {
       content: ''; position: absolute; top:0; left:0;
       border-style: solid; border-width: 30px 28px 0 0;
-      border-color: #2563eb28 transparent transparent transparent;
+      border-color: color-mix(in srgb, var(--thumb-c) 22%, transparent) transparent transparent transparent;
     }
     .cc-pt-geometrico::after {
       content: ''; position: absolute; bottom:0; right:0;
       border-style: solid; border-width: 0 0 18px 18px;
-      border-color: transparent transparent #2563eb18 transparent;
+      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 15%, transparent) transparent;
     }
     .cc-pt-pontos {
-      background-image: radial-gradient(#2563eb35 1.5px, transparent 1.5px);
+      background-image: radial-gradient(color-mix(in srgb, var(--thumb-c) 28%, transparent) 1.5px, transparent 1.5px);
       background-size: 7px 7px;
     }
     .cc-pt-diagonal {
-      background: repeating-linear-gradient(135deg, transparent, transparent 4px, #2563eb22 4px, #2563eb22 6px);
+      background: repeating-linear-gradient(135deg, transparent, transparent 4px,
+        color-mix(in srgb, var(--thumb-c) 20%, transparent) 4px,
+        color-mix(in srgb, var(--thumb-c) 20%, transparent) 6px);
     }
     .cc-pt-ondas::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(155deg, transparent 55%, #2563eb1e 55%);
+      background: linear-gradient(155deg, transparent 55%, color-mix(in srgb, var(--thumb-c) 18%, transparent) 55%);
     }
 
     /* Fonts */
@@ -513,7 +517,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   localStorage.removeItem('qr_role');
   window.location.href = '/login.html';
 });
-// Sync color swatches + hex display
+// Sync color swatches + hex + CSS var para padrões
 ['cor1','cor2'].forEach((id, i) => {
   const input  = document.getElementById('input-' + id);
   const val    = document.getElementById('val-' + id);
@@ -521,6 +525,8 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   if (input) input.addEventListener('input', () => {
     if (val)    val.textContent = input.value;
     if (swatch) swatch.style.background = input.value;
+    // Atualiza cor dos thumbnails de padrão com a cor principal
+    if (id === 'cor1') document.documentElement.style.setProperty('--thumb-c', input.value);
   });
 });
 // Logo click
