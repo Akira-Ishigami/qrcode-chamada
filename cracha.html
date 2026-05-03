@@ -6,218 +6,279 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crachá — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Epilogue:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
   <style>
-    #page-root { padding: 28px 24px !important; }
-    @media (min-width: 769px) { #page-root { padding: 36px 40px !important; } }
-
-    /* ── Header ── */
-    .cc-header { margin-bottom: 32px; }
-    .cc-eyebrow {
-      font-size: .62rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .12em; color: var(--acc); margin-bottom: 6px;
-    }
-    .cc-title {
-      font-family: 'Outfit', system-ui, sans-serif;
-      font-size: 1.65rem; font-weight: 800; color: var(--text);
-      letter-spacing: -.03em; line-height: 1.1;
-    }
-    .cc-subtitle { font-size: .82rem; color: var(--text-3); margin-top: 5px; }
-
-    /* ── Layout dois painéis ── */
-    .cc-body {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-    @media (max-width: 860px) { .cc-body { grid-template-columns: 1fr; } }
-
-    /* ── Painel esquerdo: form ── */
-    .cc-panel {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 24px;
-      display: flex; flex-direction: column; gap: 22px;
-    }
-    .cc-panel-title {
-      font-size: .6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .12em; color: var(--text-3);
-      border-bottom: 1px solid var(--border); padding-bottom: 10px;
+    /* ── Studio layout ── */
+    #page-root {
+      padding: 0 !important;
+      flex-direction: row !important;
+      overflow: hidden !important;
+      height: 100%;
+      font-family: 'Epilogue', system-ui, sans-serif;
     }
 
-    /* ── Fields ── */
-    .cc-field { display: flex; flex-direction: column; gap: 7px; }
-    .cc-label {
-      font-size: .68rem; font-weight: 700; color: var(--text-2);
-      text-transform: uppercase; letter-spacing: .08em;
-    }
-    .cc-color-row {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .cc-color-swatch {
-      width: 36px; height: 36px; border-radius: 9px;
-      border: 2px solid var(--border); cursor: pointer;
-      overflow: hidden; flex-shrink: 0;
-    }
-    .cc-color-swatch input[type="color"] {
-      width: 200%; height: 200%;
-      margin: -50%; border: none; padding: 0;
-      cursor: pointer; background: none;
-    }
-    .cc-color-val {
-      font-size: .82rem; font-weight: 600; color: var(--text);
-      font-family: monospace; background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: 7px;
-      padding: 6px 10px; flex: 1;
+    /* ── STUDIO SPLIT ── */
+    .cs-studio {
+      display: flex; flex-direction: row; width: 100%; height: 100%;
+      overflow: hidden;
     }
 
-    /* ── Logo upload ── */
-    .cc-logo-area {
-      border: 2px dashed var(--border-2); border-radius: 12px;
-      padding: 20px; text-align: center; cursor: pointer;
-      transition: border-color .15s, background .15s;
-      position: relative; min-height: 100px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    }
-    .cc-logo-area:hover { border-color: var(--acc); background: var(--acc-sub); }
-    .cc-logo-area input[type="file"] { display: none; }
-    .cc-logo-label { font-size: .8rem; color: var(--text-3); font-weight: 500; }
-    .cc-logo-label span { color: var(--acc); font-weight: 700; }
-    .cc-logo-preview-img { max-height: 60px; max-width: 120px; display: none; border-radius: 6px; }
-    .cc-btn-rm-logo {
-      display: none; align-items: center; gap: 5px;
-      font-size: .72rem; font-weight: 600; color: var(--red);
-      background: var(--red-sub); border: 1px solid var(--red);
-      border-radius: 7px; padding: 4px 10px; cursor: pointer; font-family: inherit;
-      transition: all .13s;
-    }
-    .cc-btn-rm-logo:hover { background: var(--red); color: white; }
-
-    /* ── Salvar ── */
-    .cc-btn-save {
-      width: 100%; padding: 12px; background: var(--acc); color: white;
-      border: none; border-radius: 11px; font-size: .9rem; font-weight: 700;
-      cursor: pointer; font-family: inherit;
-      transition: background .14s, transform .13s, box-shadow .14s;
-      box-shadow: 0 4px 14px rgba(37,99,235,.28);
-    }
-    .cc-btn-save:hover:not(:disabled) { background: var(--acc-2); transform: translateY(-1px); }
-    .cc-btn-save:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    /* ── Painel direito: preview ── */
-    .cc-preview-panel {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 24px; position: sticky; top: 24px;
-    }
-    .cc-preview-title {
-      font-size: .6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .12em; color: var(--text-3);
-      border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 18px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .cc-preview-zoom-hint {
-      font-size: .62rem; color: var(--acc); font-weight: 600;
-      display: flex; align-items: center; gap: 4px; text-transform: none; letter-spacing: 0;
-    }
-    .cc-preview-wrap {
-      background: #f1f5f9; border-radius: 12px;
-      padding: 16px; min-height: 160px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: zoom-in; transition: background .14s;
+    /* ── LEFT: Dark Canvas ── */
+    .cs-canvas {
+      flex: 1.15; background: #0b0f1a;
+      display: flex; flex-direction: column;
       position: relative; overflow: hidden;
     }
-    .cc-preview-wrap:hover { background: #e9eef5; }
-    .cc-preview-wrap img { max-width: 100%; border-radius: 7px; display: block; }
-    .cc-preview-loading { font-size: .82rem; color: var(--text-3); text-align: center; }
-    .cc-preview-err     { font-size: .82rem; color: var(--red); }
-    .cc-preview-note {
-      font-size: .7rem; color: var(--text-3); margin-top: 10px;
-      text-align: center; line-height: 1.5;
+    /* Dot grid texture */
+    .cs-canvas::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+      background-size: 28px 28px;
     }
 
-    /* Lightbox */
-    .cc-lightbox {
-      position: fixed; inset: 0; background: rgba(0,0,0,.78);
-      z-index: 999; display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity .22s; backdrop-filter: blur(8px); cursor: zoom-out;
+    .cs-canvas-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 28px; position: relative; z-index: 1;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
-    .cc-lightbox.open { opacity: 1; }
-    .cc-lightbox img {
-      max-width: min(96vw, 1000px); max-height: 90vh;
-      border-radius: 12px; box-shadow: 0 32px 80px rgba(0,0,0,.5);
-      transform: scale(.94); transition: transform .24s cubic-bezier(.22,1,.36,1);
+    .cs-canvas-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'DM Mono', monospace; font-size: .72rem; font-weight: 500;
+      color: rgba(255,255,255,.4); letter-spacing: .06em; text-transform: uppercase;
     }
-    .cc-lightbox.open img { transform: scale(1); }
-    .cc-lb-close {
-      position: absolute; top: 18px; right: 22px;
-      width: 38px; height: 38px; border-radius: 50%;
-      background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.22);
-      color: white; font-size: 1.1rem; cursor: pointer;
+    .cs-canvas-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
+      box-shadow: 0 0 8px #22c55e80; animation: dotBlink 2.5s ease-in-out infinite;
+    }
+    @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .cs-canvas-tip {
+      font-family: 'DM Mono', monospace; font-size: .64rem;
+      color: rgba(255,255,255,.22); letter-spacing: .04em;
+    }
+
+    .cs-canvas-scene {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px; position: relative; z-index: 1;
+    }
+    .cs-card-float {
+      filter: drop-shadow(0 40px 80px rgba(0,0,0,.7)) drop-shadow(0 8px 24px rgba(0,0,0,.4));
+      animation: cardFloat 5s ease-in-out infinite;
+      cursor: zoom-in;
+    }
+    @keyframes cardFloat {
+      0%,100% { transform: translateY(0) rotateX(1deg); }
+      50%      { transform: translateY(-8px) rotateX(0deg); }
+    }
+    #preview-canvas-wrap {
       display: flex; align-items: center; justify-content: center;
-      transition: background .13s; font-family: inherit;
+      min-width: 300px; min-height: 120px;
     }
-    .cc-lb-close:hover { background: rgba(255,255,255,.3); }
+    #preview-canvas-wrap img {
+      max-width: min(100%, 720px); border-radius: 10px; display: block;
+      transition: opacity .3s ease;
+    }
+    .cs-preview-loading {
+      font-family: 'DM Mono', monospace; font-size: .75rem;
+      color: rgba(255,255,255,.3); letter-spacing: .06em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cs-preview-loading::before {
+      content: ''; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.1);
+      border-top-color: rgba(255,255,255,.5);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Padrão grid ── */
-    .cc-pattern-grid {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+    .cs-canvas-footer {
+      padding: 14px 28px; text-align: center; position: relative; z-index: 1;
+      border-top: 1px solid rgba(255,255,255,.05);
+      font-family: 'DM Mono', monospace; font-size: .62rem;
+      color: rgba(255,255,255,.18); letter-spacing: .06em;
     }
-    .cc-pattern-opt {
+
+    /* ── RIGHT: Controls ── */
+    .cs-controls {
+      width: 360px; flex-shrink: 0;
+      background: #fafafa;
+      border-left: 1px solid #e5e7eb;
+      overflow-y: auto; padding: 28px 24px 40px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .cs-ctrl-header { margin-bottom: 28px; }
+    .cs-ctrl-eyebrow {
+      font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .14em; color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .cs-ctrl-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2rem; font-weight: 900; color: #0f172a;
+      line-height: 1.05; letter-spacing: -.03em;
+    }
+
+    /* Section */
+    .cs-section { padding: 20px 0; border-bottom: 1px solid #e5e7eb; }
+    .cs-section:last-of-type { border-bottom: none; }
+    .cs-section-lbl {
+      font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .12em; color: #9ca3af;
+      margin-bottom: 14px;
+    }
+    .cs-optional { color: #d1d5db; font-weight: 400; }
+
+    /* Color swatches */
+    .cs-swatches { display: flex; gap: 12px; }
+    .cs-swatch-item { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .cs-swatch {
+      width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
+      flex-shrink: 0; overflow: hidden; border: 3px solid white;
+      box-shadow: 0 0 0 1px #e5e7eb, 0 4px 12px rgba(0,0,0,.12);
+      transition: box-shadow .18s, transform .15s;
+      background: #2563eb;
+    }
+    .cs-swatch:hover { transform: scale(1.08); box-shadow: 0 0 0 1px #e5e7eb, 0 8px 24px rgba(0,0,0,.18); }
+    .cs-swatch input[type="color"] {
+      width: 200%; height: 200%; margin: -50%; border: none;
+      padding: 0; cursor: pointer; background: none; opacity: 0;
+    }
+    .cs-swatch-name {
+      font-size: .75rem; font-weight: 600; color: #374151; margin-bottom: 2px;
+    }
+    .cs-swatch-hex {
+      font-family: 'DM Mono', monospace; font-size: .72rem;
+      color: #9ca3af; letter-spacing: .04em;
+    }
+
+    /* Patterns */
+    .cs-patterns {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+    }
+    .cs-pattern-opt {
       display: flex; flex-direction: column; align-items: center; gap: 5px;
-      cursor: pointer; border-radius: 9px; padding: 7px 4px;
-      border: 2px solid var(--border); transition: all .14s;
-      font-size: .66rem; font-weight: 600; color: var(--text-3);
+      cursor: pointer; padding: 6px 4px;
+      border: 2px solid #e5e7eb; border-radius: 10px;
+      transition: all .15s; font-family: 'DM Mono', monospace;
+      font-size: .58rem; color: #9ca3af; letter-spacing: .03em;
     }
-    .cc-pattern-opt:hover { border-color: var(--border-2); color: var(--text-2); }
-    .cc-pattern-opt.selected { border-color: var(--acc); color: var(--acc); background: var(--acc-sub); }
-    .cc-pattern-thumb {
-      width: 44px; height: 28px; border-radius: 5px; border: 1px solid #e2e8f0;
-      background: #f8fafc; overflow: hidden; position: relative;
+    .cs-pattern-opt:hover { border-color: #6b7280; color: #374151; }
+    .cs-pattern-opt.selected { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    .cs-pt-thumb {
+      width: 48px; height: 30px; border-radius: 5px;
+      background: #f3f4f6; overflow: hidden; position: relative;
+      border: 1px solid #e5e7eb;
     }
-    .cc-pt-limpo { background: #f8fafc; }
+    .cs-pattern-opt.selected .cs-pt-thumb { border-color: #bfdbfe; }
+    .cc-pt-limpo { background: #f9fafb; }
     .cc-pt-geometrico::before {
-      content: ''; position: absolute; top: 0; left: 0;
-      border-style: solid; border-width: 28px 24px 0 0;
-      border-color: #2563eb33 transparent transparent transparent;
+      content: ''; position: absolute; top:0; left:0;
+      border-style: solid; border-width: 30px 28px 0 0;
+      border-color: #2563eb28 transparent transparent transparent;
     }
     .cc-pt-geometrico::after {
-      content: ''; position: absolute; bottom: 0; right: 0;
+      content: ''; position: absolute; bottom:0; right:0;
       border-style: solid; border-width: 0 0 18px 18px;
-      border-color: transparent transparent #2563eb22 transparent;
+      border-color: transparent transparent #2563eb18 transparent;
     }
     .cc-pt-pontos {
-      background-image: radial-gradient(#2563eb33 1.5px, transparent 1.5px);
-      background-size: 8px 8px; background-position: 0 0;
+      background-image: radial-gradient(#2563eb35 1.5px, transparent 1.5px);
+      background-size: 7px 7px;
     }
     .cc-pt-diagonal {
-      background: linear-gradient(135deg, #2563eb22 25%, transparent 25%, transparent 50%, #2563eb22 50%, #2563eb22 75%, transparent 75%);
-      background-size: 8px 8px;
+      background: repeating-linear-gradient(135deg, transparent, transparent 4px, #2563eb22 4px, #2563eb22 6px);
     }
     .cc-pt-ondas::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(160deg, transparent 60%, #2563eb22 60%);
+      background: linear-gradient(155deg, transparent 55%, #2563eb1e 55%);
     }
 
-    /* ── Fonte grid ── */
-    .cc-font-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    /* Fonts */
+    .cs-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cs-font-opt {
+      padding: 12px 13px; border: 2px solid #e5e7eb;
+      border-radius: 11px; cursor: pointer; transition: all .15s;
+      display: flex; flex-direction: column; gap: 3px;
     }
-    .cc-font-opt {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; border: 2px solid var(--border);
-      border-radius: 9px; cursor: pointer; transition: all .14s;
-      font-size: .78rem; font-weight: 700; color: var(--text-2);
-    }
-    .cc-font-opt:hover { border-color: var(--border-2); }
-    .cc-font-opt.selected { border-color: var(--acc); background: var(--acc-sub); color: var(--acc); }
-    .cc-font-sample { font-size: .82rem; color: var(--text-3); font-weight: 400; }
+    .cs-font-opt:hover { border-color: #9ca3af; }
+    .cs-font-opt.selected { border-color: #2563eb; background: #eff6ff; }
+    .cs-font-name { font-size: .68rem; font-weight: 700; color: #374151; }
+    .cs-font-opt.selected .cs-font-name { color: #2563eb; }
+    .cs-font-sample { font-size: 1.1rem; color: #0f172a; line-height: 1; }
 
-    /* ── Toast ── */
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 11px 20px; border-radius: var(--r); font-size: .84rem; font-weight: 600; box-shadow: var(--shadow-xl); transition: transform .26s cubic-bezier(0.175,.885,.32,1.275); z-index: 9999; white-space: nowrap; pointer-events: none; max-width: calc(100vw - 32px); }
+    /* Logo */
+    .cs-logo-drop {
+      border: 2px dashed #d1d5db; border-radius: 12px; padding: 22px 16px;
+      text-align: center; cursor: pointer; transition: all .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      position: relative; background: #f9fafb;
+    }
+    .cs-logo-drop:hover { border-color: #2563eb; background: #eff6ff; }
+    .cs-logo-drop input[type="file"] { display: none; }
+    .cc-logo-preview-img { max-height: 55px; max-width: 110px; display: none; border-radius: 6px; }
+    .cs-logo-text { font-size: .78rem; color: #9ca3af; }
+    .cs-logo-text strong { color: #2563eb; }
+    .cs-logo-text small { display: block; font-size: .65rem; color: #c9d0d9; margin-top: 2px; }
+    .cc-btn-rm-logo {
+      display: none; align-items: center; gap: 5px;
+      font-size: .7rem; font-weight: 600; color: #ef4444;
+      background: #fef2f2; border: 1px solid #fca5a5;
+      border-radius: 7px; padding: 4px 10px; cursor: pointer; font-family: inherit;
+      transition: all .13s; margin-top: 4px;
+    }
+    .cc-btn-rm-logo:hover { background: #ef4444; color: white; }
+
+    /* Save button */
+    .cs-save {
+      margin-top: 24px; width: 100%; padding: 14px;
+      background: #0f172a; color: white;
+      border: none; border-radius: 12px; font-family: 'Epilogue', sans-serif;
+      font-size: .9rem; font-weight: 700; cursor: pointer; letter-spacing: .01em;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .18s, transform .14s, box-shadow .18s;
+      box-shadow: 0 4px 16px rgba(15,23,42,.22);
+    }
+    .cs-save:hover:not(:disabled) {
+      background: #1e293b; transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(15,23,42,.3);
+    }
+    .cs-save:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    /* Lightbox */
+    .cc-lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,.85);
+      z-index: 999; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .22s; backdrop-filter: blur(12px); cursor: zoom-out;
+    }
+    .cc-lightbox.open { opacity: 1; }
+    .cc-lightbox img {
+      max-width: min(96vw, 1060px); max-height: 90vh;
+      border-radius: 12px; box-shadow: 0 40px 100px rgba(0,0,0,.6);
+      transform: scale(.94); transition: transform .26s cubic-bezier(.22,1,.36,1);
+    }
+    .cc-lightbox.open img { transform: scale(1); }
+    .cc-lb-close {
+      position: absolute; top: 20px; right: 24px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      color: white; font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .13s; font-family: inherit;
+    }
+    .cc-lb-close:hover { background: rgba(255,255,255,.26); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #0f172a; color: white; padding: 11px 20px; border-radius: 10px; font-size: .84rem; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,.3); transition: transform .26s cubic-bezier(0.175,.885,.32,1.275); z-index: 9999; white-space: nowrap; pointer-events: none; max-width: calc(100vw - 32px); font-family: 'Epilogue', sans-serif; }
     .toast.show    { transform: translateX(-50%) translateY(0); }
-    .toast.success { background: var(--green); }
-    .toast.error   { background: var(--red); }
+    .toast.success { background: #16a34a; }
+    .toast.error   { background: #dc2626; }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .cs-studio { flex-direction: column; }
+      .cs-canvas { min-height: 320px; flex: none; }
+      .cs-controls { width: 100%; border-left: none; border-top: 1px solid #e5e7eb; }
+    }
   </style>
 </head>
 <body>
@@ -310,126 +371,134 @@
   <script>(function(){var r=localStorage.getItem('qr_role');if(!r)return;document.querySelectorAll('[data-role]').forEach(function(e){if(!e.dataset.role.split(' ').includes(r))e.style.display='none';});})();</script>
 
   <div class="main-content">
-    <div id="page-root" style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
+    <div id="page-root" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="cs-studio">
 
-      <div class="cc-header">
-        <div class="cc-eyebrow">Identidade Visual</div>
-        <div class="cc-title">Configurar Crachá</div>
-        <div class="cc-subtitle">Defina as cores e o logo que aparecem nos crachás dos alunos.</div>
-      </div>
-
-      <div class="cc-body">
-        <!-- Form -->
-        <div class="cc-panel">
-          <div class="cc-panel-title">Personalização</div>
-
-          <div class="cc-field">
-            <label class="cc-label">Cor Principal</label>
-            <div class="cc-color-row">
-              <div class="cc-color-swatch" id="swatch1">
-                <input type="color" id="input-cor1" value="#2563eb" />
+        <!-- ── LEFT: Dark canvas ── -->
+        <div class="cs-canvas">
+          <div class="cs-canvas-top">
+            <div class="cs-canvas-brand">
+              <span class="cs-canvas-dot"></span>
+              Card Studio
+            </div>
+            <span class="cs-canvas-tip">Clique para ampliar · Frente + Verso</span>
+          </div>
+          <div class="cs-canvas-scene">
+            <div class="cs-card-float">
+              <div id="preview-canvas-wrap">
+                <div class="cs-preview-loading">Gerando prévia…</div>
               </div>
-              <input class="cc-color-val" id="val-cor1" value="#2563eb" readonly />
+            </div>
+          </div>
+          <div class="cs-canvas-footer">dados fictícios — crachá real gerado na tela de alunos</div>
+        </div>
+
+        <!-- ── RIGHT: Controls ── -->
+        <div class="cs-controls">
+          <header class="cs-ctrl-header">
+            <div class="cs-ctrl-eyebrow">Identidade Visual</div>
+            <h1 class="cs-ctrl-title">Crachá</h1>
+          </header>
+
+          <!-- Cores -->
+          <div class="cs-section">
+            <div class="cs-section-lbl">Cores</div>
+            <div class="cs-swatches">
+              <div class="cs-swatch-item">
+                <div class="cs-swatch" id="swatch1" style="background:#2563eb">
+                  <input type="color" id="input-cor1" value="#2563eb" />
+                </div>
+                <div>
+                  <div class="cs-swatch-name">Principal</div>
+                  <div class="cs-swatch-hex" id="val-cor1">#2563eb</div>
+                </div>
+              </div>
+              <div class="cs-swatch-item">
+                <div class="cs-swatch" id="swatch2" style="background:#1e40af">
+                  <input type="color" id="input-cor2" value="#1e40af" />
+                </div>
+                <div>
+                  <div class="cs-swatch-name">Gradiente</div>
+                  <div class="cs-swatch-hex" id="val-cor2">#1e40af</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="cc-field">
-            <label class="cc-label">Cor Secundária</label>
-            <div class="cc-color-row">
-              <div class="cc-color-swatch" id="swatch2">
-                <input type="color" id="input-cor2" value="#1e40af" />
-              </div>
-              <input class="cc-color-val" id="val-cor2" value="#1e40af" readonly />
-            </div>
-          </div>
-
-          <!-- Padrão decorativo -->
-          <div class="cc-field">
-            <label class="cc-label">Padrão Decorativo</label>
-            <div class="cc-pattern-grid" id="input-padrao" data-value="limpo">
-              <div class="cc-pattern-opt selected" data-pattern="limpo">
-                <div class="cc-pattern-thumb cc-pt-limpo"></div>
+          <!-- Padrão -->
+          <div class="cs-section">
+            <div class="cs-section-lbl">Padrão decorativo</div>
+            <div class="cs-patterns" id="input-padrao" data-value="limpo">
+              <div class="cs-pattern-opt selected" data-pattern="limpo">
+                <div class="cs-pt-thumb cc-pt-limpo"></div>
                 <span>Limpo</span>
               </div>
-              <div class="cc-pattern-opt" data-pattern="geometrico">
-                <div class="cc-pattern-thumb cc-pt-geometrico"></div>
-                <span>Geométrico</span>
+              <div class="cs-pattern-opt" data-pattern="geometrico">
+                <div class="cs-pt-thumb cc-pt-geometrico"></div>
+                <span>Geom.</span>
               </div>
-              <div class="cc-pattern-opt" data-pattern="pontos">
-                <div class="cc-pattern-thumb cc-pt-pontos"></div>
+              <div class="cs-pattern-opt" data-pattern="pontos">
+                <div class="cs-pt-thumb cc-pt-pontos"></div>
                 <span>Pontos</span>
               </div>
-              <div class="cc-pattern-opt" data-pattern="diagonal">
-                <div class="cc-pattern-thumb cc-pt-diagonal"></div>
-                <span>Diagonal</span>
+              <div class="cs-pattern-opt" data-pattern="diagonal">
+                <div class="cs-pt-thumb cc-pt-diagonal"></div>
+                <span>Diag.</span>
               </div>
-              <div class="cc-pattern-opt" data-pattern="ondas">
-                <div class="cc-pattern-thumb cc-pt-ondas"></div>
+              <div class="cs-pattern-opt" data-pattern="ondas">
+                <div class="cs-pt-thumb cc-pt-ondas"></div>
                 <span>Ondas</span>
               </div>
             </div>
           </div>
 
           <!-- Fonte -->
-          <div class="cc-field">
-            <label class="cc-label">Fonte do Texto</label>
-            <div class="cc-font-grid" id="input-fonte" data-value="georgia">
-              <div class="cc-font-opt selected" data-font="georgia">
-                <span style="font-family:Georgia,serif;font-weight:700">Georgia</span>
-                <span class="cc-font-sample" style="font-family:Georgia,serif">Abc 123</span>
+          <div class="cs-section">
+            <div class="cs-section-lbl">Fonte</div>
+            <div class="cs-fonts" id="input-fonte" data-value="georgia">
+              <div class="cs-font-opt selected" data-font="georgia">
+                <div class="cs-font-name">Georgia</div>
+                <div class="cs-font-sample" style="font-family:Georgia,serif">Abc 123</div>
               </div>
-              <div class="cc-font-opt" data-font="arial">
-                <span style="font-family:Arial,sans-serif;font-weight:700">Arial</span>
-                <span class="cc-font-sample" style="font-family:Arial,sans-serif">Abc 123</span>
+              <div class="cs-font-opt" data-font="arial">
+                <div class="cs-font-name">Arial</div>
+                <div class="cs-font-sample" style="font-family:Arial,sans-serif">Abc 123</div>
               </div>
-              <div class="cc-font-opt" data-font="times">
-                <span style="font-family:'Times New Roman',serif;font-weight:700">Times</span>
-                <span class="cc-font-sample" style="font-family:'Times New Roman',serif">Abc 123</span>
+              <div class="cs-font-opt" data-font="times">
+                <div class="cs-font-name">Times</div>
+                <div class="cs-font-sample" style="font-family:'Times New Roman',serif">Abc 123</div>
               </div>
-              <div class="cc-font-opt" data-font="courier">
-                <span style="font-family:'Courier New',monospace;font-weight:700">Courier</span>
-                <span class="cc-font-sample" style="font-family:'Courier New',monospace">Abc 123</span>
+              <div class="cs-font-opt" data-font="courier">
+                <div class="cs-font-name">Courier</div>
+                <div class="cs-font-sample" style="font-family:'Courier New',monospace">Abc 123</div>
               </div>
             </div>
           </div>
 
-          <div class="cc-field">
-            <label class="cc-label">Logo da Instituição <span style="color:var(--text-3);font-weight:400">(opcional)</span></label>
-            <div class="cc-logo-area" id="logo-area" data-logo="">
+          <!-- Logo -->
+          <div class="cs-section">
+            <div class="cs-section-lbl">Logo <span class="cs-optional">(opcional)</span></div>
+            <div class="cs-logo-drop" id="logo-area" data-logo="">
               <input type="file" id="logo-upload" accept="image/*" />
               <img id="logo-preview-img" class="cc-logo-preview-img" alt="Logo" />
-              <div class="cc-logo-label" id="logo-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="opacity:.3;margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <div><span>Clique para enviar</span> o logo<br><small style="font-size:.7rem">PNG, JPG — máx 500KB</small></div>
+              <div id="logo-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" style="opacity:.3;margin-bottom:5px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <div class="cs-logo-text"><strong>Clique para enviar</strong> o logo<small>PNG, JPG — máx 500KB</small></div>
               </div>
               <button class="cc-btn-rm-logo" id="btn-remover-logo" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Remover logo
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Remover
               </button>
             </div>
           </div>
 
-          <button class="cc-btn-save" id="btn-salvar">Salvar configuração</button>
+          <button class="cs-save" id="btn-salvar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar configuração
+          </button>
         </div>
 
-        <!-- Preview -->
-        <div class="cc-preview-panel">
-          <div class="cc-preview-title">
-            Preview do Crachá
-            <span class="cc-preview-zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              Clique para ampliar
-            </span>
-          </div>
-          <div class="cc-preview-wrap" id="preview-canvas-wrap">
-            <div class="cc-preview-loading">Gerando preview…</div>
-          </div>
-          <div class="cc-preview-note">
-            Preview usa dados fictícios · Crachá real gerado na tela de Alunos
-          </div>
-        </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -443,11 +512,15 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   localStorage.removeItem('qr_role');
   window.location.href = '/login.html';
 });
-// Sync color value display
-['cor1','cor2'].forEach(id => {
-  const input = document.getElementById('input-' + id);
-  const val   = document.getElementById('val-'   + id);
-  if (input && val) input.addEventListener('input', () => val.value = input.value);
+// Sync color swatches + hex display
+['cor1','cor2'].forEach((id, i) => {
+  const input  = document.getElementById('input-' + id);
+  const val    = document.getElementById('val-' + id);
+  const swatch = document.getElementById('swatch' + (i + 1));
+  if (input) input.addEventListener('input', () => {
+    if (val)    val.textContent = input.value;
+    if (swatch) swatch.style.background = input.value;
+  });
 });
 // Logo click
 document.getElementById('logo-area').addEventListener('click', (e) => {
