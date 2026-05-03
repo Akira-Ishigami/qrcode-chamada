@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 // ── Dimensões ─────────────────────────────────────────────────────────────────
 const CW      = 560;   // largura de cada lado
 const CH      = 330;   // altura
-const HEADER  = 48;    // barra superior
+const HEADER  = 62;    // barra superior (maior para logo visível)
 const FOOTER  = 48;    // barra inferior (nome da inst.)
 const BODY    = CH - HEADER - FOOTER;   // 234px
 const CR      = 10;    // raio dos cantos
@@ -199,14 +199,14 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + CW / 2, oy + HEADER / 2);
   ctx.textBaseline = "alphabetic";
 
-  // Logo box — grande, top right
+  // Logo box — prominente, top right
   if (logoImg) {
-    const bw = 90, bh = HEADER - 4, bx = ox + CW - bw - 6, by = oy + 2;
+    const bw = 120, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 7); ctx.fill(); ctx.stroke();
-    const scale = Math.min((bw - 8) / logoImg.width, (bh - 8) / logoImg.height);
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
+    const scale = Math.min((bw - 10) / logoImg.width, (bh - 10) / logoImg.height);
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
