@@ -257,111 +257,90 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
-  // ── Foto (área esquerda) ──
-  const photoX = ox + 12;
-  const photoY = oy + HEADER + 12;
-  const photoW = PHOTO_W - 18;
-  const photoH = BODY - 24;
+  // ── Foto retangular (esquerda) — estilo carteirinha ──
+  const photoX = ox + 14;
+  const photoY = oy + HEADER + 10;
+  const photoW = PHOTO_W - 10;
+  const photoH = BODY - 20;
 
-  // Fundo cinza claro para a foto
-  ctx.fillStyle = "#f1f5f9";
-  ctx.strokeStyle = cor1 + "30";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#f0f4f8";
+  ctx.strokeStyle = "#c8d4e0";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6);
+  ctx.fill(); ctx.stroke();
 
   if (fotoImg) {
-    // Cover mode no rect
     ctx.save();
-    ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 7); ctx.clip();
+    ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6); ctx.clip();
     const scale = Math.max(photoW / fotoImg.width, photoH / fotoImg.height);
     const sw = photoW / scale, sh = photoH / scale;
-    const sx = (fotoImg.width - sw) / 2, sy = (fotoImg.height - sh) / 2;
-    ctx.drawImage(fotoImg, sx, sy, sw, sh, photoX, photoY, photoW, photoH);
+    ctx.drawImage(fotoImg, (fotoImg.width - sw) / 2, (fotoImg.height - sh) / 2, sw, sh,
+                  photoX, photoY, photoW, photoH);
     ctx.restore();
   } else {
-    // Silhueta de pessoa
+    // Silhueta estilo carteirinha (cabeça + ombros)
     const cx = photoX + photoW / 2;
-    // Cabeça
-    ctx.fillStyle = "#94a3b8";
+    const headR = photoH * 0.16;
+    const headCY = photoY + photoH * 0.35;
+    ctx.fillStyle = "#b0bec9";
+    ctx.beginPath(); ctx.arc(cx, headCY, headR, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx, photoY + photoH * 0.32, photoH * 0.14, 0, Math.PI * 2);
-    ctx.fill();
-    // Corpo
-    ctx.beginPath();
-    ctx.ellipse(cx, photoY + photoH * 0.72, photoH * 0.22, photoH * 0.24, 0, 0, Math.PI);
+    ctx.ellipse(cx, photoY + photoH * 0.82, photoH * 0.26, photoH * 0.22, 0, Math.PI, 0, true);
     ctx.fill();
   }
 
-  // Linha divisória entre foto e texto
-  ctx.strokeStyle = cor1 + "28";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(ox + PHOTO_W + 2, oy + HEADER + 8);
-  ctx.lineTo(ox + PHOTO_W + 2, oy + HEADER + BODY - 8);
-  ctx.stroke();
-
-  // ── Campos de texto (área direita) ──
-  const tx = ox + PHOTO_W + 16;
-  const tw = CW - PHOTO_W - 20;
-  let cy = oy + HEADER + 16;
-
-  const drawField = (label, value, sz = 13, color = "#0f172a", lineAfter = true) => {
-    // Label
-    ctx.fillStyle = cor1;
-    ctx.font = `bold 8.5px Arial, sans-serif`;
+  // ── Campos de texto (direita) ──
+  const tx  = ox + PHOTO_W + 14;
+  const tw  = CW - PHOTO_W - 20;
+  const lbl = (t) => {
+    ctx.fillStyle = "#374151";
+    ctx.font = `bold 10px Arial, sans-serif`;
     ctx.textAlign = "left";
-    ctx.fillText(label.toUpperCase() + ":", tx, cy);
-    cy += 14;
-
-    // Valor
-    const lines = wrapLines(ctx, value || "—", tw - 6, sz, font);
+    ctx.fillText(t + ":", tx, cy);
+    cy += 15;
+  };
+  const val = (text, sz = 12, maxW = tw) => {
+    ctx.fillStyle = "#111827";
+    const lines = wrapLines(ctx, text || "—", maxW - 4, sz, font);
     lines.forEach(line => {
-      ctx.fillStyle = color;
-      ctx.font = `bold ${sz}px ${font}`;
+      ctx.font = `${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 2;
     });
-
-    if (lineAfter) {
-      cy += 5;
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 4, cy); ctx.stroke();
-      cy += 6;
-    } else {
-      cy += 4;
-    }
+    cy += 5;
+  };
+  const divider = () => {
+    ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 4, cy); ctx.stroke();
+    cy += 8;
   };
 
+  let cy = oy + HEADER + 16;
+
   // Nome
-  drawField("Nome", aluno.nome, 15, "#0f172a");
+  lbl("Nome"); val(aluno.nome, 14);
+  divider();
 
-  // Turma + ID Estadual lado a lado
-  const halfW = (tw - 12) / 2;
+  // Turma  |  Id Estadual  (lado a lado)
+  const half = (tw - 16) / 2;
   const turmaVal = aluno.turma?.nome || aluno.turma_nome || "—";
-  const idEst    = aluno.id_estadual || "—";
+  const idEstVal = aluno.id_estadual || "—";
 
-  ctx.fillStyle = cor1;
-  ctx.font = "bold 8.5px Arial, sans-serif";
-  ctx.fillText("TURMA:", tx, cy);
-  ctx.fillText("ID ESTADUAL:", tx + halfW + 12, cy);
-  cy += 13;
+  ctx.fillStyle = "#374151"; ctx.font = "bold 10px Arial, sans-serif";
+  ctx.fillText("Turma:", tx, cy);
+  ctx.fillText("Id Estadual:", tx + half + 14, cy);
+  cy += 15;
 
-  const t1 = fitText(ctx, turmaVal, halfW, 11, 9, font);
-  const t2 = fitText(ctx, idEst, halfW, 11, 9, font);
-  ctx.fillStyle = "#1e293b";
-  ctx.font = `bold ${t1.size}px ${font}`;
-  ctx.fillText(t1.text, tx, cy);
-  ctx.font = `bold ${t2.size}px ${font}`;
-  ctx.fillText(t2.text, tx + halfW + 12, cy);
-  cy += 16;
-  ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 4, cy); ctx.stroke();
-  cy += 7;
+  ctx.fillStyle = "#111827";
+  const t1 = fitText(ctx, turmaVal, half, 11, 9, font);
+  const t2 = fitText(ctx, idEstVal, half, 11, 9, font);
+  ctx.font = `${t1.size}px ${font}`; ctx.fillText(t1.text, tx, cy);
+  ctx.font = `${t2.size}px ${font}`; ctx.fillText(t2.text, tx + half + 14, cy);
+  cy += t1.size + 8;
+  divider();
 
   // Número da Matrícula
-  drawField("Número da Matrícula", aluno.matricula, 13, "#0f172a", false);
+  lbl("Numero da Matricula"); val(aluno.matricula, 13);
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
@@ -372,66 +351,46 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
-  // ── QR Code (área esquerda) ──
-  const qrPad = 14;
-  const qrX   = ox + qrPad;
-  const qrY   = oy + HEADER + qrPad;
-  const qrS   = PHOTO_W - qrPad * 2 + 4;
-
-  // Fundo branco com borda
-  ctx.fillStyle = "#f8fafc";
-  ctx.strokeStyle = cor1 + "28";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(qrX - 4, qrY - 4, qrS + 8, BODY - qrPad * 2 + 8, 6); ctx.fill(); ctx.stroke();
+  // ── QR Code grande (esquerda) ──
+  const qrX = ox + 14;
+  const qrY = oy + HEADER + 12;
+  const qrS = PHOTO_W - 14;   // quase tão largo quanto a área de foto
 
   if (qrImg) {
-    // Centro vertical do QR
-    const qrCenter = oy + HEADER + BODY / 2;
-    const qs = Math.min(qrS, BODY - 20);
-    ctx.drawImage(qrImg, qrX, qrCenter - qs / 2, qs, qs);
+    ctx.drawImage(qrImg, qrX, qrY, qrS, qrS);
   }
 
-  // Divisória
-  ctx.strokeStyle = cor1 + "28";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(ox + PHOTO_W + 2, oy + HEADER + 8);
-  ctx.lineTo(ox + PHOTO_W + 2, oy + HEADER + BODY - 8);
-  ctx.stroke();
-
-  // ── Campos (área direita) ──
-  const tx = ox + PHOTO_W + 16;
+  // ── Campos (direita) ──
+  const tx = ox + PHOTO_W + 14;
   const tw = CW - PHOTO_W - 20;
   let cy = oy + HEADER + 18;
 
-  const drawField = (label, value, sz = 11, lineAfter = true) => {
-    ctx.fillStyle = cor1;
-    ctx.font = "bold 8.5px Arial, sans-serif";
+  const lbl = (t) => {
+    ctx.fillStyle = "#374151";
+    ctx.font = "bold 10px Arial, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(label.toUpperCase() + ":", tx, cy);
-    cy += 13;
-
-    const lines = wrapLines(ctx, value || "—", tw - 6, sz, font);
+    ctx.fillText(t + ":", tx, cy);
+    cy += 15;
+  };
+  const val = (text, sz = 11, maxW = tw) => {
+    ctx.fillStyle = "#111827";
+    const lines = wrapLines(ctx, text || "—", maxW - 4, sz, font);
     lines.forEach(line => {
-      ctx.fillStyle = "#1e293b";
-      ctx.font = `bold ${sz}px ${font}`;
+      ctx.font = `${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 2;
     });
-
-    if (lineAfter) {
-      cy += 5;
-      ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 4, cy); ctx.stroke();
-      cy += 7;
-    } else {
-      cy += 4;
-    }
+    cy += 6;
+  };
+  const divider = () => {
+    ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 4, cy); ctx.stroke();
+    cy += 8;
   };
 
-  drawField("Telefone",         aluno.telefone || "—");
-  drawField("Data de Nascimento", fmtNasc(aluno.data_nascimento));
-  drawField("Endereço",         aluno.endereco || "—", 10, false);
+  lbl("Telefone");        val(aluno.telefone || "—");          divider();
+  lbl("Data nascimento"); val(fmtNasc(aluno.data_nascimento)); divider();
+  lbl("Endereço");        val(aluno.endereco || "—", 10);
 }
 
 // ── Export principal ──────────────────────────────────────────────────────────
