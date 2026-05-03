@@ -191,35 +191,25 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillRect(ox, oy, CW, HEADER);
   ctx.restore();
 
-  // Linha inferior colorida
-  ctx.strokeStyle = cor1;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(ox + 14, oy + HEADER - 1);
-  ctx.lineTo(ox + CW - 14, oy + HEADER - 1);
-  ctx.stroke();
-
-  // Logo box no canto direito
-  if (logoImg) {
-    const bw = 58, bh = HEADER - 10, bx = ox + CW - bw - 10, by = oy + 5;
-    ctx.fillStyle = "#f8fafc";
-    ctx.strokeStyle = "#d1d5db";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fill(); ctx.stroke();
-    const scale = Math.min((bw - 8) / logoImg.width, (bh - 8) / logoImg.height);
-    const lw = logoImg.width * scale, lh = logoImg.height * scale;
-    ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
-  }
-
-  // Título centralizado (compensa logo se existir)
-  const maxTW = logoImg ? CW - 80 : CW - 28;
+  // Título SEMPRE 100% centralizado na largura total do card
   ctx.fillStyle = cor1;
   ctx.font = "bold 11px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const centerX = logoImg ? ox + (CW - 68) / 2 : ox + CW / 2;
-  ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", centerX, oy + HEADER / 2 - 1);
+  ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + CW / 2, oy + HEADER / 2);
   ctx.textBaseline = "alphabetic";
+
+  // Logo box — maior, top right, sobrepõe levemente o título
+  if (logoImg) {
+    const bw = 72, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#d1d5db";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 7); ctx.fill(); ctx.stroke();
+    const scale = Math.min((bw - 10) / logoImg.width, (bh - 10) / logoImg.height);
+    const lw = logoImg.width * scale, lh = logoImg.height * scale;
+    ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
+  }
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
@@ -256,53 +246,58 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
-  // ── Foto retangular (esquerda) — proporção 3:4 estilo carteirinha ──
-  const photoX = ox + 16;
-  const photoY = oy + HEADER + 12;
-  const photoW = PHOTO_W - 8;
-  const photoH = BODY - 24;
+  // ── Foto ocupa TODO o quadrado esquerdo (borda a borda do body) ──
+  const photoX = ox;
+  const photoY = oy + HEADER;
+  const photoW = PHOTO_W;
+  const photoH = BODY;
 
-  // Sombra sutil atrás da foto
-  ctx.shadowColor = "rgba(0,0,0,.12)";
-  ctx.shadowBlur  = 8;
-  ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
-  ctx.fillStyle = "#e8edf2";
-  ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6); ctx.fill();
-  ctx.shadowColor = "transparent"; ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-
-  // Borda fina
-  ctx.strokeStyle = "#d1dae3"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6); ctx.stroke();
+  ctx.save();
+  // Clip com os cantos arredondados do card apenas na esquerda
+  ctx.beginPath();
+  ctx.moveTo(ox + CR, photoY);
+  ctx.lineTo(ox + photoW, photoY);
+  ctx.lineTo(ox + photoW, photoY + photoH);
+  ctx.lineTo(ox + CR, photoY + photoH);
+  ctx.quadraticCurveTo(ox, photoY + photoH, ox, photoY + photoH - CR);
+  ctx.lineTo(ox, photoY + CR);
+  ctx.quadraticCurveTo(ox, photoY, ox + CR, photoY);
+  ctx.closePath();
+  ctx.clip();
 
   if (fotoImg) {
-    ctx.save();
-    ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6); ctx.clip();
     const scale = Math.max(photoW / fotoImg.width, photoH / fotoImg.height);
     const sw = photoW / scale, sh = photoH / scale;
     ctx.drawImage(fotoImg, (fotoImg.width - sw) / 2, (fotoImg.height - sh) / 2, sw, sh,
                   photoX, photoY, photoW, photoH);
-    ctx.restore();
   } else {
-    // Silhueta profissional estilo carteirinha
+    // Fundo + silhueta carteirinha
+    ctx.fillStyle = "#dde4ec";
+    ctx.fillRect(photoX, photoY, photoW, photoH);
     const cx = photoX + photoW / 2;
-    const hr = photoH * 0.155;
-    const hcy = photoY + photoH * 0.34;
     ctx.fillStyle = "#9fb0c0";
+    const hr = photoH * 0.155;
+    const hcy = photoY + photoH * 0.36;
     ctx.beginPath(); ctx.arc(cx, hcy, hr, 0, Math.PI * 2); ctx.fill();
-    // Ombros
-    ctx.save();
-    ctx.beginPath(); ctx.roundRect(photoX, photoY, photoW, photoH, 6); ctx.clip();
     ctx.beginPath();
-    ctx.ellipse(cx, photoY + photoH + 4, photoH * 0.42, photoH * 0.32, 0, Math.PI, 0, true);
+    ctx.ellipse(cx, photoY + photoH + 2, photoH * 0.45, photoH * 0.32, 0, Math.PI, 0, true);
     ctx.fill();
-    ctx.restore();
   }
+  ctx.restore();
 
-  // ── Campos de texto (direita) ──
-  const tx = ox + PHOTO_W + 14;
+  // Linha divisória entre foto e texto
+  ctx.strokeStyle = "#d1dae3"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox + photoW, photoY + 6);
+  ctx.lineTo(ox + photoW, photoY + photoH - 6);
+  ctx.stroke();
+
+  // ── Campos centralizados verticalmente no lado direito ──
+  const tx = ox + PHOTO_W + 16;
   const tw = CW - PHOTO_W - 22;
-  let cy = oy + HEADER + 14;
+  // Estima altura total dos campos para centralizar
+  const totalH = 23 + 18 + 10 + 40 + 10 + 23 + 18; // ~142px
+  let cy = oy + HEADER + Math.round((BODY - totalH) / 2);
 
   // Função label: negrito pequeno na cor da inst.
   const lbl = (t) => {
@@ -365,22 +360,48 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
-  // ── QR Code (esquerda) — grande, centralizado verticalmente ──
-  const qrS = Math.min(PHOTO_W - 12, BODY - 20);
-  const qrX = ox + 16 + (PHOTO_W - 16 - qrS) / 2;
+  // ── QR Code ocupa TODO o quadrado esquerdo ──
+  const qrAreaX = ox;
+  const qrAreaY = oy + HEADER;
+  const qrAreaW = PHOTO_W;
+  const qrAreaH = BODY;
+
+  // Fundo claro para a área do QR (com clip dos cantos)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(ox + CR, qrAreaY);
+  ctx.lineTo(ox + qrAreaW, qrAreaY);
+  ctx.lineTo(ox + qrAreaW, qrAreaY + qrAreaH);
+  ctx.lineTo(ox + CR, qrAreaY + qrAreaH);
+  ctx.quadraticCurveTo(ox, qrAreaY + qrAreaH, ox, qrAreaY + qrAreaH - CR);
+  ctx.lineTo(ox, qrAreaY + CR);
+  ctx.quadraticCurveTo(ox, qrAreaY, ox + CR, qrAreaY);
+  ctx.closePath();
+  ctx.fillStyle = "#f5f8fc";
+  ctx.fill();
+  ctx.restore();
+
+  // QR centralizado dentro da área
+  const qrS = Math.min(qrAreaW - 24, qrAreaH - 24);
+  const qrX = ox + (qrAreaW - qrS) / 2;
   const qrY = oy + HEADER + (BODY - qrS) / 2;
 
   if (qrImg) {
-    // Fundo branco atrás do QR
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.roundRect(qrX - 4, qrY - 4, qrS + 8, qrS + 8, 4); ctx.fill();
     ctx.drawImage(qrImg, qrX, qrY, qrS, qrS);
   }
 
-  // ── Campos (direita) ──
-  const tx = ox + PHOTO_W + 14;
+  // Linha divisória
+  ctx.strokeStyle = "#d1dae3"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox + PHOTO_W, qrAreaY + 6);
+  ctx.lineTo(ox + PHOTO_W, qrAreaY + qrAreaH - 6);
+  ctx.stroke();
+
+  // ── Campos centralizados verticalmente ──
+  const tx = ox + PHOTO_W + 16;
   const tw = CW - PHOTO_W - 22;
-  let cy = oy + HEADER + 18;
+  const totalHV = 23 + 18 + 10 + 23 + 18 + 10 + 23 + 15; // ~140px
+  let cy = oy + HEADER + Math.round((BODY - totalHV) / 2);
 
   const lbl = (t) => {
     ctx.fillStyle = cor1;
