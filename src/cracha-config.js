@@ -57,20 +57,20 @@ async function init() {
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
   document.getElementById("btn-remover-logo").addEventListener("click", removerLogo);
 
-  // Padrões
-  document.querySelectorAll(".cc-pattern-opt").forEach(el => {
+  // Padrões (suporta ambas as classes por compatibilidade)
+  document.querySelectorAll(".cs-pattern-opt, .cc-pattern-opt").forEach(el => {
     el.addEventListener("click", () => {
-      document.querySelectorAll(".cc-pattern-opt").forEach(e => e.classList.remove("selected"));
+      document.querySelectorAll(".cs-pattern-opt, .cc-pattern-opt").forEach(e => e.classList.remove("selected"));
       el.classList.add("selected");
       document.getElementById("input-padrao").dataset.value = el.dataset.pattern;
       agendarPreview();
     });
   });
 
-  // Fontes
-  document.querySelectorAll(".cc-font-opt").forEach(el => {
+  // Fontes (suporta ambas as classes)
+  document.querySelectorAll(".cs-font-opt, .cc-font-opt").forEach(el => {
     el.addEventListener("click", () => {
-      document.querySelectorAll(".cc-font-opt").forEach(e => e.classList.remove("selected"));
+      document.querySelectorAll(".cs-font-opt, .cc-font-opt").forEach(e => e.classList.remove("selected"));
       el.classList.add("selected");
       document.getElementById("input-fonte").dataset.value = el.dataset.font;
       agendarPreview();

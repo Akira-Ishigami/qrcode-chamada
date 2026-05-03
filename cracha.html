@@ -24,37 +24,38 @@
       overflow: hidden;
     }
 
-    /* ── LEFT: Dark Canvas ── */
+    /* ── LEFT: Light Canvas ── */
     .cs-canvas {
-      flex: 1.15; background: #0b0f1a;
+      flex: 1.15; background: #f1f5f9;
       display: flex; flex-direction: column;
       position: relative; overflow: hidden;
     }
     /* Dot grid texture */
     .cs-canvas::before {
       content: ''; position: absolute; inset: 0; pointer-events: none;
-      background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+      background-image: radial-gradient(rgba(99,120,180,.12) 1px, transparent 1px);
       background-size: 28px 28px;
     }
 
     .cs-canvas-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 28px; position: relative; z-index: 1;
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 14px 24px; position: relative; z-index: 1;
+      border-bottom: 1px solid #e2e8f0;
+      background: white;
     }
     .cs-canvas-brand {
       display: flex; align-items: center; gap: 8px;
-      font-family: 'DM Mono', monospace; font-size: .72rem; font-weight: 500;
-      color: rgba(255,255,255,.4); letter-spacing: .06em; text-transform: uppercase;
+      font-family: 'DM Mono', monospace; font-size: .68rem; font-weight: 500;
+      color: #64748b; letter-spacing: .06em; text-transform: uppercase;
     }
     .cs-canvas-dot {
       width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
-      box-shadow: 0 0 8px #22c55e80; animation: dotBlink 2.5s ease-in-out infinite;
+      box-shadow: 0 0 8px #22c55e60; animation: dotBlink 2.5s ease-in-out infinite;
     }
     @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:.4} }
     .cs-canvas-tip {
-      font-family: 'DM Mono', monospace; font-size: .64rem;
-      color: rgba(255,255,255,.22); letter-spacing: .04em;
+      font-family: 'DM Mono', monospace; font-size: .62rem;
+      color: #94a3b8; letter-spacing: .04em;
     }
 
     .cs-canvas-scene {
@@ -62,13 +63,13 @@
       padding: 32px 24px; position: relative; z-index: 1;
     }
     .cs-card-float {
-      filter: drop-shadow(0 40px 80px rgba(0,0,0,.7)) drop-shadow(0 8px 24px rgba(0,0,0,.4));
+      filter: drop-shadow(0 20px 48px rgba(15,23,42,.18)) drop-shadow(0 4px 12px rgba(15,23,42,.1));
       animation: cardFloat 5s ease-in-out infinite;
       cursor: zoom-in;
     }
     @keyframes cardFloat {
-      0%,100% { transform: translateY(0) rotateX(1deg); }
-      50%      { transform: translateY(-8px) rotateX(0deg); }
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-7px); }
     }
     #preview-canvas-wrap {
       display: flex; align-items: center; justify-content: center;
@@ -80,22 +81,22 @@
     }
     .cs-preview-loading {
       font-family: 'DM Mono', monospace; font-size: .75rem;
-      color: rgba(255,255,255,.3); letter-spacing: .06em;
+      color: #94a3b8; letter-spacing: .06em;
       display: flex; align-items: center; gap: 8px;
     }
     .cs-preview-loading::before {
       content: ''; width: 14px; height: 14px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.1);
-      border-top-color: rgba(255,255,255,.5);
+      border: 2px solid #e2e8f0;
+      border-top-color: #64748b;
       animation: spin .8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .cs-canvas-footer {
-      padding: 14px 28px; text-align: center; position: relative; z-index: 1;
-      border-top: 1px solid rgba(255,255,255,.05);
-      font-family: 'DM Mono', monospace; font-size: .62rem;
-      color: rgba(255,255,255,.18); letter-spacing: .06em;
+      padding: 12px 24px; text-align: center; position: relative; z-index: 1;
+      border-top: 1px solid #e2e8f0; background: white;
+      font-family: 'DM Mono', monospace; font-size: .6rem;
+      color: #94a3b8; letter-spacing: .06em;
     }
 
     /* ── RIGHT: Controls ── */
