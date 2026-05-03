@@ -342,7 +342,7 @@ async function renderInstDetalhe(instId, instNome) {
     { data: chamadas, error: e4 },
   ] = await Promise.all([
     supabaseAdmin.from("turmas").select("id, nome, materia").eq("instituicao_id", instId).order("nome"),
-    supabaseAdmin.from("alunos").select("id, nome, matricula, turma_id").eq("instituicao_id", instId).order("nome"),
+    supabaseAdmin.from("alunos").select("id, nome, matricula, foto_url, turma_id, data_nascimento, telefone, id_estadual, endereco").eq("instituicao_id", instId).order("nome"),
     supabaseAdmin.from("profiles").select("id, nome, email").eq("instituicao_id", instId).eq("role", "professor").order("nome"),
     supabaseAdmin.from("chamadas")
       .select("id, aberta, data, turmas!inner(nome, instituicao_id)")

@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 
 // ── Dimensões do crachá ───────────────────────────────────────────────────────
 const CW     = 450;  // largura de cada lado
-const CH     = 280;  // altura
+const CH     = 320;  // altura (aumentada para caber os campos extras)
 const BANNER = 52;   // altura do banner superior
 const CR     = 14;   // raio dos cantos
 
@@ -127,78 +127,107 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 
   // Coluna de informações (lado direito)
   const tx = ox + 220;
-  const fields = [
+  const mainFields = [
     { label: "NOME",       value: aluno.nome        || "—", big: true },
     { label: "TURMA",      value: aluno.turma?.nome || aluno.turma_nome || "—" },
     { label: "MATRÍCULA",  value: aluno.matricula   || "—" },
   ];
 
-  let ty = oy + BANNER + 22;
-  const rowH = 52;
+  let ty = oy + BANNER + 18;
+  const rowH = 46;
+  const maxValW = CW - (tx - ox) - 14;
 
-  fields.forEach((f, i) => {
+  mainFields.forEach((f, i) => {
     const y = ty + i * rowH;
 
-    // Label cinza
     ctx.fillStyle = "#94a3b8";
     ctx.font = "9px Arial, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(f.label, tx, y);
 
-    // Valor — nome usa 2 linhas se necessário; outros diminuem fonte
     ctx.fillStyle = "#0f172a";
-    const maxValW = CW - (tx - ox) - 14;
 
     if (f.big) {
-      // Nome: tenta caber em 1 linha reduzindo fonte, se não quebra em 2
-      let fs = 15;
+      let fs = 14;
       ctx.font = `bold ${fs}px Arial, sans-serif`;
-      while (ctx.measureText(f.value).width > maxValW && fs > 10) {
-        fs--;
-        ctx.font = `bold ${fs}px Arial, sans-serif`;
-      }
+      while (ctx.measureText(f.value).width > maxValW && fs > 10) { fs--; ctx.font = `bold ${fs}px Arial, sans-serif`; }
       if (ctx.measureText(f.value).width <= maxValW) {
-        ctx.fillText(f.value, tx, y + 17);
+        ctx.fillText(f.value, tx, y + 15);
       } else {
-        // Quebra em 2 linhas
         const words = f.value.split(" ");
-        let line1 = "", line2 = "";
+        let l1 = "", l2 = "";
         for (const w of words) {
-          const test = line1 ? line1 + " " + w : w;
-          if (!line2 && ctx.measureText(test).width <= maxValW) line1 = test;
-          else line2 = (line2 ? line2 + " " + w : w);
+          const t = l1 ? l1 + " " + w : w;
+          if (!l2 && ctx.measureText(t).width <= maxValW) l1 = t; else l2 = (l2 ? l2 + " " + w : w);
         }
-        // Trunca linha2 se ainda longa
-        while (line2 && ctx.measureText(line2).width > maxValW && line2.length > 2)
-          line2 = line2.slice(0, -1);
-        if (line2 && !f.value.endsWith(line2.replace("…", ""))) line2 += "…";
-        ctx.fillText(line1, tx, y + 14);
-        if (line2) ctx.fillText(line2, tx, y + 27);
+        while (l2 && ctx.measureText(l2).width > maxValW && l2.length > 2) l2 = l2.slice(0, -1);
+        if (l2 && !f.value.endsWith(l2.replace("…",""))) l2 += "…";
+        ctx.fillText(l1, tx, y + 12);
+        if (l2) ctx.fillText(l2, tx, y + 24);
       }
     } else {
-      // Turma / Matrícula: encolhe fonte se necessário
-      let fs = 12;
+      let fs = 11, val = f.value;
       ctx.font = `bold ${fs}px Arial, sans-serif`;
-      let val = f.value;
-      while (ctx.measureText(val).width > maxValW && fs > 9) {
-        fs--;
-        ctx.font = `bold ${fs}px Arial, sans-serif`;
-      }
-      // Trunca só se ainda não cabe
+      while (ctx.measureText(val).width > maxValW && fs > 9) { fs--; ctx.font = `bold ${fs}px Arial, sans-serif`; }
       while (ctx.measureText(val).width > maxValW && val.length > 2) val = val.slice(0, -1);
       if (val !== f.value) val += "…";
-      ctx.fillText(val, tx, y + 15);
+      ctx.fillText(val, tx, y + 13);
     }
 
-    // Linha separadora
-    if (i < fields.length - 1) {
-      ctx.strokeStyle = "#f1f5f9";
-      ctx.lineWidth = 1;
+    if (i < mainFields.length - 1) {
+      ctx.strokeStyle = "#f1f5f9"; ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(tx, y + (f.big ? 17 : 15) + 12);
-      ctx.lineTo(ox + CW - 14, y + (f.big ? 17 : 15) + 12);
+      ctx.moveTo(tx, y + (f.big ? 15 : 13) + 10);
+      ctx.lineTo(ox + CW - 14, y + (f.big ? 15 : 13) + 10);
       ctx.stroke();
     }
+  });
+
+  // ── Seção inferior: campos extras em grid 2×2 ───────────────────────────────
+  const divY = oy + CH - 88;
+
+  // Linha divisória
+  ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ox + 14, divY); ctx.lineTo(ox + CW - 14, divY); ctx.stroke();
+
+  const fmtNasc = (s) => {
+    if (!s) return "—";
+    const d = new Date(s + "T00:00:00");
+    return d.toLocaleDateString("pt-BR");
+  };
+  const fmtTel = (s) => s || "—";
+  const truncate = (s, max) => {
+    if (!s) return "—";
+    return s.length > max ? s.slice(0, max) + "…" : s;
+  };
+
+  const extraFields = [
+    { label: "NASC.",      value: fmtNasc(aluno.data_nascimento) },
+    { label: "TELEFONE",   value: fmtTel(aluno.telefone) },
+    { label: "ID ESTADUAL",value: truncate(aluno.id_estadual, 16) },
+    { label: "ENDEREÇO",   value: truncate(aluno.endereco, 22) },
+  ];
+
+  const colW  = (CW - 28) / 2;
+  const xBase = [ox + 14, ox + 14 + colW + 6];
+  const yBase = [divY + 12, divY + 44];
+
+  extraFields.forEach((f, i) => {
+    const ex = xBase[i % 2];
+    const ey = yBase[Math.floor(i / 2)];
+    const maxW = colW - 6;
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "8px Arial, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(f.label, ex, ey);
+
+    ctx.fillStyle = "#334155";
+    ctx.font = "bold 9.5px Arial, sans-serif";
+    let val = f.value;
+    while (ctx.measureText(val).width > maxW && val.length > 2) val = val.slice(0, -1);
+    if (val !== f.value) val += "…";
+    ctx.fillText(val, ex, ey + 12);
   });
 }
 
