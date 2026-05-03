@@ -694,12 +694,26 @@ async function renderPedidos() {
     card.dataset.tipo   = p.tipo;
     card.style.animationDelay = `${idx * .04}s`;
     card.innerHTML = `
-      <div class="kanban-card-inst">
-        ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
-        <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? "Outro"}</span>
+      <div class="kanban-card-top">
+        <div class="kanban-card-inst">
+          ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
+          <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? p.tipo}</span>
+        </div>
+        <svg class="kanban-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
       <div class="kanban-card-title">${esc(p.titulo)}</div>
-      <div class="kanban-card-desc">${esc(p.descricao)}</div>
+      <div class="kanban-card-desc kanban-card-desc-short">${esc(p.descricao)}</div>
+      <div class="kanban-card-expand" style="display:none">
+        <div class="kanban-expand-label">Descrição completa</div>
+        <div class="kanban-expand-body">${esc(p.descricao)}</div>
+        <div class="kanban-expand-meta">
+          <span>${fmtData(p.criado_em)}</span>
+          <span class="kanban-expand-status ${p.status}">${
+            p.status === "aberto" ? "Aberto" :
+            p.status === "em_analise" ? "Em análise" : "Resolvido"
+          }</span>
+        </div>
+      </div>
       <div class="kanban-card-foot">
         <span class="kanban-card-date">${fmtData(p.criado_em)}</span>
         <span class="kanban-drag-hint">
@@ -709,13 +723,26 @@ async function renderPedidos() {
       </div>
     `;
 
-    // Drag & Drop handlers
+    // Click para expandir (distingue do drag)
+    let dragOccurred = false;
+    card.addEventListener("mousedown", () => { dragOccurred = false; });
     card.addEventListener("dragstart", (e) => {
+      dragOccurred = true;
       e.dataTransfer.setData("text/plain", p.id);
       e.dataTransfer.effectAllowed = "move";
       setTimeout(() => card.classList.add("dragging"), 0);
     });
     card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    card.addEventListener("click", () => {
+      if (dragOccurred) return;
+      const isOpen = card.classList.toggle("expanded");
+      const expand = card.querySelector(".kanban-card-expand");
+      const short  = card.querySelector(".kanban-card-desc-short");
+      const chevron = card.querySelector(".kanban-card-chevron");
+      expand.style.display  = isOpen ? "" : "none";
+      short.style.display   = isOpen ? "none" : "";
+      chevron.style.transform = isOpen ? "rotate(90deg)" : "";
+    });
 
     return card;
   };
