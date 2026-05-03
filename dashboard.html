@@ -169,7 +169,7 @@
       flex-shrink: 0;
     }
     .kanban-col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .kanban-col-dot.pendente   { background: #f59e0b; }
+    .kanban-col-dot.aberto     { background: #f59e0b; }
     .kanban-col-dot.em_analise { background: var(--acc); }
     .kanban-col-dot.resolvido  { background: var(--green); }
     .kanban-col-name { font-family: 'Outfit', system-ui, sans-serif; font-size: .82rem; font-weight: 700; color: var(--text); flex: 1; }
@@ -195,9 +195,8 @@
       transition: box-shadow .15s, border-color .15s, opacity .15s, transform .15s;
       border-left: 3px solid var(--border);
     }
-    .kanban-card.tipo-reclamacao { border-left-color: var(--red); }
-    .kanban-card.tipo-melhoria   { border-left-color: var(--acc); }
-    .kanban-card.tipo-outro      { border-left-color: #7c3aed; }
+    .kanban-card.tipo-bug      { border-left-color: var(--red); }
+    .kanban-card.tipo-melhoria { border-left-color: var(--acc); }
     .kanban-card:hover { box-shadow: var(--shadow); border-color: var(--border-2); transform: translateY(-1px); }
     .kanban-card.dragging { opacity: .45; transform: rotate(1.5deg) scale(.98); cursor: grabbing; }
     .kanban-card.drag-ghost { border: 2px dashed var(--acc); background: rgba(37,99,235,.04); }
@@ -213,9 +212,8 @@
       font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
       padding: 1px 6px; border-radius: 20px;
     }
-    .kanban-tipo-pill.reclamacao { background: #fee2e2; color: var(--red); }
-    .kanban-tipo-pill.melhoria   { background: #eff6ff; color: var(--acc); }
-    .kanban-tipo-pill.outro      { background: #f5f3ff; color: #7c3aed; }
+    .kanban-tipo-pill.bug      { background: #fee2e2; color: var(--red); }
+    .kanban-tipo-pill.melhoria { background: #eff6ff; color: var(--acc); }
 
     .kanban-card-title {
       font-family: 'Outfit', system-ui, sans-serif;

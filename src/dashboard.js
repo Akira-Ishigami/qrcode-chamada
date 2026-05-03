@@ -90,7 +90,7 @@ function setupRealtime() {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
       if (active === "nav-instituicoes") renderInstituicoes();
     })
-    .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
+    .on("postgres_changes", { event: "*", schema: "public", table: "feedbacks" }, () => {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
       if (active === "nav-suporte") renderPedidos();
       atualizarBadgePedidos();
@@ -98,11 +98,11 @@ function setupRealtime() {
     .subscribe();
 }
 
-// Atualiza o badge de pendentes na sidebar
+// Atualiza o badge de abertos na sidebar
 async function atualizarBadgePedidos() {
   const { count } = await supabaseAdmin
-    .from("pedidos").select("id", { count: "exact", head: true })
-    .eq("status", "pendente");
+    .from("feedbacks").select("id", { count: "exact", head: true })
+    .eq("status", "aberto");
   const badge = document.getElementById("badge-suporte");
   if (!badge) return;
   if (count > 0) { badge.textContent = count; badge.style.display = ""; }
@@ -637,8 +637,8 @@ async function renderPedidos() {
   root.classList.add("kanban-mode");
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const { data: pedidos, error } = await supabaseAdmin
-    .from("pedidos")
+  const { data: feedbacks, error } = await supabaseAdmin
+    .from("feedbacks")
     .select("id, tipo, titulo, descricao, status, criado_em, instituicoes(nome)")
     .order("criado_em", { ascending: false });
 
@@ -648,18 +648,18 @@ async function renderPedidos() {
     return;
   }
 
-  const todos = pedidos ?? [];
+  const todos = feedbacks ?? [];
 
   // Atualiza badge sidebar
   const badge = document.getElementById("badge-suporte");
-  const nPend = todos.filter(p => p.status === "pendente").length;
-  if (badge) { badge.textContent = nPend; badge.style.display = nPend > 0 ? "" : "none"; }
+  const nAbr = todos.filter(p => p.status === "aberto").length;
+  if (badge) { badge.textContent = nAbr; badge.style.display = nAbr > 0 ? "" : "none"; }
 
-  const tipoLabel = { reclamacao: "Reclamação", melhoria: "Melhoria", outro: "Outro" };
+  const tipoLabel = { bug: "Bug", melhoria: "Melhoria" };
   const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short" });
 
   const colunas = [
-    { id: "pendente",   label: "Pendente",   cor: "#f59e0b" },
+    { id: "aberto",     label: "Aberto",     cor: "#f59e0b" },
     { id: "em_analise", label: "Em análise", cor: "#2563eb" },
     { id: "resolvido",  label: "Resolvido",  cor: "#16a34a" },
   ];
@@ -671,7 +671,7 @@ async function renderPedidos() {
   // Atualiza status no banco e move o card visualmente
   const mudarStatus = async (pedidoId, novoStatus, cardEl, targetCol) => {
     const { error: err } = await supabaseAdmin
-      .from("pedidos").update({ status: novoStatus }).eq("id", pedidoId);
+      .from("feedbacks").update({ status: novoStatus }).eq("id", pedidoId);
     if (err) { showToast("Erro ao atualizar.", "error"); return; }
     showToast("Status atualizado!", "success");
     // Move o card para a coluna destino
