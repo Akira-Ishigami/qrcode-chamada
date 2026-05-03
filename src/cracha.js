@@ -199,14 +199,14 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + CW / 2, oy + HEADER / 2);
   ctx.textBaseline = "alphabetic";
 
-  // Logo box — maior, top right, sobrepõe levemente o título
+  // Logo box — grande, top right
   if (logoImg) {
-    const bw = 72, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
+    const bw = 90, bh = HEADER - 4, bx = ox + CW - bw - 6, by = oy + 2;
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 7); ctx.fill(); ctx.stroke();
-    const scale = Math.min((bw - 10) / logoImg.width, (bh - 10) / logoImg.height);
+    const scale = Math.min((bw - 8) / logoImg.width, (bh - 8) / logoImg.height);
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
