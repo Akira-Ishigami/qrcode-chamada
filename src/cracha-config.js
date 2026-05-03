@@ -86,7 +86,7 @@ async function carregarConfig() {
   if (!instId) return;
   const { data } = await supabaseAdmin
     .from("cracha_config")
-    .select("cor_principal, cor_secundaria, logo_url")
+    .select("cor_principal, cor_secundaria, logo_url, padrao, fonte")
     .eq("instituicao_id", instId)
     .maybeSingle();
 
@@ -175,14 +175,18 @@ function agendarPreview() {
   previewTimer = setTimeout(atualizarPreview, 300);
 }
 
-async function atualizarPreview() {
-  const cor1    = document.getElementById("input-cor1").value;
-  const cor2    = document.getElementById("input-cor2").value;
-  const logoUrl = document.getElementById("logo-area").dataset.logo || null;
-  const padrao  = document.getElementById("input-padrao")?.dataset.value || "limpo";
-  const fonte   = document.getElementById("input-fonte")?.dataset.value  || "georgia";
+function getConfig() {
+  return {
+    cor_principal:  document.getElementById("input-cor1").value,
+    cor_secundaria: document.getElementById("input-cor2").value,
+    logo_url: document.getElementById("logo-area").dataset.logo || null,
+    padrao:   document.getElementById("input-padrao")?.dataset.value || "limpo",
+    fonte:    document.getElementById("input-fonte")?.dataset.value  || "georgia",
+  };
+}
 
-  const config = { cor_principal: cor1, cor_secundaria: cor2, logo_url: logoUrl, padrao, fonte };
+async function atualizarPreview() {
+  const config = getConfig();
 
   const container = document.getElementById("preview-canvas-wrap");
   container.innerHTML = `<div class="preview-loading">Gerando preview…</div>`;
@@ -197,24 +201,18 @@ async function atualizarPreview() {
 
 // ── Salvar ────────────────────────────────────────────────────────────────────
 async function salvar() {
-  const btn  = document.getElementById("btn-salvar");
-  const cor1 = document.getElementById("input-cor1").value;
-  const cor2 = document.getElementById("input-cor2").value;
-  const logo = document.getElementById("logo-area").dataset.logo || null;
-
+  const btn = document.getElementById("btn-salvar");
   btn.disabled = true;
   btn.textContent = "Salvando…";
 
-  const padrao = document.getElementById("input-padrao")?.dataset.value || "limpo";
-  const fonte  = document.getElementById("input-fonte")?.dataset.value  || "georgia";
-
+  const cfg = getConfig();
   const payload = {
     instituicao_id: instId,
-    cor_principal:  cor1,
-    cor_secundaria: cor2,
-    logo_url:       logo,
-    padrao,
-    fonte,
+    cor_principal:  cfg.cor_principal,
+    cor_secundaria: cfg.cor_secundaria,
+    logo_url:       cfg.logo_url,
+    padrao:         cfg.padrao,
+    fonte:          cfg.fonte,
     atualizado_em:  new Date().toISOString(),
   };
 
