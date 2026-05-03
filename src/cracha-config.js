@@ -57,6 +57,26 @@ async function init() {
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
   document.getElementById("btn-remover-logo").addEventListener("click", removerLogo);
 
+  // Padrões
+  document.querySelectorAll(".cc-pattern-opt").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".cc-pattern-opt").forEach(e => e.classList.remove("selected"));
+      el.classList.add("selected");
+      document.getElementById("input-padrao").dataset.value = el.dataset.pattern;
+      agendarPreview();
+    });
+  });
+
+  // Fontes
+  document.querySelectorAll(".cc-font-opt").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".cc-font-opt").forEach(e => e.classList.remove("selected"));
+      el.classList.add("selected");
+      document.getElementById("input-fonte").dataset.value = el.dataset.font;
+      agendarPreview();
+    });
+  });
+
   // Preview inicial
   atualizarPreview();
 }
@@ -73,8 +93,21 @@ async function carregarConfig() {
   if (data) {
     document.getElementById("input-cor1").value = data.cor_principal  || "#2563eb";
     document.getElementById("input-cor2").value = data.cor_secundaria || "#1e40af";
-    if (data.logo_url) {
-      setLogoPreview(data.logo_url);
+    if (data.logo_url) setLogoPreview(data.logo_url);
+
+    // Padrão
+    if (data.padrao) {
+      document.getElementById("input-padrao").dataset.value = data.padrao;
+      document.querySelectorAll(".cc-pattern-opt").forEach(e => {
+        e.classList.toggle("selected", e.dataset.pattern === data.padrao);
+      });
+    }
+    // Fonte
+    if (data.fonte) {
+      document.getElementById("input-fonte").dataset.value = data.fonte;
+      document.querySelectorAll(".cc-font-opt").forEach(e => {
+        e.classList.toggle("selected", e.dataset.font === data.fonte);
+      });
     }
   }
 }
@@ -146,8 +179,10 @@ async function atualizarPreview() {
   const cor1    = document.getElementById("input-cor1").value;
   const cor2    = document.getElementById("input-cor2").value;
   const logoUrl = document.getElementById("logo-area").dataset.logo || null;
+  const padrao  = document.getElementById("input-padrao")?.dataset.value || "limpo";
+  const fonte   = document.getElementById("input-fonte")?.dataset.value  || "georgia";
 
-  const config = { cor_principal: cor1, cor_secundaria: cor2, logo_url: logoUrl };
+  const config = { cor_principal: cor1, cor_secundaria: cor2, logo_url: logoUrl, padrao, fonte };
 
   const container = document.getElementById("preview-canvas-wrap");
   container.innerHTML = `<div class="preview-loading">Gerando preview…</div>`;
@@ -170,11 +205,16 @@ async function salvar() {
   btn.disabled = true;
   btn.textContent = "Salvando…";
 
+  const padrao = document.getElementById("input-padrao")?.dataset.value || "limpo";
+  const fonte  = document.getElementById("input-fonte")?.dataset.value  || "georgia";
+
   const payload = {
     instituicao_id: instId,
     cor_principal:  cor1,
     cor_secundaria: cor2,
     logo_url:       logo,
+    padrao,
+    fonte,
     atualizado_em:  new Date().toISOString(),
   };
 

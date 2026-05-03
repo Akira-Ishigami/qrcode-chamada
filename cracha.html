@@ -159,6 +159,60 @@
     }
     .cc-lb-close:hover { background: rgba(255,255,255,.3); }
 
+    /* ── Padrão grid ── */
+    .cc-pattern-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+    }
+    .cc-pattern-opt {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      cursor: pointer; border-radius: 9px; padding: 7px 4px;
+      border: 2px solid var(--border); transition: all .14s;
+      font-size: .66rem; font-weight: 600; color: var(--text-3);
+    }
+    .cc-pattern-opt:hover { border-color: var(--border-2); color: var(--text-2); }
+    .cc-pattern-opt.selected { border-color: var(--acc); color: var(--acc); background: var(--acc-sub); }
+    .cc-pattern-thumb {
+      width: 44px; height: 28px; border-radius: 5px; border: 1px solid #e2e8f0;
+      background: #f8fafc; overflow: hidden; position: relative;
+    }
+    .cc-pt-limpo { background: #f8fafc; }
+    .cc-pt-geometrico::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      border-style: solid; border-width: 28px 24px 0 0;
+      border-color: #2563eb33 transparent transparent transparent;
+    }
+    .cc-pt-geometrico::after {
+      content: ''; position: absolute; bottom: 0; right: 0;
+      border-style: solid; border-width: 0 0 18px 18px;
+      border-color: transparent transparent #2563eb22 transparent;
+    }
+    .cc-pt-pontos {
+      background-image: radial-gradient(#2563eb33 1.5px, transparent 1.5px);
+      background-size: 8px 8px; background-position: 0 0;
+    }
+    .cc-pt-diagonal {
+      background: linear-gradient(135deg, #2563eb22 25%, transparent 25%, transparent 50%, #2563eb22 50%, #2563eb22 75%, transparent 75%);
+      background-size: 8px 8px;
+    }
+    .cc-pt-ondas::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(160deg, transparent 60%, #2563eb22 60%);
+    }
+
+    /* ── Fonte grid ── */
+    .cc-font-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .cc-font-opt {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border: 2px solid var(--border);
+      border-radius: 9px; cursor: pointer; transition: all .14s;
+      font-size: .78rem; font-weight: 700; color: var(--text-2);
+    }
+    .cc-font-opt:hover { border-color: var(--border-2); }
+    .cc-font-opt.selected { border-color: var(--acc); background: var(--acc-sub); color: var(--acc); }
+    .cc-font-sample { font-size: .82rem; color: var(--text-3); font-weight: 400; }
+
     /* ── Toast ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 11px 20px; border-radius: var(--r); font-size: .84rem; font-weight: 600; box-shadow: var(--shadow-xl); transition: transform .26s cubic-bezier(0.175,.885,.32,1.275); z-index: 9999; white-space: nowrap; pointer-events: none; max-width: calc(100vw - 32px); }
     .toast.show    { transform: translateX(-50%) translateY(0); }
@@ -286,6 +340,56 @@
                 <input type="color" id="input-cor2" value="#1e40af" />
               </div>
               <input class="cc-color-val" id="val-cor2" value="#1e40af" readonly />
+            </div>
+          </div>
+
+          <!-- Padrão decorativo -->
+          <div class="cc-field">
+            <label class="cc-label">Padrão Decorativo</label>
+            <div class="cc-pattern-grid" id="input-padrao" data-value="limpo">
+              <div class="cc-pattern-opt selected" data-pattern="limpo">
+                <div class="cc-pattern-thumb cc-pt-limpo"></div>
+                <span>Limpo</span>
+              </div>
+              <div class="cc-pattern-opt" data-pattern="geometrico">
+                <div class="cc-pattern-thumb cc-pt-geometrico"></div>
+                <span>Geométrico</span>
+              </div>
+              <div class="cc-pattern-opt" data-pattern="pontos">
+                <div class="cc-pattern-thumb cc-pt-pontos"></div>
+                <span>Pontos</span>
+              </div>
+              <div class="cc-pattern-opt" data-pattern="diagonal">
+                <div class="cc-pattern-thumb cc-pt-diagonal"></div>
+                <span>Diagonal</span>
+              </div>
+              <div class="cc-pattern-opt" data-pattern="ondas">
+                <div class="cc-pattern-thumb cc-pt-ondas"></div>
+                <span>Ondas</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fonte -->
+          <div class="cc-field">
+            <label class="cc-label">Fonte do Texto</label>
+            <div class="cc-font-grid" id="input-fonte" data-value="georgia">
+              <div class="cc-font-opt selected" data-font="georgia">
+                <span style="font-family:Georgia,serif;font-weight:700">Georgia</span>
+                <span class="cc-font-sample" style="font-family:Georgia,serif">Abc 123</span>
+              </div>
+              <div class="cc-font-opt" data-font="arial">
+                <span style="font-family:Arial,sans-serif;font-weight:700">Arial</span>
+                <span class="cc-font-sample" style="font-family:Arial,sans-serif">Abc 123</span>
+              </div>
+              <div class="cc-font-opt" data-font="times">
+                <span style="font-family:'Times New Roman',serif;font-weight:700">Times</span>
+                <span class="cc-font-sample" style="font-family:'Times New Roman',serif">Abc 123</span>
+              </div>
+              <div class="cc-font-opt" data-font="courier">
+                <span style="font-family:'Courier New',monospace;font-weight:700">Courier</span>
+                <span class="cc-font-sample" style="font-family:'Courier New',monospace">Abc 123</span>
+              </div>
             </div>
           </div>
 
