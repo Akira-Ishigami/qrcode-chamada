@@ -190,9 +190,9 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillRect(ox, oy, CW, HEADER);
   ctx.restore();
 
-  // Título SEMPRE 100% centralizado na largura total do card
-  ctx.fillStyle = cor1;
-  ctx.font = "bold 11px Arial, sans-serif";
+  // Título — sempre preto, centralizado
+  ctx.fillStyle = "#1e293b";
+  ctx.font = "bold 13px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + CW / 2, oy + HEADER / 2);

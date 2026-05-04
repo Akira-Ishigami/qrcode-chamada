@@ -258,19 +258,38 @@
     }
     .cc-lb-close:hover { background: rgba(255,255,255,.28); }
 
-    /* View tabs */
+    /* View tabs — abaixo do card */
+    .cs-tabs-row {
+      display: flex; justify-content: center; padding: 14px 0 10px;
+      flex-shrink: 0;
+    }
     .cs-view-tabs {
-      display: flex; gap: 2px; background: #f0f2f5;
-      border-radius: 8px; padding: 2px;
+      display: flex; gap: 6px;
+      background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(0,0,0,.1);
+      border-radius: 14px; padding: 5px;
+      box-shadow: 0 4px 16px rgba(15,23,42,.1);
     }
     .cs-vtab {
-      padding: 5px 13px; border: none; border-radius: 6px;
-      background: transparent; cursor: pointer;
-      font-family: 'JetBrains Mono', monospace; font-size: .6rem;
-      color: #6b7280; transition: all .14s; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border: 1.5px solid transparent;
+      border-radius: 10px; background: transparent; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: .64rem;
+      color: #6b7280; transition: all .18s cubic-bezier(.22,1,.36,1);
+      font-weight: 600; letter-spacing: .04em;
     }
-    .cs-vtab.active { background: white; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-    .cs-vtab:hover:not(.active) { color: #374151; }
+    .cs-vtab:hover:not(.active) {
+      background: rgba(0,0,0,.05); color: #374151;
+    }
+    .cs-vtab.active {
+      background: #0f172a; color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 14px rgba(15,23,42,.28);
+      transform: translateY(-1px);
+    }
+    /* Animação do preview ao trocar tab */
+    #preview-canvas-wrap { transition: opacity .22s ease, transform .22s cubic-bezier(.22,1,.36,1); }
+    #preview-canvas-wrap.switching { opacity: 0; transform: scale(.97); }
 
     /* Toast */
     .toast {
@@ -393,11 +412,6 @@
               <span class="cs-canvas-dot"></span>
               Card Studio
             </div>
-            <div class="cs-view-tabs">
-              <button class="cs-vtab active" data-view="ambos">Ambos</button>
-              <button class="cs-vtab" data-view="frente">Frente</button>
-              <button class="cs-vtab" data-view="verso">Verso</button>
-            </div>
             <span class="cs-canvas-tip">Clique para ampliar</span>
           </div>
           <div class="cs-canvas-scene">
@@ -405,6 +419,23 @@
               <div id="preview-canvas-wrap">
                 <div class="cs-preview-loading">Gerando prévia…</div>
               </div>
+            </div>
+          </div>
+          <!-- Tabs abaixo do card -->
+          <div class="cs-tabs-row">
+            <div class="cs-view-tabs">
+              <button class="cs-vtab active" data-view="ambos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="7" width="9" height="12" rx="1"/><rect x="13" y="7" width="9" height="12" rx="1"/></svg>
+                Ambos
+              </button>
+              <button class="cs-vtab" data-view="frente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h3"/></svg>
+                Frente
+              </button>
+              <button class="cs-vtab" data-view="verso">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9h6M3 13h4M3 17h8"/><rect x="13" y="8" width="6" height="6" rx="1"/></svg>
+                Verso
+              </button>
             </div>
           </div>
           <div class="cs-canvas-footer">dados fictícios — crachá real gerado na tela de alunos</div>

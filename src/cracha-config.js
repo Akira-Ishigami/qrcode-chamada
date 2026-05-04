@@ -56,13 +56,20 @@ async function init() {
     document.getElementById(id)?.addEventListener("input", agendarPreview);
   });
 
-  // Tabs Frente / Verso / Ambos
+  // Tabs Frente / Verso / Ambos — com animação de transição
   document.querySelectorAll(".cs-vtab").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (btn.classList.contains("active")) return;
       document.querySelectorAll(".cs-vtab").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       modoPreview = btn.dataset.view;
-      agendarPreview();
+      // Fade out → gera novo → fade in
+      const wrap = document.getElementById("preview-canvas-wrap");
+      wrap?.classList.add("switching");
+      setTimeout(() => {
+        agendarPreview();
+        setTimeout(() => wrap?.classList.remove("switching"), 50);
+      }, 180);
     });
   });
   document.getElementById("btn-salvar").addEventListener("click", salvar);
@@ -103,18 +110,23 @@ async function carregarConfig() {
     .maybeSingle();
 
   if (data) {
-    document.getElementById("input-cor1").value = data.cor_principal  || "#2563eb";
-    document.getElementById("input-cor2").value = data.cor_secundaria || "#1e40af";
-    const ct = document.getElementById("input-cor-texto");
-    const cd = document.getElementById("input-cor-decor");
-    if (ct) ct.value = data.cor_texto    || "#111827";
-    if (cd) cd.value = data.cor_decoracao || "#2563eb";
-    // Atualiza swatches
-    ["swatch1","swatch2","swatch-texto","swatch-decor"].forEach((id,i) => {
-      const el = document.getElementById(id);
-      const v  = [data.cor_principal, data.cor_secundaria, data.cor_texto, data.cor_decoracao][i];
-      if (el && v) el.style.background = v;
+    // Cores: input + swatch + hex display + CSS var
+    const corFields = [
+      { inputId: "input-cor1",      swatchId: "swatch1",      valId: "val-cor1",      val: data.cor_principal  || "#2563eb", isMain: true },
+      { inputId: "input-cor2",      swatchId: "swatch2",      valId: "val-cor2",      val: data.cor_secundaria || "#1e40af" },
+      { inputId: "input-cor-texto", swatchId: "swatch-texto", valId: "val-cor-texto", val: data.cor_texto       || "#111827" },
+      { inputId: "input-cor-decor", swatchId: "swatch-decor", valId: "val-cor-decor", val: data.cor_decoracao  || "#2563eb" },
+    ];
+    corFields.forEach(f => {
+      const inp = document.getElementById(f.inputId);
+      const sw  = document.getElementById(f.swatchId);
+      const vl  = document.getElementById(f.valId);
+      if (inp) inp.value = f.val;
+      if (sw)  sw.style.background = f.val;
+      if (vl)  vl.textContent = f.val;
+      if (f.isMain) document.documentElement.style.setProperty("--thumb-c", f.val);
     });
+
     if (data.logo_url) setLogoPreview(data.logo_url);
 
     // Padrão
