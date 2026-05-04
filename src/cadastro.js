@@ -84,6 +84,7 @@ const filterBusca  = document.getElementById("filter-busca");
 const alunosList   = document.getElementById("alunos-list");
 const countBadge   = document.getElementById("count-badge");
 const btnDlAll     = document.getElementById("btn-dl-all");
+const btnDlAllQr   = document.getElementById("btn-dl-all-qr");
 
 // ─── Carregar turmas (form) ───────────────────────────────────────────────────
 async function carregarTurmas(instId, selecionarId = null) {
@@ -182,7 +183,8 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
 
 // ─── Carregar alunos (painel direito) ─────────────────────────────────────────
 async function carregarAlunos() {
-  alunosList.innerHTML = `<div class="list-empty"><p>Carregando...</p></div>`;
+  alunosList.className = "alunos-list alunos-card-grid";
+  alunosList.innerHTML = skeletonCards(8);
 
   let alunosQuery = supabaseAdmin
     .from("alunos")
@@ -255,6 +257,16 @@ const SVG_ALUNO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 </svg>`;
 
+function skeletonCards(n = 8) {
+  return Array.from({ length: n }, (_, i) => `
+    <div class="aluno-card aluno-card-skeleton" style="--delay:${i * 0.06}s">
+      <div class="sk-avatar"></div>
+      <div class="sk-line sk-name"></div>
+      <div class="sk-line sk-meta"></div>
+      <div class="sk-actions"></div>
+    </div>`).join("");
+}
+
 const ALUNO_PALETTES = [
   ["#dbeafe","#1d4ed8"], ["#dcfce7","#15803d"], ["#fce7f3","#be185d"],
   ["#fef9c3","#a16207"], ["#ede9fe","#6d28d9"], ["#ffedd5","#c2410c"],
@@ -263,7 +275,8 @@ const ALUNO_PALETTES = [
 
 function renderAlunos() {
   countBadge.textContent = alunosFiltrados.length;
-  btnDlAll.disabled      = alunosFiltrados.length === 0;
+  btnDlAll.disabled    = alunosFiltrados.length === 0;
+  if (btnDlAllQr) btnDlAllQr.disabled = alunosFiltrados.length === 0;
 
   if (alunosFiltrados.length === 0) {
     alunosList.className = "alunos-list";
@@ -282,28 +295,34 @@ function renderAlunos() {
   alunosList.className = "alunos-list alunos-card-grid";
   alunosList.innerHTML = "";
 
+  const SVG_QR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="18" y1="6" x2="18" y2="6"/><line x1="18" y1="18" x2="18" y2="18"/></svg>`;
+
   alunosFiltrados.forEach((a, i) => {
     const initials = a.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
     const [bg, fg] = ALUNO_PALETTES[(a.nome.charCodeAt(0) || 0) % ALUNO_PALETTES.length];
 
     const card = document.createElement("div");
     card.className = "aluno-card";
-    card.style.animationDelay = `${i * 0.04}s`;
+    card.style.animationDelay = `${i * 0.03}s`;
 
     card.innerHTML = `
       <div class="aluno-card-avatar" style="background:${bg};color:${fg}">
         ${a.foto_url ? `<img src="${a.foto_url}" alt="${initials}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />` : initials}
       </div>
       <div class="aluno-card-name">${a.nome}</div>
-      <div class="aluno-card-mat">${a.matricula}</div>
-      ${a.turma?.nome ? `<span class="aluno-card-turma">${a.turma.nome}</span>` : ""}
+      <div class="aluno-card-meta">
+        <span class="aluno-card-mat">${a.matricula}</span>
+        ${a.turma?.nome ? `<span class="aluno-card-turma">${a.turma.nome}</span>` : ""}
+      </div>
       <div class="aluno-card-actions">
         <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT} Editar</button>
-        <button class="aluno-btn-cracha aluno-card-btn" data-id="${a.id}">${SVG_CRACHA} Crachá</button>
+        <button class="aluno-btn-qr aluno-card-btn aluno-card-btn-qr" data-id="${a.id}" title="QR Code">${SVG_QR} QR</button>
+        <button class="aluno-btn-cracha aluno-card-btn aluno-card-btn-cracha" data-id="${a.id}" title="Crachá">${SVG_CRACHA} Crachá</button>
       </div>
     `;
 
     card.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
+    card.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQRAluno(a));
     card.querySelector(".aluno-btn-cracha").addEventListener("click", () => baixarCrachaAluno(a));
     alunosList.appendChild(card);
   });
@@ -621,8 +640,28 @@ async function gerarQRCard(aluno) {
 
 // ─── Download QR individual ───────────────────────────────────────────────────
 // ─── Baixar crachá individual ─────────────────────────────────────────────────
+async function baixarQRAluno(aluno) {
+  const btn = alunosList.querySelector(`.aluno-btn-qr[data-id="${aluno.id}"]`);
+  if (btn) { btn.style.opacity = "0.5"; btn.disabled = true; }
+  try {
+    const blob = await gerarQRCard(aluno);
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const nomeSafe = aluno.nome.normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
+    link.href = url;
+    link.download = `QR_${nomeSafe}.png`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    showToast("Erro ao gerar QR Code.", "error");
+  } finally {
+    if (btn) { btn.style.opacity = ""; btn.disabled = false; }
+  }
+}
+
 async function baixarCrachaAluno(aluno) {
-  const btn = alunosList.querySelector(`[data-id="${aluno.id}"]`);
+  const btn = alunosList.querySelector(`.aluno-btn-cracha[data-id="${aluno.id}"]`);
   if (btn) { btn.style.opacity = "0.5"; btn.disabled = true; }
 
   try {
@@ -688,6 +727,34 @@ btnDlAll.addEventListener("click", async () => {
       </svg>
       Baixar todos os crachás
     `;
+  }
+});
+
+// ─── Download bulk QR Codes ───────────────────────────────────────────────────
+btnDlAllQr?.addEventListener("click", async () => {
+  if (!alunosFiltrados.length) return;
+  btnDlAllQr.disabled = true;
+  const orig = btnDlAllQr.innerHTML;
+  btnDlAllQr.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke-opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg> Gerando...`;
+  try {
+    const zip = new JSZip();
+    for (const aluno of alunosFiltrados) {
+      const blob = await gerarQRCard(aluno);
+      const nomeSafe = aluno.nome.normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
+      zip.file(`QR_${nomeSafe}.png`, blob);
+    }
+    const content = await zip.generateAsync({ type: "blob" });
+    const url  = URL.createObjectURL(content);
+    const link = document.createElement("a");
+    link.href = url; link.download = "QRCodes_Alunos.zip";
+    link.click(); URL.revokeObjectURL(url);
+    showToast(`${alunosFiltrados.length} QR Codes baixados!`, "success");
+  } catch (err) {
+    showToast("Erro ao gerar ZIP: " + err.message, "error");
+  } finally {
+    btnDlAllQr.disabled = false;
+    btnDlAllQr.innerHTML = orig;
   }
 });
 
@@ -759,9 +826,12 @@ let _adminInstId = null;
   if (!_adminInstId) carregarFiltroInstituicoes();
 
   if (_adminInstId) {
-    await carregarFiltroTurmasDaInst(_adminInstId);
-    // Carrega configuração do crachá da instituição
-    _crachaConfig = await buscarCrachaConfig(supabaseAdmin, _adminInstId);
+    // Paralelo: turmas do filtro + config do crachá (não dependem uma da outra)
+    const [, cfg] = await Promise.all([
+      carregarFiltroTurmasDaInst(_adminInstId),
+      buscarCrachaConfig(supabaseAdmin, _adminInstId),
+    ]);
+    _crachaConfig = cfg;
   } else {
     carregarFiltroInstituicoes();
   }

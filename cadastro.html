@@ -131,21 +131,28 @@
               <span class="count-badge" id="count-badge">0</span>
             </h2>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-          <button class="btn-novo-aluno" id="btn-novo-aluno">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Novo Aluno
-          </button>
-          <button class="btn-dl-all" id="btn-dl-all" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Baixar todos os QR Codes
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+            <button class="btn-novo-aluno" id="btn-novo-aluno">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Novo Aluno
+            </button>
+            <button class="btn-dl-all-qr" id="btn-dl-all-qr" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              QR Codes (ZIP)
+            </button>
+            <button class="btn-dl-all" id="btn-dl-all" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                <circle cx="12" cy="14" r="2"/><path d="M9 18h6"/>
+              </svg>
+              Crachás (ZIP)
+            </button>
           </div>
         </div>
 
