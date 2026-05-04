@@ -307,7 +307,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 
   // Função label: negrito pequeno na cor da inst.
   const lbl = (t) => {
-    ctx.fillStyle = cor1;
+    ctx.fillStyle = corTexto;   // segue a cor do texto
     ctx.font = `bold 9px Arial, sans-serif`;
     ctx.textAlign = "left";
     ctx.fillText(t + ":", tx, cy);
@@ -338,7 +338,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   const turmaV = aluno.turma?.nome || aluno.turma_nome || "—";
   const idEstV = aluno.id_estadual || "—";
 
-  ctx.fillStyle = cor1; ctx.font = "bold 9px Arial, sans-serif";
+  ctx.fillStyle = corTexto; ctx.font = "bold 9px Arial, sans-serif";
   ctx.fillText("Turma:", tx, cy);
   ctx.fillText("Id Estadual:", tx + half + 10, cy);
   cy += 14;
@@ -408,7 +408,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   let cy = oy + HEADER + Math.round((BODY - totalHV) / 2);
 
   const lbl = (t) => {
-    ctx.fillStyle = cor1;
+    ctx.fillStyle = corTexto;   // segue a cor do texto
     ctx.font = "bold 9px Arial, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(t + ":", tx, cy);
@@ -436,12 +436,18 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
 }
 
 // ── Export principal ──────────────────────────────────────────────────────────
-export async function gerarCracha(aluno, config, instNome) {
-  const GAP = 28, PAD = 20;
+// lado: 'ambos' | 'frente' | 'verso'
+export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
+  const PAD = 20;
+  const GAP = 24;
+
+  const soloW = CW + PAD * 2;
+  const soloH = CH + PAD * 2;
+  const duploW = CW * 2 + GAP + PAD * 2;
 
   const canvas = document.createElement("canvas");
-  canvas.width  = CW * 2 + GAP + PAD * 2;
-  canvas.height = CH + PAD * 2;
+  canvas.width  = lado === "ambos" ? duploW : soloW;
+  canvas.height = soloH;
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "#e5e7eb";
@@ -465,8 +471,14 @@ export async function gerarCracha(aluno, config, instNome) {
     loadImg(qrDataUrl),
   ]);
 
-  await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
-  drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
+  if (lado === "frente") {
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
+  } else if (lado === "verso") {
+    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
+  } else {
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
+    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
+  }
 
   return canvas.toDataURL("image/png");
 }

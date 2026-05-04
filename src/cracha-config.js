@@ -11,9 +11,10 @@ const DEMO_ALUNO = {
   turma: { nome: "7º Ano A" },
 };
 
-let instId   = null;
-let instNome = "";
+let instId      = null;
+let instNome    = "";
 let previewTimer = null;
+let modoPreview  = "ambos";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -53,6 +54,16 @@ async function init() {
   // Eventos
   ["input-cor1","input-cor2","input-cor-texto","input-cor-decor"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", agendarPreview);
+  });
+
+  // Tabs Frente / Verso / Ambos
+  document.querySelectorAll(".cs-vtab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".cs-vtab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      modoPreview = btn.dataset.view;
+      agendarPreview();
+    });
   });
   document.getElementById("btn-salvar").addEventListener("click", salvar);
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
@@ -205,7 +216,7 @@ async function atualizarPreview() {
   container.innerHTML = `<div class="preview-loading">Gerando preview…</div>`;
 
   try {
-    const dataUrl = await gerarCracha(DEMO_ALUNO, config, instNome || "Minha Instituição");
+    const dataUrl = await gerarCracha(DEMO_ALUNO, config, instNome || "Minha Instituição", modoPreview);
     container.innerHTML = `<img src="${dataUrl}" alt="Preview do crachá" />`;
   } catch (e) {
     container.innerHTML = `<div class="cc-preview-err">Erro no preview: ${e.message}</div>`;

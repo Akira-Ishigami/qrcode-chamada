@@ -258,6 +258,20 @@
     }
     .cc-lb-close:hover { background: rgba(255,255,255,.28); }
 
+    /* View tabs */
+    .cs-view-tabs {
+      display: flex; gap: 2px; background: #f0f2f5;
+      border-radius: 8px; padding: 2px;
+    }
+    .cs-vtab {
+      padding: 5px 13px; border: none; border-radius: 6px;
+      background: transparent; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: .6rem;
+      color: #6b7280; transition: all .14s; font-weight: 500;
+    }
+    .cs-vtab.active { background: white; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    .cs-vtab:hover:not(.active) { color: #374151; }
+
     /* Toast */
     .toast {
       position: fixed; bottom: 24px; left: 50%;
@@ -379,7 +393,12 @@
               <span class="cs-canvas-dot"></span>
               Card Studio
             </div>
-            <span class="cs-canvas-tip">Clique para ampliar &middot; Frente + Verso</span>
+            <div class="cs-view-tabs">
+              <button class="cs-vtab active" data-view="ambos">Ambos</button>
+              <button class="cs-vtab" data-view="frente">Frente</button>
+              <button class="cs-vtab" data-view="verso">Verso</button>
+            </div>
+            <span class="cs-canvas-tip">Clique para ampliar</span>
           </div>
           <div class="cs-canvas-scene">
             <div class="cs-card-float">
