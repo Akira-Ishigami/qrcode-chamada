@@ -1,4 +1,4 @@
-import { supabase }      from "./supabase.js";
+﻿import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
 import { gerarCracha, downloadCracha, buscarCrachaConfig } from "./cracha.js";
@@ -631,7 +631,26 @@ async function renderInstDetalhe(instId, instNome) {
   });
 }
 
-// ══ VIEW 3: SUPORTE — KANBAN ═════════════════════════════════════════════════
+// ══ VIEW 3: SUPORTE — CHAT ESTILO WHATSAPP ═══════════════════════════════════
+const WA_STATUS = { aberto: "Aberto", em_andamento: "Em andamento", finalizado: "Finalizado" };
+const WA_TIPO   = { bug: "Bug", melhoria: "Melhoria" };
+
+function waFmtDate(iso) {
+  const d = new Date(iso);
+  const hoje = new Date();
+  const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+  if (d.toDateString() === hoje.toDateString())  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === ontem.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+}
+function waFmtTime(iso) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+let _waChatSub    = null;
+let _waActiveId   = null;
+let _waAllTickets = [];
+
 async function renderPedidos() {
   clearClock();
   root.classList.add("kanban-mode");
@@ -639,7 +658,7 @@ async function renderPedidos() {
 
   const { data: feedbacks, error } = await supabaseAdmin
     .from("feedbacks")
-    .select("id, tipo, titulo, descricao, status, criado_em, instituicoes(nome)")
+    .select("id, tipo, titulo, descricao, status, criado_em, instituicao_id, instituicoes(nome), suporte_mensagens(id, texto, autor_role, autor_id, criado_em)")
     .order("criado_em", { ascending: false });
 
   if (error) {
@@ -648,140 +667,294 @@ async function renderPedidos() {
     return;
   }
 
-  const todos = feedbacks ?? [];
-
-  // Atualiza badge sidebar
-  const badge = document.getElementById("badge-suporte");
-  const nAbr = todos.filter(p => p.status === "aberto").length;
-  if (badge) { badge.textContent = nAbr; badge.style.display = nAbr > 0 ? "" : "none"; }
-
-  const tipoLabel = { bug: "Bug", melhoria: "Melhoria" };
-  const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day:"numeric", month:"short" });
-
-  const colunas = [
-    { id: "aberto",     label: "Aberto",     cor: "#f59e0b" },
-    { id: "em_analise", label: "Em análise", cor: "#2563eb" },
-    { id: "resolvido",  label: "Resolvido",  cor: "#16a34a" },
-  ];
-
-  // ── Monta o HTML do Kanban ────────────────────────────────────────────────
-  root.innerHTML = `<div class="kanban-wrap" id="kanban-wrap"></div>`;
-  const wrap = document.getElementById("kanban-wrap");
-
-  // Atualiza status no banco e move o card visualmente
-  const mudarStatus = async (pedidoId, novoStatus, cardEl, targetCol) => {
-    const { error: err } = await supabaseAdmin
-      .from("feedbacks").update({ status: novoStatus }).eq("id", pedidoId);
-    if (err) { showToast("Erro ao atualizar.", "error"); return; }
-    showToast("Status atualizado!", "success");
-    // Move o card para a coluna destino
-    const targetCards = targetCol.querySelector(".kanban-cards");
-    cardEl.dataset.status = novoStatus;
-    cardEl.className = `kanban-card tipo-${cardEl.dataset.tipo}`;
-    targetCards.insertBefore(cardEl, targetCards.firstChild);
-    // Atualiza contadores
-    atualizarContadoresKanban();
-    atualizarBadgePedidos();
-  };
-
-  // Cria um card arrastável
-  const criarCard = (p, idx) => {
-    const card = document.createElement("div");
-    card.className = `kanban-card tipo-${p.tipo}`;
-    card.draggable = true;
-    card.dataset.id     = p.id;
-    card.dataset.status = p.status;
-    card.dataset.tipo   = p.tipo;
-    card.style.animationDelay = `${idx * .04}s`;
-    card.innerHTML = `
-      <div class="kanban-card-inst">
-        ${p.instituicoes?.nome ? esc(p.instituicoes.nome) : "—"}
-        <span class="kanban-tipo-pill ${p.tipo}">${tipoLabel[p.tipo] ?? p.tipo}</span>
-      </div>
-      <div class="kanban-card-title">${esc(p.titulo)}</div>
-      <div class="kanban-card-desc">${esc(p.descricao)}</div>
-      <div class="kanban-card-foot">
-        <span class="kanban-card-date">${fmtData(p.criado_em)}</span>
-        <span class="kanban-drag-hint">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="margin-right:3px"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-          arrastar
-        </span>
-      </div>
-    `;
-
-    // Click abre modal (distingue do drag)
-    let dragOccurred = false;
-    card.addEventListener("mousedown", () => { dragOccurred = false; });
-    card.addEventListener("dragstart", (e) => {
-      dragOccurred = true;
-      e.dataTransfer.setData("text/plain", p.id);
-      e.dataTransfer.effectAllowed = "move";
-      setTimeout(() => card.classList.add("dragging"), 0);
-    });
-    card.addEventListener("dragend", () => card.classList.remove("dragging"));
-    card.addEventListener("click", () => {
-      if (dragOccurred) return;
-      abrirModalFeedback(p, tipoLabel, fmtData);
-    });
-
-    return card;
-  };
-
-  // Cria colunas e popula com cards
-  colunas.forEach(col => {
-    const items = todos.filter(p => p.status === col.id);
-    const colEl = document.createElement("div");
-    colEl.className = "kanban-col";
-    colEl.dataset.colStatus = col.id;
-    colEl.innerHTML = `
-      <div class="kanban-col-head">
-        <div class="kanban-col-dot ${col.id}"></div>
-        <div class="kanban-col-name">${col.label}</div>
-        <div class="kanban-col-count ${items.length > 0 ? "has-items" : ""}" id="count-${col.id}">${items.length}</div>
-      </div>
-      <div class="kanban-cards" id="cards-${col.id}">
-        ${items.length === 0 ? `
-          <div class="kanban-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="opacity:.3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <p>Nenhuma solicitação</p>
-          </div>` : ""}
-      </div>
-    `;
-    wrap.appendChild(colEl);
-
-    // Popula cards
-    const cardsArea = colEl.querySelector(".kanban-cards");
-    items.forEach((p, idx) => cardsArea.appendChild(criarCard(p, idx)));
-
-    // Drop zone handlers
-    colEl.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      colEl.classList.add("drag-over");
-    });
-    colEl.addEventListener("dragleave", (e) => {
-      if (!colEl.contains(e.relatedTarget)) colEl.classList.remove("drag-over");
-    });
-    colEl.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      colEl.classList.remove("drag-over");
-      const pedidoId = e.dataTransfer.getData("text/plain");
-      const cardEl   = document.querySelector(`.kanban-card[data-id="${pedidoId}"]`);
-      if (!cardEl || cardEl.dataset.status === col.id) return;
-      await mudarStatus(pedidoId, col.id, cardEl, colEl);
-    });
+  _waAllTickets = (feedbacks ?? []).map(f => ({
+    ...f,
+    suporte_mensagens: (f.suporte_mensagens ?? []).sort((a,b) => new Date(a.criado_em) - new Date(b.criado_em)),
+  }));
+  _waAllTickets.sort((a, b) => {
+    const aT = a.suporte_mensagens.at(-1)?.criado_em ?? a.criado_em;
+    const bT = b.suporte_mensagens.at(-1)?.criado_em ?? b.criado_em;
+    return new Date(bT) - new Date(aT);
   });
 
-  // Atualiza os contadores de cada coluna
-  function atualizarContadoresKanban() {
-    colunas.forEach(col => {
-      const n = document.querySelectorAll(`.kanban-card[data-status="${col.id}"]`).length;
-      const el = document.getElementById(`count-${col.id}`);
-      if (el) { el.textContent = n; el.className = `kanban-col-count ${n > 0 ? "has-items" : ""}`; }
-    });
-  }
+  atualizarBadgePedidos();
+
+  root.innerHTML = `
+    <div class="wa-layout">
+      <div class="wa-sidebar">
+        <div class="wa-sidebar-head">
+          <span class="wa-sidebar-title">Suporte</span>
+          <span class="wa-sidebar-count">${_waAllTickets.length}</span>
+        </div>
+        <div class="wa-search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--text-3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="wa-search" id="wa-search" placeholder="Buscar chamado…">
+        </div>
+        <div class="wa-filter-tabs" id="wa-tabs">
+          <button class="wa-tab active" data-filter="all">Todos</button>
+          <button class="wa-tab" data-filter="aberto">Abertos</button>
+          <button class="wa-tab" data-filter="em_andamento">Em andamento</button>
+          <button class="wa-tab" data-filter="finalizado">Finalizados</button>
+        </div>
+        <div class="wa-conv-list" id="wa-conv-list"></div>
+      </div>
+      <div class="wa-chat-area" id="wa-chat-area">
+        <div class="wa-empty-chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" width="56" height="56" style="opacity:.15"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <p>Selecione um chamado para ver a conversa</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderWaConvList(_waAllTickets);
+
+  document.getElementById("wa-tabs").addEventListener("click", e => {
+    const tab = e.target.closest(".wa-tab");
+    if (!tab) return;
+    document.querySelectorAll(".wa-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const f = tab.dataset.filter;
+    const filtered = f === "all" ? _waAllTickets : _waAllTickets.filter(t => t.status === f);
+    renderWaConvList(filtered);
+  });
+
+  document.getElementById("wa-search").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    const f = document.querySelector(".wa-tab.active")?.dataset.filter ?? "all";
+    const src = f === "all" ? _waAllTickets : _waAllTickets.filter(t => t.status === f);
+    renderWaConvList(q ? src.filter(t =>
+      t.titulo.toLowerCase().includes(q) || (t.instituicoes?.nome || "").toLowerCase().includes(q)
+    ) : src);
+  });
+
+  supabase.channel("wa-list-rt")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "suporte_mensagens" }, payload => {
+      const m = payload.new;
+      const ticket = _waAllTickets.find(t => t.id === m.feedback_id);
+      if (!ticket) return;
+      ticket.suporte_mensagens.push(m);
+      const row = document.querySelector(`.wa-conv-row[data-id="${ticket.id}"]`);
+      if (row) {
+        row.querySelector(".wa-conv-preview").textContent = m.texto;
+        row.querySelector(".wa-conv-time").textContent = waFmtDate(m.criado_em);
+        if (ticket.id !== _waActiveId) {
+          const dot = row.querySelector(".wa-unread-dot");
+          if (dot) dot.style.display = "";
+        }
+        document.getElementById("wa-conv-list")?.prepend(row);
+      }
+    })
+    .subscribe();
 }
 
+function renderWaConvList(tickets) {
+  const list = document.getElementById("wa-conv-list");
+  if (!list) return;
+  list.innerHTML = "";
+  if (tickets.length === 0) {
+    list.innerHTML = `<div class="wa-conv-empty">Nenhum chamado encontrado</div>`;
+    return;
+  }
+  tickets.forEach(t => {
+    const lastMsg = t.suporte_mensagens.at(-1);
+    const preview = lastMsg?.texto ?? t.descricao ?? "Sem mensagens";
+    const time    = waFmtDate(lastMsg?.criado_em ?? t.criado_em);
+    const isBug   = t.tipo === "bug";
+    const row = document.createElement("div");
+    row.className = `wa-conv-row${t.id === _waActiveId ? " active" : ""}`;
+    row.dataset.id = t.id;
+    row.innerHTML = `
+      <div class="wa-conv-icon ${t.tipo}">
+        ${isBug
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8 2l1.5 1.5"/><path d="M14.5 3.5L16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M6.3 20A5 5 0 0 0 17.7 20"/><path d="M6.3 20a5 5 0 0 1-.8-3.2c.1-1.5.9-2.8 2-3.6L9 12"/><path d="M17.7 20a5 5 0 0 0 .8-3.2c-.1-1.5-.9-2.8-2-3.6L15 12"/><path d="M4 10c.9-1 2.3-1.7 4-1.7h8c1.7 0 3.1.7 4 1.7"/><path d="M2 14h4"/><path d="M18 14h4"/></svg>`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+        }
+      </div>
+      <div class="wa-conv-body">
+        <div class="wa-conv-top">
+          <span class="wa-conv-name">${esc(t.instituicoes?.nome || "—")}</span>
+          <span class="wa-conv-time">${time}</span>
+        </div>
+        <div class="wa-conv-title">${esc(t.titulo)}</div>
+        <div class="wa-conv-bottom">
+          <span class="wa-conv-preview">${esc(preview)}</span>
+          <span class="wa-unread-dot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="wa-conv-status-dot ${t.status}" title="${WA_STATUS[t.status] ?? t.status}"></div>
+    `;
+    row.addEventListener("click", () => abrirWaChat(t));
+    list.appendChild(row);
+  });
+}
+
+async function abrirWaChat(ticket) {
+  if (_waChatSub) { supabase.removeChannel(_waChatSub); _waChatSub = null; }
+  _waActiveId = ticket.id;
+
+  document.querySelectorAll(".wa-conv-row").forEach(r => r.classList.remove("active"));
+  document.querySelector(`.wa-conv-row[data-id="${ticket.id}"]`)?.classList.add("active");
+  const unread = document.querySelector(`.wa-conv-row[data-id="${ticket.id}"] .wa-unread-dot`);
+  if (unread) unread.style.display = "none";
+
+  const chatArea = document.getElementById("wa-chat-area");
+  chatArea.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
+
+  const { data: msgs } = await supabaseAdmin
+    .from("suporte_mensagens")
+    .select("id, autor_id, autor_role, texto, imagem_base64, criado_em")
+    .eq("feedback_id", ticket.id)
+    .order("criado_em", { ascending: true });
+
+  const isFinalizado = ticket.status === "finalizado";
+
+  chatArea.innerHTML = `
+    <div class="wa-chat-wrap">
+      <div class="wa-chat-head">
+        <div class="wa-chat-head-info">
+          <div class="wa-chat-inst">${esc(ticket.instituicoes?.nome || "—")}</div>
+          <div class="wa-chat-title">${esc(ticket.titulo)}</div>
+          <div class="wa-chat-head-chips">
+            <span class="wa-chip ${ticket.tipo}">${WA_TIPO[ticket.tipo] ?? ticket.tipo}</span>
+            <span class="wa-chip ${ticket.status}" id="wa-status-chip">${WA_STATUS[ticket.status] ?? ticket.status}</span>
+          </div>
+        </div>
+        <div class="wa-chat-head-actions">
+          <select class="wa-status-select" id="wa-status-sel">
+            <option value="aberto"       ${ticket.status === "aberto"       ? "selected" : ""}>🟡 Aberto</option>
+            <option value="em_andamento" ${ticket.status === "em_andamento" ? "selected" : ""}>🔵 Em andamento</option>
+            <option value="finalizado"   ${ticket.status === "finalizado"   ? "selected" : ""}>🟢 Finalizado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="wa-msgs" id="wa-msgs">
+        ${ticket.descricao ? `
+          <div class="wa-original">
+            <div class="wa-original-label">Relato original</div>
+            <div class="wa-original-text">${esc(ticket.descricao)}</div>
+          </div>` : ""}
+        <div id="wa-bubbles"></div>
+      </div>
+
+      ${!isFinalizado ? `
+        <div class="wa-input-bar">
+          <textarea class="wa-input" id="wa-input" placeholder="Responder à instituição…" rows="1"></textarea>
+          <button class="wa-send-btn" id="wa-send">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      ` : `
+        <div class="wa-encerrado">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Conversa encerrada — chamado finalizado
+        </div>
+      `}
+    </div>
+  `;
+
+  const bubblesEl = document.getElementById("wa-bubbles");
+  const msgsEl    = document.getElementById("wa-msgs");
+  (msgs ?? []).forEach(m => bubblesEl.appendChild(buildWaBubble(m, true)));
+  setTimeout(() => { msgsEl.scrollTop = msgsEl.scrollHeight; }, 30);
+
+  const mudarStatusWa = async (novoStatus, silent = false) => {
+    if (novoStatus === ticket.status) return;
+    const { error } = await supabaseAdmin.from("feedbacks").update({ status: novoStatus }).eq("id", ticket.id);
+    if (error) { showToast("Erro ao atualizar.", "error"); document.getElementById("wa-status-sel").value = ticket.status; return; }
+    ticket.status = novoStatus;
+    // Chip de status no header
+    const chip = document.getElementById("wa-status-chip");
+    if (chip) { chip.textContent = WA_STATUS[novoStatus]; chip.className = `wa-chip ${novoStatus}`; }
+    // Mantém select sincronizado
+    const sel = document.getElementById("wa-status-sel");
+    if (sel) sel.value = novoStatus;
+    // Mostra/esconde input quando finaliza ou reabre
+    const inputBar = chatArea.querySelector(".wa-input-bar");
+    const encerrado = chatArea.querySelector(".wa-encerrado");
+    if (novoStatus === "finalizado") {
+      if (inputBar) inputBar.outerHTML = `<div class="wa-encerrado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>Conversa encerrada — chamado finalizado</div>`;
+    } else if (encerrado) {
+      encerrado.outerHTML = `<div class="wa-input-bar"><textarea class="wa-input" id="wa-input" placeholder="Responder à instituição…" rows="1"></textarea><button class="wa-send-btn" id="wa-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>`;
+      const newInput = document.getElementById("wa-input");
+      newInput?.addEventListener("input", () => { newInput.style.height = "auto"; newInput.style.height = Math.min(newInput.scrollHeight,120)+"px"; });
+      newInput?.addEventListener("keydown", e => { if (e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviarAdm();} });
+      document.getElementById("wa-send")?.addEventListener("click", enviarAdm);
+    }
+    // Dot na lista
+    const dot = document.querySelector(`.wa-conv-row[data-id="${ticket.id}"] .wa-conv-status-dot`);
+    if (dot) dot.className = `wa-conv-status-dot ${novoStatus}`;
+    const local = _waAllTickets.find(t => t.id === ticket.id);
+    if (local) local.status = novoStatus;
+    atualizarBadgePedidos();
+    if (!silent) showToast("Status atualizado!", "success");
+  };
+
+  document.getElementById("wa-status-sel")?.addEventListener("change", e => mudarStatusWa(e.target.value));
+
+  const enviarAdm = async () => {
+    const inputEl = document.getElementById("wa-input");
+    if (!inputEl) return;
+    const texto = inputEl.value.trim();
+    if (!texto) return;
+    inputEl.value = ""; inputEl.style.height = "auto";
+    if (ticket.status === "aberto") await mudarStatusWa("em_andamento", true);
+    const fake = { autor_id: window._adminId, autor_role: "admin", texto, criado_em: new Date().toISOString() };
+    bubblesEl.appendChild(buildWaBubble(fake, true));
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    const { error } = await supabaseAdmin.from("suporte_mensagens").insert({
+      feedback_id: ticket.id, autor_id: window._adminId, autor_role: "admin", texto,
+    });
+    if (error) showToast("Erro ao enviar.", "error");
+    const prev = document.querySelector(`.wa-conv-row[data-id="${ticket.id}"] .wa-conv-preview`);
+    if (prev) prev.textContent = texto;
+  };
+
+  const inputEl = document.getElementById("wa-input");
+  inputEl?.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px"; });
+  inputEl?.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarAdm(); } });
+  document.getElementById("wa-send")?.addEventListener("click", enviarAdm);
+
+  _waChatSub = supabase
+    .channel(`wa-${ticket.id}`)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "suporte_mensagens", filter: `feedback_id=eq.${ticket.id}` }, async payload => {
+      const id = payload.new?.id;
+      if (!id || payload.new?.autor_id === window._adminId) return;
+      // Re-busca a mensagem completa (evita limite de payload do realtime com imagens)
+      const { data: m } = await supabaseAdmin
+        .from("suporte_mensagens")
+        .select("id, autor_id, autor_role, texto, imagem_base64, criado_em")
+        .eq("id", id)
+        .single();
+      if (!m) return;
+      bubblesEl.appendChild(buildWaBubble(m, true));
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    })
+    .subscribe();
+}
+
+function buildWaBubble(msg, isAdminView = false) {
+  const isAdmin = msg.autor_role === "admin";
+  const isMine  = isAdminView ? isAdmin : !isAdmin;
+  const wrap = document.createElement("div");
+  wrap.className = `wa-bubble-wrap ${isMine ? "mine" : "theirs"}`;
+
+  const conteudo = [
+    msg.imagem_base64 ? `<img class="wa-bubble-img" src="${msg.imagem_base64}" alt="imagem" style="cursor:zoom-in" onclick="this.requestFullscreen?.()">` : "",
+    msg.texto ? `<span>${esc(msg.texto).replace(/\n/g,"<br>")}</span>` : "",
+  ].filter(Boolean).join("");
+
+  wrap.innerHTML = `
+    ${!isMine ? `<div class="wa-bubble-avatar">${isAdminView ? "I" : "S"}</div>` : ""}
+    <div class="wa-bubble-col">
+      ${!isMine ? `<div class="wa-bubble-name">${isAdminView ? "Instituição" : "Suporte"}</div>` : ""}
+      <div class="wa-bubble ${isMine ? "mine" : "theirs"} ${msg.imagem_base64 ? "has-img" : ""}">${conteudo}</div>
+      <div class="wa-bubble-time">${waFmtTime(msg.criado_em)}</div>
+    </div>
+  `;
+  return wrap;
+}
 // ══ ANOTAÇÕES (legado — substituído por Pedidos no ADM) ═══════════════════════
 function renderAnotacoes() {
   // Mantido para compatibilidade, redireciona para pedidos
@@ -1152,49 +1325,6 @@ function confirmarExcluir(instId, instNome) {
   });
 }
 
-// ── Modal de detalhe de feedback (Suporte) ────────────────────────────────────
-function abrirModalFeedback(p, tipoLabel, fmtData) {
-  const statusLabel = { aberto: "Aberto", em_analise: "Em análise", resolvido: "Resolvido" };
-  const overlay = document.createElement("div");
-  overlay.className = "tv-modal-overlay";
-  overlay.innerHTML = `
-    <div class="tv-modal-card" style="max-width:520px">
-      <div class="tv-modal-head">
-        <div class="tv-modal-icon inst" style="background:#eff6ff;color:#2563eb">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div style="flex:1;min-width:0">
-          <h2 style="font-size:1rem;font-weight:800;color:var(--text);line-height:1.2">${esc(p.titulo)}</h2>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
-            <span style="font-size:.7rem;font-weight:700;color:var(--text-2)">${esc(p.instituicoes?.nome || "—")}</span>
-            <span class="kanban-tipo-pill ${p.tipo}" style="font-size:.6rem">${tipoLabel[p.tipo] ?? p.tipo}</span>
-            <span class="kanban-expand-status ${p.status}" style="font-size:.6rem">${statusLabel[p.status] || p.status}</span>
-          </div>
-        </div>
-        <button class="tv-modal-x" id="kfb-x">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="tv-modal-body" style="gap:14px">
-        <div>
-          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Descrição</div>
-          <div style="font-size:.875rem;color:var(--text-2);line-height:1.7;white-space:pre-wrap;background:var(--surface-2);border-radius:9px;padding:14px 16px;min-height:60px">${esc(p.descricao) || "<em style='opacity:.5'>Sem descrição</em>"}</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;font-size:.72rem;color:var(--text-3)">
-          <span>Enviado em ${fmtData(p.criado_em)}</span>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  setTimeout(() => overlay.classList.add("open"), 10);
-  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
-  overlay.querySelector("#kfb-x").addEventListener("click", fechar);
-  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
-  document.addEventListener("keydown", function onEsc(e) {
-    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
-  });
-}
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 function criarOverlay(html) {
