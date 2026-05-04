@@ -6,183 +6,165 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crachá — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Epilogue:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
   <style>
-    /* ── Studio layout ── */
+    :root { --thumb-c: #2563eb; }
     #page-root {
-      padding: 0 !important;
-      flex-direction: row !important;
-      overflow: hidden !important;
-      height: 100%;
-      font-family: 'Epilogue', system-ui, sans-serif;
+      padding: 0 !important; flex-direction: row !important;
+      overflow: hidden !important; height: 100%;
+      font-family: 'Manrope', system-ui, sans-serif;
     }
+    .cs-studio { display: flex; width: 100%; height: 100%; overflow: hidden; }
 
-    /* ── STUDIO SPLIT ── */
-    .cs-studio {
-      display: flex; flex-direction: row; width: 100%; height: 100%;
-      overflow: hidden;
-    }
-
-    /* ── LEFT: Light Canvas ── */
+    /* Canvas xadrez */
     .cs-canvas {
-      flex: 1.15; background: #f1f5f9;
-      display: flex; flex-direction: column;
-      position: relative; overflow: hidden;
+      flex: 1.2;
+      background-color: #eceff5;
+      background-image:
+        linear-gradient(45deg,#e1e5ee 25%,transparent 25%),
+        linear-gradient(-45deg,#e1e5ee 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,#e1e5ee 75%),
+        linear-gradient(-45deg,transparent 75%,#e1e5ee 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    /* Dot grid texture */
-    .cs-canvas::before {
-      content: ''; position: absolute; inset: 0; pointer-events: none;
-      background-image: radial-gradient(rgba(99,120,180,.12) 1px, transparent 1px);
-      background-size: 28px 28px;
-    }
-
     .cs-canvas-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 24px; position: relative; z-index: 1;
-      border-bottom: 1px solid #e2e8f0;
-      background: white;
+      padding: 11px 22px;
+      background: rgba(255,255,255,.94); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(0,0,0,.07); flex-shrink: 0;
     }
     .cs-canvas-brand {
-      display: flex; align-items: center; gap: 8px;
-      font-family: 'DM Mono', monospace; font-size: .68rem; font-weight: 500;
-      color: #64748b; letter-spacing: .06em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'JetBrains Mono', monospace; font-size: .62rem; font-weight: 500;
+      color: #64748b; letter-spacing: .08em; text-transform: uppercase;
     }
     .cs-canvas-dot {
       width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
-      box-shadow: 0 0 8px #22c55e60; animation: dotBlink 2.5s ease-in-out infinite;
+      box-shadow: 0 0 6px #22c55e70; animation: dotBlink 2.4s ease-in-out infinite;
     }
-    @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .cs-canvas-tip {
-      font-family: 'DM Mono', monospace; font-size: .62rem;
-      color: #94a3b8; letter-spacing: .04em;
-    }
-
+    @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .cs-canvas-tip { font-family: 'JetBrains Mono', monospace; font-size: .58rem; color: #94a3b8; }
     .cs-canvas-scene {
       flex: 1; display: flex; align-items: center; justify-content: center;
-      padding: 32px 24px; position: relative; z-index: 1;
+      padding: 28px 20px; overflow: hidden;
     }
     .cs-card-float {
-      filter: drop-shadow(0 20px 48px rgba(15,23,42,.18)) drop-shadow(0 4px 12px rgba(15,23,42,.1));
-      animation: cardFloat 5s ease-in-out infinite;
-      cursor: zoom-in;
+      filter: drop-shadow(0 24px 56px rgba(15,23,42,.2)) drop-shadow(0 6px 18px rgba(15,23,42,.12));
+      animation: cardFloat 5s ease-in-out infinite; cursor: zoom-in;
     }
-    @keyframes cardFloat {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-7px); }
-    }
+    @keyframes cardFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
     #preview-canvas-wrap {
       display: flex; align-items: center; justify-content: center;
-      min-width: 300px; min-height: 120px;
+      min-width: 240px; min-height: 100px;
     }
-    #preview-canvas-wrap img {
-      max-width: min(100%, 720px); border-radius: 10px; display: block;
-      transition: opacity .3s ease;
-    }
+    #preview-canvas-wrap img { max-width: min(100%,780px); border-radius: 10px; display: block; }
     .cs-preview-loading {
-      font-family: 'DM Mono', monospace; font-size: .75rem;
-      color: #94a3b8; letter-spacing: .06em;
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: #94a3b8;
       display: flex; align-items: center; gap: 8px;
     }
     .cs-preview-loading::before {
-      content: ''; width: 14px; height: 14px; border-radius: 50%;
-      border: 2px solid #e2e8f0;
-      border-top-color: #64748b;
+      content: ''; width: 13px; height: 13px; border-radius: 50%;
+      border: 2px solid #d1d5db; border-top-color: #64748b;
       animation: spin .8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
+    @keyframes spin { to{transform:rotate(360deg)} }
     .cs-canvas-footer {
-      padding: 12px 24px; text-align: center; position: relative; z-index: 1;
-      border-top: 1px solid #e2e8f0; background: white;
-      font-family: 'DM Mono', monospace; font-size: .6rem;
-      color: #94a3b8; letter-spacing: .06em;
+      padding: 9px 22px; text-align: center; flex-shrink: 0;
+      background: rgba(255,255,255,.94); backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(0,0,0,.06);
+      font-family: 'JetBrains Mono', monospace; font-size: .56rem; color: #94a3b8;
     }
 
-    /* ── RIGHT: Controls ── */
+    /* Controls sidebar */
     .cs-controls {
-      width: 360px; flex-shrink: 0;
-      background: #fafafa;
-      border-left: 1px solid #e5e7eb;
-      overflow-y: auto; padding: 28px 24px 40px;
-      display: flex; flex-direction: column; gap: 0;
+      width: 390px; flex-shrink: 0; background: #fff;
+      border-left: 1px solid #e8edf2;
+      box-shadow: -6px 0 28px rgba(15,23,42,.07);
+      overflow-y: auto; display: flex; flex-direction: column;
     }
-    .cs-ctrl-header { margin-bottom: 28px; }
+    .cs-ctrl-header {
+      padding: 24px 24px 20px;
+      background: linear-gradient(135deg,#f8fafc 0%,#f0f4f9 100%);
+      border-bottom: 1px solid #e8edf2; flex-shrink: 0;
+    }
     .cs-ctrl-eyebrow {
-      font-family: 'DM Mono', monospace; font-size: .65rem; font-weight: 500;
-      text-transform: uppercase; letter-spacing: .14em; color: #6b7280;
-      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: .58rem;
+      text-transform: uppercase; letter-spacing: .18em; color: #94a3b8; margin-bottom: 4px;
     }
     .cs-ctrl-title {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: 2rem; font-weight: 900; color: #0f172a;
-      line-height: 1.05; letter-spacing: -.03em;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.1rem; font-weight: 700; color: #0f172a;
+      line-height: 1.0; letter-spacing: -.02em;
     }
 
-    /* Section */
-    .cs-section { padding: 20px 0; border-bottom: 1px solid #e5e7eb; }
-    .cs-section:last-of-type { border-bottom: none; }
+    .cs-section { padding: 16px 24px; border-bottom: 1px solid #f1f4f8; }
+    .cs-section:last-of-type { border-bottom: none; padding-bottom: 28px; }
     .cs-section-lbl {
-      font-family: 'DM Mono', monospace; font-size: .62rem; font-weight: 500;
-      text-transform: uppercase; letter-spacing: .12em; color: #9ca3af;
-      margin-bottom: 14px;
+      font-family: 'JetBrains Mono', monospace; font-size: .56rem;
+      text-transform: uppercase; letter-spacing: .16em; color: #b0b8c8; margin-bottom: 12px;
     }
-    .cs-optional { color: #d1d5db; font-weight: 400; }
+    .cs-optional { font-weight: 400; color: #d1d5db; }
 
-    /* Color swatches */
-    .cs-swatches { display: flex; gap: 12px; }
-    .cs-swatch-item { display: flex; align-items: center; gap: 12px; flex: 1; }
+    /* Swatches 2x2 */
+    .cs-swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cs-swatch-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #f8fafc; border: 1.5px solid #edf0f6;
+      border-radius: 12px; padding: 10px 12px; cursor: pointer;
+      transition: border-color .13s, box-shadow .13s;
+    }
+    .cs-swatch-item:hover { border-color: #c8d0dc; box-shadow: 0 2px 8px rgba(15,23,42,.07); }
     .cs-swatch {
-      width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
-      flex-shrink: 0; overflow: hidden; border: 3px solid white;
-      box-shadow: 0 0 0 1px #e5e7eb, 0 4px 12px rgba(0,0,0,.12);
-      transition: box-shadow .18s, transform .15s;
-      background: #2563eb;
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      overflow: hidden; border: 2.5px solid white;
+      box-shadow: 0 0 0 1.5px #dde3ec, 0 3px 8px rgba(0,0,0,.16);
+      transition: transform .14s; cursor: pointer;
     }
-    .cs-swatch:hover { transform: scale(1.08); box-shadow: 0 0 0 1px #e5e7eb, 0 8px 24px rgba(0,0,0,.18); }
+    .cs-swatch:hover { transform: scale(1.1); }
     .cs-swatch input[type="color"] {
-      width: 200%; height: 200%; margin: -50%; border: none;
-      padding: 0; cursor: pointer; background: none; opacity: 0;
+      width: 200%; height: 200%; margin: -50%;
+      border: none; padding: 0; cursor: pointer; opacity: 0;
     }
-    .cs-swatch-name {
-      font-size: .75rem; font-weight: 600; color: #374151; margin-bottom: 2px;
-    }
+    .cs-swatch-name { font-size: .7rem; font-weight: 700; color: #374151; line-height: 1.2; }
     .cs-swatch-hex {
-      font-family: 'DM Mono', monospace; font-size: .72rem;
-      color: #9ca3af; letter-spacing: .04em;
+      font-family: 'JetBrains Mono', monospace; font-size: .62rem; color: #9ca3af; margin-top: 1px;
     }
 
     /* Patterns */
-    .cs-patterns {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-    }
+    .cs-patterns { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
     .cs-pattern-opt {
-      display: flex; flex-direction: column; align-items: center; gap: 5px;
-      cursor: pointer; padding: 6px 4px;
-      border: 2px solid #e5e7eb; border-radius: 10px;
-      transition: all .15s; font-family: 'DM Mono', monospace;
-      font-size: .58rem; color: #9ca3af; letter-spacing: .03em;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer; padding: 7px 3px; border: 1.5px solid #e8edf2;
+      border-radius: 10px; background: #fafbfc;
+      transition: all .14s; font-family: 'JetBrains Mono', monospace;
+      font-size: .55rem; color: #9ca3af;
     }
-    .cs-pattern-opt:hover { border-color: #6b7280; color: #374151; }
-    .cs-pattern-opt.selected { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
-    :root { --thumb-c: #2563eb; }
-
+    .cs-pattern-opt:hover { border-color: #9ca3af; color: #374151; background: #f4f6f9; }
+    .cs-pattern-opt.selected {
+      border-color: var(--thumb-c,#2563eb); color: var(--thumb-c,#2563eb); background: #fff;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--thumb-c,#2563eb) 12%, transparent);
+    }
     .cs-pt-thumb {
-      width: 48px; height: 30px; border-radius: 5px;
-      background: #f3f4f6; overflow: hidden; position: relative;
-      border: 1px solid #e5e7eb;
+      width: 42px; height: 27px; border-radius: 5px;
+      background: #f1f3f6; overflow: hidden; position: relative;
+      border: 1px solid #e5e7eb; transition: border-color .14s;
     }
-    .cs-pattern-opt.selected .cs-pt-thumb { border-color: #bfdbfe; }
+    .cs-pattern-opt.selected .cs-pt-thumb {
+      border-color: color-mix(in srgb, var(--thumb-c,#2563eb) 35%, transparent);
+    }
     .cc-pt-limpo { background: #f9fafb; }
     .cc-pt-geometrico::before {
-      content: ''; position: absolute; top:0; left:0;
-      border-style: solid; border-width: 30px 28px 0 0;
+      content:""; position:absolute; top:0; left:0;
+      border-style:solid; border-width:27px 26px 0 0;
       border-color: color-mix(in srgb, var(--thumb-c) 22%, transparent) transparent transparent transparent;
     }
     .cc-pt-geometrico::after {
-      content: ''; position: absolute; bottom:0; right:0;
-      border-style: solid; border-width: 0 0 18px 18px;
-      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 15%, transparent) transparent;
+      content:""; position:absolute; bottom:0; right:0;
+      border-style:solid; border-width:0 0 16px 16px;
+      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 14%, transparent) transparent;
     }
     .cc-pt-pontos {
       background-image: radial-gradient(color-mix(in srgb, var(--thumb-c) 28%, transparent) 1.5px, transparent 1.5px);
@@ -194,95 +176,107 @@
         color-mix(in srgb, var(--thumb-c) 20%, transparent) 6px);
     }
     .cc-pt-ondas::before {
-      content: ''; position: absolute; inset: 0;
+      content:""; position:absolute; inset:0;
       background: linear-gradient(155deg, transparent 55%, color-mix(in srgb, var(--thumb-c) 18%, transparent) 55%);
     }
 
     /* Fonts */
-    .cs-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cs-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .cs-font-opt {
-      padding: 12px 13px; border: 2px solid #e5e7eb;
-      border-radius: 11px; cursor: pointer; transition: all .15s;
-      display: flex; flex-direction: column; gap: 3px;
+      padding: 11px 13px; border: 1.5px solid #e8edf2; border-radius: 11px;
+      cursor: pointer; background: #fafbfc; transition: all .14s;
+      display: flex; flex-direction: column; gap: 2px;
     }
-    .cs-font-opt:hover { border-color: #9ca3af; }
-    .cs-font-opt.selected { border-color: #2563eb; background: #eff6ff; }
-    .cs-font-name { font-size: .68rem; font-weight: 700; color: #374151; }
-    .cs-font-opt.selected .cs-font-name { color: #2563eb; }
-    .cs-font-sample { font-size: 1.1rem; color: #0f172a; line-height: 1; }
+    .cs-font-opt:hover { border-color: #9ca3af; background: #f4f6f9; }
+    .cs-font-opt.selected {
+      border-color: var(--thumb-c,#2563eb); background: #fff;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--thumb-c,#2563eb) 12%, transparent);
+    }
+    .cs-font-name { font-size: .66rem; font-weight: 700; color: #374151; }
+    .cs-font-opt.selected .cs-font-name { color: var(--thumb-c,#2563eb); }
+    .cs-font-sample { font-size: 1.05rem; color: #1e293b; line-height: 1; }
 
     /* Logo */
     .cs-logo-drop {
-      border: 2px dashed #d1d5db; border-radius: 12px; padding: 22px 16px;
-      text-align: center; cursor: pointer; transition: all .15s;
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      position: relative; background: #f9fafb;
+      border: 1.5px dashed #c8d0dc; border-radius: 12px; padding: 18px 14px;
+      text-align: center; cursor: pointer; background: #fafbfc;
+      transition: all .14s; display: flex; flex-direction: column;
+      align-items: center; gap: 6px; position: relative;
     }
-    .cs-logo-drop:hover { border-color: #2563eb; background: #eff6ff; }
+    .cs-logo-drop:hover { border-color: var(--thumb-c,#2563eb); background: color-mix(in srgb, var(--thumb-c,#2563eb) 4%, white); }
     .cs-logo-drop input[type="file"] { display: none; }
-    .cc-logo-preview-img { max-height: 55px; max-width: 110px; display: none; border-radius: 6px; }
-    .cs-logo-text { font-size: .78rem; color: #9ca3af; }
-    .cs-logo-text strong { color: #2563eb; }
-    .cs-logo-text small { display: block; font-size: .65rem; color: #c9d0d9; margin-top: 2px; }
+    .cc-logo-preview-img { max-height: 52px; max-width: 110px; display: none; border-radius: 6px; }
+    .cs-logo-text { font-size: .75rem; color: #9ca3af; line-height: 1.5; }
+    .cs-logo-text strong { color: var(--thumb-c,#2563eb); }
+    .cs-logo-text small { display: block; font-size: .62rem; color: #c9d0d9; margin-top: 2px; }
     .cc-btn-rm-logo {
-      display: none; align-items: center; gap: 5px;
-      font-size: .7rem; font-weight: 600; color: #ef4444;
+      display: none; align-items: center; gap: 4px;
+      font-size: .68rem; font-weight: 600; color: #ef4444;
       background: #fef2f2; border: 1px solid #fca5a5;
-      border-radius: 7px; padding: 4px 10px; cursor: pointer; font-family: inherit;
-      transition: all .13s; margin-top: 4px;
+      border-radius: 7px; padding: 3px 9px; cursor: pointer; font-family: inherit;
+      transition: all .13s;
     }
     .cc-btn-rm-logo:hover { background: #ef4444; color: white; }
 
-    /* Save button */
+    /* Save */
     .cs-save {
-      margin-top: 24px; width: 100%; padding: 14px;
-      background: #0f172a; color: white;
-      border: none; border-radius: 12px; font-family: 'Epilogue', sans-serif;
-      font-size: .9rem; font-weight: 700; cursor: pointer; letter-spacing: .01em;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background .18s, transform .14s, box-shadow .18s;
-      box-shadow: 0 4px 16px rgba(15,23,42,.22);
+      margin: 0 24px 28px; padding: 14px;
+      background: linear-gradient(135deg, var(--thumb-c,#2563eb) 0%, color-mix(in srgb, var(--thumb-c,#2563eb) 70%, #000) 100%);
+      color: white; border: none; border-radius: 13px;
+      font-family: 'Manrope', sans-serif; font-size: .9rem; font-weight: 800;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .14s, box-shadow .14s, opacity .14s;
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--thumb-c,#2563eb) 35%, transparent);
+      letter-spacing: .01em;
     }
     .cs-save:hover:not(:disabled) {
-      background: #1e293b; transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(15,23,42,.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px color-mix(in srgb, var(--thumb-c,#2563eb) 45%, transparent);
     }
-    .cs-save:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .cs-save:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
     /* Lightbox */
     .cc-lightbox {
-      position: fixed; inset: 0; background: rgba(0,0,0,.85);
+      position: fixed; inset: 0; background: rgba(0,0,0,.8);
       z-index: 999; display: flex; align-items: center; justify-content: center;
       opacity: 0; transition: opacity .22s; backdrop-filter: blur(12px); cursor: zoom-out;
     }
     .cc-lightbox.open { opacity: 1; }
     .cc-lightbox img {
-      max-width: min(96vw, 1060px); max-height: 90vh;
-      border-radius: 12px; box-shadow: 0 40px 100px rgba(0,0,0,.6);
+      max-width: min(96vw,1060px); max-height: 90vh;
+      border-radius: 12px; box-shadow: 0 40px 100px rgba(0,0,0,.5);
       transform: scale(.94); transition: transform .26s cubic-bezier(.22,1,.36,1);
     }
     .cc-lightbox.open img { transform: scale(1); }
     .cc-lb-close {
-      position: absolute; top: 20px; right: 24px;
-      width: 40px; height: 40px; border-radius: 50%;
-      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      position: absolute; top: 18px; right: 22px;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.22);
       color: white; font-size: 1rem; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background .13s; font-family: inherit;
     }
-    .cc-lb-close:hover { background: rgba(255,255,255,.26); }
+    .cc-lb-close:hover { background: rgba(255,255,255,.28); }
 
     /* Toast */
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #0f172a; color: white; padding: 11px 20px; border-radius: 10px; font-size: .84rem; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,.3); transition: transform .26s cubic-bezier(0.175,.885,.32,1.275); z-index: 9999; white-space: nowrap; pointer-events: none; max-width: calc(100vw - 32px); font-family: 'Epilogue', sans-serif; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #0f172a; color: white; padding: 11px 20px;
+      border-radius: 10px; font-size: .84rem; font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+      transition: transform .26s cubic-bezier(0.175,.885,.32,1.275);
+      z-index: 9999; white-space: nowrap; pointer-events: none;
+      max-width: calc(100vw - 32px); font-family: 'Manrope', sans-serif;
+    }
     .toast.show    { transform: translateX(-50%) translateY(0); }
     .toast.success { background: #16a34a; }
     .toast.error   { background: #dc2626; }
 
-    /* Responsive */
     @media (max-width: 860px) {
       .cs-studio { flex-direction: column; }
-      .cs-canvas { min-height: 320px; flex: none; }
-      .cs-controls { width: 100%; border-left: none; border-top: 1px solid #e5e7eb; }
+      .cs-canvas { min-height: 300px; flex: none; }
+      .cs-controls { width: 100%; border-left: none; border-top: 1px solid #e8edf2; }
     }
   </style>
 </head>
@@ -379,14 +373,13 @@
     <div id="page-root" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       <div class="cs-studio">
 
-        <!-- ── LEFT: Dark canvas ── -->
         <div class="cs-canvas">
           <div class="cs-canvas-top">
             <div class="cs-canvas-brand">
               <span class="cs-canvas-dot"></span>
               Card Studio
             </div>
-            <span class="cs-canvas-tip">Clique para ampliar · Frente + Verso</span>
+            <span class="cs-canvas-tip">Clique para ampliar &middot; Frente + Verso</span>
           </div>
           <div class="cs-canvas-scene">
             <div class="cs-card-float">
@@ -398,14 +391,12 @@
           <div class="cs-canvas-footer">dados fictícios — crachá real gerado na tela de alunos</div>
         </div>
 
-        <!-- ── RIGHT: Controls ── -->
         <div class="cs-controls">
-          <header class="cs-ctrl-header">
+          <div class="cs-ctrl-header">
             <div class="cs-ctrl-eyebrow">Identidade Visual</div>
-            <h1 class="cs-ctrl-title">Crachá</h1>
-          </header>
+            <div class="cs-ctrl-title">Crachá</div>
+          </div>
 
-          <!-- Cores -->
           <div class="cs-section">
             <div class="cs-section-lbl">Cores</div>
             <div class="cs-swatches">
@@ -448,34 +439,27 @@
             </div>
           </div>
 
-          <!-- Padrão -->
           <div class="cs-section">
             <div class="cs-section-lbl">Padrão decorativo</div>
             <div class="cs-patterns" id="input-padrao" data-value="limpo">
               <div class="cs-pattern-opt selected" data-pattern="limpo">
-                <div class="cs-pt-thumb cc-pt-limpo"></div>
-                <span>Limpo</span>
+                <div class="cs-pt-thumb cc-pt-limpo"></div><span>Limpo</span>
               </div>
               <div class="cs-pattern-opt" data-pattern="geometrico">
-                <div class="cs-pt-thumb cc-pt-geometrico"></div>
-                <span>Geom.</span>
+                <div class="cs-pt-thumb cc-pt-geometrico"></div><span>Geom.</span>
               </div>
               <div class="cs-pattern-opt" data-pattern="pontos">
-                <div class="cs-pt-thumb cc-pt-pontos"></div>
-                <span>Pontos</span>
+                <div class="cs-pt-thumb cc-pt-pontos"></div><span>Pontos</span>
               </div>
               <div class="cs-pattern-opt" data-pattern="diagonal">
-                <div class="cs-pt-thumb cc-pt-diagonal"></div>
-                <span>Diag.</span>
+                <div class="cs-pt-thumb cc-pt-diagonal"></div><span>Diag.</span>
               </div>
               <div class="cs-pattern-opt" data-pattern="ondas">
-                <div class="cs-pt-thumb cc-pt-ondas"></div>
-                <span>Ondas</span>
+                <div class="cs-pt-thumb cc-pt-ondas"></div><span>Ondas</span>
               </div>
             </div>
           </div>
 
-          <!-- Fonte -->
           <div class="cs-section">
             <div class="cs-section-lbl">Fonte</div>
             <div class="cs-fonts" id="input-fonte" data-value="georgia">
@@ -498,14 +482,13 @@
             </div>
           </div>
 
-          <!-- Logo -->
           <div class="cs-section">
             <div class="cs-section-lbl">Logo <span class="cs-optional">(opcional)</span></div>
             <div class="cs-logo-drop" id="logo-area" data-logo="">
               <input type="file" id="logo-upload" accept="image/*" />
               <img id="logo-preview-img" class="cc-logo-preview-img" alt="Logo" />
               <div id="logo-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24" style="opacity:.3;margin-bottom:5px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.25;margin-bottom:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 <div class="cs-logo-text"><strong>Clique para enviar</strong> o logo<small>PNG, JPG — máx 500KB</small></div>
               </div>
               <button class="cc-btn-rm-logo" id="btn-remover-logo" type="button">
