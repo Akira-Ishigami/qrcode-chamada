@@ -798,6 +798,10 @@ async function abrirWaChat(ticket) {
   const unread = document.querySelector(`.wa-conv-row[data-id="${ticket.id}"] .wa-unread-dot`);
   if (unread) unread.style.display = "none";
 
+  // Mobile: esconde sidebar, mostra chat
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) document.querySelector(".wa-sidebar")?.classList.add("hidden");
+
   const chatArea = document.getElementById("wa-chat-area");
   chatArea.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
@@ -812,6 +816,9 @@ async function abrirWaChat(ticket) {
   chatArea.innerHTML = `
     <div class="wa-chat-wrap">
       <div class="wa-chat-head">
+        <button class="wa-back-btn" id="wa-back" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
         <div class="wa-chat-head-info">
           <div class="wa-chat-inst">${esc(ticket.instituicoes?.nome || "—")}</div>
           <div class="wa-chat-title">${esc(ticket.titulo)}</div>
@@ -858,6 +865,15 @@ async function abrirWaChat(ticket) {
   const msgsEl    = document.getElementById("wa-msgs");
   (msgs ?? []).forEach(m => bubblesEl.appendChild(buildWaBubble(m, true)));
   setTimeout(() => { msgsEl.scrollTop = msgsEl.scrollHeight; }, 30);
+
+  // Mobile: mostra botão voltar
+  const backBtn = document.getElementById("wa-back");
+  if (backBtn) {
+    if (window.innerWidth <= 768) backBtn.style.display = "flex";
+    backBtn.addEventListener("click", () => {
+      document.querySelector(".wa-sidebar")?.classList.remove("hidden");
+    });
+  }
 
   const mudarStatusWa = async (novoStatus, silent = false) => {
     if (novoStatus === ticket.status) return;
