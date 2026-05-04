@@ -116,10 +116,10 @@ async function carregarConfig() {
   if (data) {
     // Cores: input + swatch + hex display + CSS var
     const corFields = [
-      { inputId: "input-cor1",      swatchId: "swatch1",      valId: "val-cor1",      val: data.cor_principal  || "#2563eb", isMain: true },
+      { inputId: "input-cor1",      swatchId: "swatch1",      valId: "val-cor1",      val: data.cor_principal  || "#2563eb" },
       { inputId: "input-cor2",      swatchId: "swatch2",      valId: "val-cor2",      val: data.cor_secundaria || "#1e40af" },
       { inputId: "input-cor-texto", swatchId: "swatch-texto", valId: "val-cor-texto", val: data.cor_texto       || "#111827" },
-      { inputId: "input-cor-decor", swatchId: "swatch-decor", valId: "val-cor-decor", val: data.cor_decoracao  || "#2563eb" },
+      { inputId: "input-cor-decor", swatchId: "swatch-decor", valId: "val-cor-decor", val: data.cor_decoracao  || "#2563eb", isDecor: true },
     ];
     corFields.forEach(f => {
       const inp = document.getElementById(f.inputId);
@@ -128,7 +128,7 @@ async function carregarConfig() {
       if (inp) inp.value = f.val;
       if (sw)  sw.style.background = f.val;
       if (vl)  vl.textContent = f.val;
-      if (f.isMain) document.documentElement.style.setProperty("--thumb-c", f.val);
+      if (f.isDecor) document.documentElement.style.setProperty("--thumb-c", f.val);
     });
 
     if (data.logo_url) setLogoPreview(data.logo_url);
@@ -254,6 +254,8 @@ async function salvar() {
       instituicao_id: instId,
       cor_principal:  cfg.cor_principal,
       cor_secundaria: cfg.cor_secundaria,
+      cor_texto:      cfg.cor_texto,
+      cor_decoracao:  cfg.cor_decoracao,
       logo_url:       cfg.logo_url,
       padrao:         cfg.padrao,
       fonte:          cfg.fonte,
