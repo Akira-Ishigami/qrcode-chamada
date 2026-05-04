@@ -531,6 +531,132 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 }
 @keyframes skPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
+/* Card clicável */
+.aluno-card { cursor: pointer; }
+.aluno-card-actions button { cursor: pointer; }
+
+/* ─── Modal Visualizar Aluno ──────────────────────────────────────── */
+.mv-card {
+  background: #fff;
+  border-radius: 22px;
+  width: 420px; max-width: 95vw;
+  overflow: hidden;
+  box-shadow: 0 40px 90px rgba(0,0,0,.28), 0 8px 24px rgba(0,0,0,.12);
+  position: relative;
+  animation: mvIn .28s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes mvIn {
+  from { opacity:0; transform: scale(.93) translateY(14px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+
+.mv-close {
+  position: absolute; top: 12px; right: 12px; z-index: 10;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28);
+  color: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .13s;
+}
+.mv-close:hover { background: rgba(255,255,255,.32); }
+
+.mv-hero {
+  padding: 40px 32px 30px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+}
+
+.mv-avatar-ring {
+  width: 100px; height: 100px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.35);
+  overflow: hidden; margin-bottom: 6px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.22);
+  flex-shrink: 0;
+}
+.mv-avatar {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.1rem; font-weight: 800; font-family: 'Outfit', system-ui, sans-serif;
+}
+.mv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.mv-name {
+  color: white; font-size: 1.22rem; font-weight: 800;
+  line-height: 1.2; letter-spacing: -.01em;
+  text-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+
+.mv-pill {
+  background: rgba(255,255,255,.2);
+  border: 1px solid rgba(255,255,255,.32);
+  color: rgba(255,255,255,.92);
+  padding: 3px 13px; border-radius: 20px;
+  font-size: .73rem; font-weight: 600;
+}
+
+.mv-inst {
+  font-size: .68rem; color: rgba(255,255,255,.6);
+  font-weight: 500; letter-spacing: .03em;
+}
+
+.mv-body {
+  padding: 22px 28px 18px;
+}
+
+.mv-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px;
+}
+
+.mv-item { display: flex; flex-direction: column; gap: 3px; }
+.mv-item-full { grid-column: 1 / -1; }
+
+.mv-lbl {
+  font-size: .58rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--text-3);
+}
+.mv-val {
+  font-size: .88rem; font-weight: 600; color: var(--text);
+  word-break: break-word; line-height: 1.3;
+}
+
+.mv-footer {
+  display: flex; gap: 8px; padding: 16px 28px 24px;
+  border-top: 1px solid var(--border);
+}
+.mv-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 6px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  font-size: .76rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: all .14s; white-space: nowrap;
+}
+.mv-btn-edit:hover   { background: var(--surface-3); border-color: var(--border-2); color: var(--text); }
+.mv-btn-qr:hover     { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+.mv-btn-cracha:hover { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+
+/* ─── Modal Editar — header melhorado ────────────────────────────── */
+.ed-card { max-width: 560px !important; max-height: 92vh; overflow-y: auto; }
+.ed-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px 14px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+  flex-shrink: 0;
+}
+.ed-modal-hinfo {
+  display: flex; align-items: center; gap: 9px;
+  color: white; font-size: .92rem; font-weight: 700;
+  letter-spacing: -.01em;
+}
+.ed-modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  color: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .13s;
+}
+.ed-modal-close:hover { background: rgba(255,255,255,.28); }
+
 @media (max-width: 900px) { .alunos-card-grid { grid-template-columns: repeat(2, 1fr) !important; } }
 @media (max-width: 540px) { .alunos-card-grid { grid-template-columns: 1fr !important; } }
 

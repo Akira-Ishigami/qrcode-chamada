@@ -321,11 +321,100 @@ function renderAlunos() {
       </div>
     `;
 
+    card.addEventListener("click", e => {
+      if (e.target.closest(".aluno-card-actions")) return;
+      abrirModalVisualizar(a);
+    });
     card.querySelector(".aluno-btn-edit").addEventListener("click", () => abrirModalEditar(a));
     card.querySelector(".aluno-btn-qr").addEventListener("click", () => baixarQRAluno(a));
     card.querySelector(".aluno-btn-cracha").addEventListener("click", () => baixarCrachaAluno(a));
     alunosList.appendChild(card);
   });
+}
+
+// ─── Modal visualizar aluno ───────────────────────────────────────────────────
+function abrirModalVisualizar(aluno) {
+  document.getElementById("modal-visualizar-aluno")?.remove();
+
+  const initials = aluno.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
+  const [bg, fg] = ALUNO_PALETTES[(aluno.nome.charCodeAt(0) || 0) % ALUNO_PALETTES.length];
+
+  const fmtNasc = s => s ? new Date(s + "T00:00:00").toLocaleDateString("pt-BR") : null;
+
+  const campos = [
+    { lbl: "Matrícula",   val: aluno.matricula },
+    { lbl: "Turma",       val: aluno.turma?.nome },
+    { lbl: "Telefone",    val: aluno.telefone },
+    { lbl: "Nascimento",  val: fmtNasc(aluno.data_nascimento) },
+    { lbl: "ID Estadual", val: aluno.id_estadual },
+    { lbl: "Endereço",    val: aluno.endereco },
+  ].filter(c => c.val);
+
+  const overlay = document.createElement("div");
+  overlay.id = "modal-visualizar-aluno";
+  overlay.className = "form-modal open";
+
+  overlay.innerHTML = `
+    <div class="mv-card">
+      <button class="mv-close" id="mv-close" title="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <div class="mv-hero" style="background:linear-gradient(150deg,${fg} 0%,${fg}cc 100%)">
+        <div class="mv-avatar-ring">
+          <div class="mv-avatar" style="background:${bg};color:${fg}">
+            ${aluno.foto_url
+              ? `<img src="${aluno.foto_url}" alt="${initials}" />`
+              : `<span>${initials}</span>`}
+          </div>
+        </div>
+        <h2 class="mv-name">${aluno.nome}</h2>
+        ${aluno.turma?.nome ? `<span class="mv-pill">${aluno.turma.nome}</span>` : ""}
+        ${aluno.inst?.nome  ? `<span class="mv-inst">${aluno.inst.nome}</span>` : ""}
+      </div>
+
+      <div class="mv-body">
+        ${campos.length ? `
+          <div class="mv-grid">
+            ${campos.map(c => `
+              <div class="mv-item ${c.lbl === 'Endereço' ? 'mv-item-full' : ''}">
+                <span class="mv-lbl">${c.lbl}</span>
+                <span class="mv-val">${c.val}</span>
+              </div>`).join("")}
+          </div>` : `<p style="text-align:center;color:var(--text-3);font-size:.85rem">Nenhuma informação adicional.</p>`}
+      </div>
+
+      <div class="mv-footer">
+        <button class="mv-btn mv-btn-edit" id="mv-btn-edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
+        <button class="mv-btn mv-btn-qr" id="mv-btn-qr">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          QR Code
+        </button>
+        <button class="mv-btn mv-btn-cracha" id="mv-btn-cracha">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
+          Crachá
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 220); };
+  overlay.querySelector("#mv-close").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
+  });
+
+  overlay.querySelector("#mv-btn-edit").addEventListener("click", () => {
+    fechar(); setTimeout(() => abrirModalEditar(aluno), 180);
+  });
+  overlay.querySelector("#mv-btn-qr").addEventListener("click", () => baixarQRAluno(aluno));
+  overlay.querySelector("#mv-btn-cracha").addEventListener("click", () => baixarCrachaAluno(aluno));
 }
 
 // ─── Modal editar aluno ───────────────────────────────────────────────────────
@@ -338,18 +427,18 @@ function abrirModalEditar(aluno) {
   overlay.className = "form-modal open";
 
   overlay.innerHTML = `
-    <div class="form-modal-card" style="max-width:560px;max-height:92vh;overflow-y:auto">
-      <div class="form-modal-header">
-        <div class="form-modal-title">
-          <div class="form-modal-icon blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </div>
-          <h3>Editar Aluno</h3>
+    <div class="form-modal-card ed-card">
+      <div class="ed-modal-header">
+        <div class="ed-modal-hinfo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16" style="opacity:.75">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>Editar Aluno</span>
         </div>
-        <button class="form-modal-close" id="ed-fechar">✕</button>
+        <button class="ed-modal-close" id="ed-fechar" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <div class="form-modal-body">
