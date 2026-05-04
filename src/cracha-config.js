@@ -5,10 +5,10 @@ import { gerarCracha }   from "./cracha.js";
 
 // ── Demo para preview ─────────────────────────────────────────────────────────
 const DEMO_ALUNO = {
-  nome: "Maria Silva Santos",
+  nome: "Maria José da Silva Santos",
   matricula: "MAT2024001",
   foto_url: null,
-  turma: { nome: "7º Ano A - Matemática" },
+  turma: { nome: "7º Ano A" },
   id_estadual: "12.345.678-9",
   telefone: "(69) 99999-9999",
   data_nascimento: "2010-01-01",
