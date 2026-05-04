@@ -51,8 +51,9 @@ async function init() {
   await carregarConfig();
 
   // Eventos
-  document.getElementById("input-cor1").addEventListener("input", agendarPreview);
-  document.getElementById("input-cor2").addEventListener("input", agendarPreview);
+  ["input-cor1","input-cor2","input-cor-texto","input-cor-decor"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", agendarPreview);
+  });
   document.getElementById("btn-salvar").addEventListener("click", salvar);
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
   document.getElementById("btn-remover-logo").addEventListener("click", removerLogo);
@@ -93,6 +94,16 @@ async function carregarConfig() {
   if (data) {
     document.getElementById("input-cor1").value = data.cor_principal  || "#2563eb";
     document.getElementById("input-cor2").value = data.cor_secundaria || "#1e40af";
+    const ct = document.getElementById("input-cor-texto");
+    const cd = document.getElementById("input-cor-decor");
+    if (ct) ct.value = data.cor_texto    || "#111827";
+    if (cd) cd.value = data.cor_decoracao || "#2563eb";
+    // Atualiza swatches
+    ["swatch1","swatch2","swatch-texto","swatch-decor"].forEach((id,i) => {
+      const el = document.getElementById(id);
+      const v  = [data.cor_principal, data.cor_secundaria, data.cor_texto, data.cor_decoracao][i];
+      if (el && v) el.style.background = v;
+    });
     if (data.logo_url) setLogoPreview(data.logo_url);
 
     // Padrão
@@ -179,6 +190,8 @@ function getConfig() {
   return {
     cor_principal:  document.getElementById("input-cor1").value,
     cor_secundaria: document.getElementById("input-cor2").value,
+    cor_texto:      document.getElementById("input-cor-texto")?.value   || "#111827",
+    cor_decoracao:  document.getElementById("input-cor-decor")?.value   || "#2563eb",
     logo_url: document.getElementById("logo-area").dataset.logo || null,
     padrao:   document.getElementById("input-padrao")?.dataset.value || "limpo",
     fonte:    document.getElementById("input-fonte")?.dataset.value  || "georgia",

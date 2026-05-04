@@ -68,8 +68,9 @@ function fmtNasc(s) {
 
 // ── Padrões decorativos ───────────────────────────────────────────────────────
 // Desenhado APÓS o fundo branco, clipado apenas na área do corpo (entre header e footer)
-function drawPadrao(ctx, ox, oy, cor1, padrao) {
+function drawPadrao(ctx, ox, oy, corDecor, padrao) {
   if (!padrao || padrao === "limpo") return;
+  const cor1 = corDecor; // alias para o restante da função
 
   const bodyY = oy + HEADER;
   const bodyH = CH - HEADER - FOOTER;
@@ -165,14 +166,12 @@ function drawPadrao(ctx, ox, oy, cor1, padrao) {
 }
 
 // ── Estrutura base do card ────────────────────────────────────────────────────
-function drawCardBase(ctx, ox, oy, cor1, cor2, padrao) {
-  // Fundo branco
+function drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor) {
   ctx.fillStyle = "#ffffff";
   rr(ctx, ox, oy, CW, CH, CR);
   ctx.fill();
 
-  // Padrão decorativo
-  drawPadrao(ctx, ox, oy, cor1, padrao || "limpo");
+  drawPadrao(ctx, ox, oy, corDecor || cor1, padrao || "limpo");
 
   // Borda externa
   ctx.strokeStyle = "#d1d5db";
@@ -239,10 +238,11 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
 }
 
 // ── FRENTE ────────────────────────────────────────────────────────────────────
-async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte) {
+async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
+  corTexto = corTexto || "#111827";
 
-  drawCardBase(ctx, ox, oy, cor1, cor2, padrao);
+  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor);
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
@@ -310,16 +310,13 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
     ctx.fillStyle = cor1;
     ctx.font = `bold 9px Arial, sans-serif`;
     ctx.textAlign = "left";
-    ctx.letterSpacing = "0.03em";
     ctx.fillText(t + ":", tx, cy);
-    ctx.letterSpacing = "";
     cy += 14;
   };
-  // Função valor: fonte escolhida, tamanho maior, cor escura
   const val = (text, sz = 13, maxW = tw) => {
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
-      ctx.fillStyle = "#111827";
+      ctx.fillStyle = corTexto;
       ctx.font = `bold ${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
@@ -346,7 +343,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   ctx.fillText("Id Estadual:", tx + half + 10, cy);
   cy += 14;
 
-  ctx.fillStyle = "#111827";
+  ctx.fillStyle = corTexto;
   const r1 = fitText(ctx, turmaV, half, 12, 9, font);
   const r2 = fitText(ctx, idEstV, half, 12, 9, font);
   ctx.font = `bold ${r1.size}px ${font}`; ctx.fillText(r1.text, tx, cy);
@@ -359,10 +356,11 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
-function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte) {
+function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
+  corTexto = corTexto || "#111827";
 
-  drawCardBase(ctx, ox, oy, cor1, cor2, padrao);
+  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor);
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
@@ -419,7 +417,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   const val = (text, sz = 13, maxW = tw) => {
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
-      ctx.fillStyle = "#111827";
+      ctx.fillStyle = corTexto;
       ctx.font = `bold ${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
@@ -446,18 +444,19 @@ export async function gerarCracha(aluno, config, instNome) {
   canvas.height = CH + PAD * 2;
   const ctx = canvas.getContext("2d");
 
-  // Fundo neutro
   ctx.fillStyle = "#e5e7eb";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const cor1   = config?.cor_principal  || "#2563eb";
-  const cor2   = config?.cor_secundaria || "#1e40af";
-  const padrao = config?.padrao || "limpo";
-  const fonte  = config?.fonte  || "georgia";
+  const cor1       = config?.cor_principal  || "#2563eb";
+  const cor2       = config?.cor_secundaria || "#1e40af";
+  const padrao     = config?.padrao         || "limpo";
+  const fonte      = config?.fonte          || "georgia";
+  const corTexto   = config?.cor_texto      || "#111827";
+  const corDecor   = config?.cor_decoracao  || cor1;
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
-    color: { dark: "#0f172a", light: "#ffffff" },
+    color: { dark: corTexto, light: "#ffffff" },
   });
 
   const [fotoImg, logoImg, qrImg] = await Promise.all([
@@ -466,8 +465,8 @@ export async function gerarCracha(aluno, config, instNome) {
     loadImg(qrDataUrl),
   ]);
 
-  await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte);
-  drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte);
+  await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
+  drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
 
   return canvas.toDataURL("image/png");
 }

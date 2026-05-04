@@ -427,6 +427,24 @@
                   <div class="cs-swatch-hex" id="val-cor2">#1e40af</div>
                 </div>
               </div>
+              <div class="cs-swatch-item">
+                <div class="cs-swatch" id="swatch-texto" style="background:#111827">
+                  <input type="color" id="input-cor-texto" value="#111827" />
+                </div>
+                <div>
+                  <div class="cs-swatch-name">Texto</div>
+                  <div class="cs-swatch-hex" id="val-cor-texto">#111827</div>
+                </div>
+              </div>
+              <div class="cs-swatch-item">
+                <div class="cs-swatch" id="swatch-decor" style="background:#2563eb">
+                  <input type="color" id="input-cor-decor" value="#2563eb" />
+                </div>
+                <div>
+                  <div class="cs-swatch-name">Decoração</div>
+                  <div class="cs-swatch-hex" id="val-cor-decor">#2563eb</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -517,16 +535,22 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   localStorage.removeItem('qr_role');
   window.location.href = '/login.html';
 });
-// Sync color swatches + hex + CSS var para padrões
-['cor1','cor2'].forEach((id, i) => {
+// Sync todos os color swatches + hex + CSS vars
+[
+  ['cor1',      'swatch1',      'val-cor1'],
+  ['cor2',      'swatch2',      'val-cor2'],
+  ['cor-texto', 'swatch-texto', 'val-cor-texto'],
+  ['cor-decor', 'swatch-decor', 'val-cor-decor'],
+].forEach(([id, swId, valId]) => {
   const input  = document.getElementById('input-' + id);
-  const val    = document.getElementById('val-' + id);
-  const swatch = document.getElementById('swatch' + (i + 1));
-  if (input) input.addEventListener('input', () => {
-    if (val)    val.textContent = input.value;
+  const swatch = document.getElementById(swId);
+  const val    = document.getElementById(valId);
+  if (!input) return;
+  input.addEventListener('input', () => {
     if (swatch) swatch.style.background = input.value;
-    // Atualiza cor dos thumbnails de padrão com a cor principal
-    if (id === 'cor1') document.documentElement.style.setProperty('--thumb-c', input.value);
+    if (val)    val.textContent = input.value;
+    if (id === 'cor1')      document.documentElement.style.setProperty('--thumb-c', input.value);
+    if (id === 'cor-decor') document.documentElement.style.setProperty('--thumb-c', input.value);
   });
 });
 // Logo click
