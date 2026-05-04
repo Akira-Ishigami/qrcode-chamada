@@ -5,10 +5,14 @@ import { gerarCracha }   from "./cracha.js";
 
 // ── Demo para preview ─────────────────────────────────────────────────────────
 const DEMO_ALUNO = {
-  nome: "Maria Silva",
+  nome: "Maria Silva Santos",
   matricula: "MAT2024001",
   foto_url: null,
-  turma: { nome: "7º Ano A" },
+  turma: { nome: "7º Ano A - Matemática" },
+  id_estadual: "12.345.678-9",
+  telefone: "(69) 99999-9999",
+  data_nascimento: "2010-01-01",
+  endereco: "Rua dos teste, 123 - Centro",
 };
 
 let instId      = null;
@@ -105,7 +109,7 @@ async function carregarConfig() {
   if (!instId) return;
   const { data } = await supabaseAdmin
     .from("cracha_config")
-    .select("cor_principal, cor_secundaria, logo_url, padrao, fonte")
+    .select("cor_principal, cor_secundaria, cor_texto, cor_decoracao, logo_url, padrao, fonte")
     .eq("instituicao_id", instId)
     .maybeSingle();
 
@@ -132,14 +136,14 @@ async function carregarConfig() {
     // Padrão
     if (data.padrao) {
       document.getElementById("input-padrao").dataset.value = data.padrao;
-      document.querySelectorAll(".cc-pattern-opt").forEach(e => {
+      document.querySelectorAll(".cs-pattern-opt, .cc-pattern-opt").forEach(e => {
         e.classList.toggle("selected", e.dataset.pattern === data.padrao);
       });
     }
     // Fonte
     if (data.fonte) {
       document.getElementById("input-fonte").dataset.value = data.fonte;
-      document.querySelectorAll(".cc-font-opt").forEach(e => {
+      document.querySelectorAll(".cs-font-opt, .cc-font-opt").forEach(e => {
         e.classList.toggle("selected", e.dataset.font === data.fonte);
       });
     }

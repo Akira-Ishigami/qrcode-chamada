@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 // ── Dimensões ─────────────────────────────────────────────────────────────────
 const CW      = 560;   // largura de cada lado
 const CH      = 330;   // altura
-const HEADER  = 62;    // barra superior (maior para logo visível)
+const HEADER  = 76;    // barra superior (maior para logo bem visível)
 const FOOTER  = 48;    // barra inferior (nome da inst.)
 const BODY    = CH - HEADER - FOOTER;   // 234px
 const CR      = 10;    // raio dos cantos
@@ -200,7 +200,7 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
 
   // Logo box — prominente, top right
   if (logoImg) {
-    const bw = 120, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
+    const bw = 158, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
@@ -275,18 +275,24 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
     ctx.fillStyle = "#e8edf2";
     ctx.fillRect(photoX, photoY, photoW, photoH);
 
-    const cx  = photoX + photoW / 2;
-    const ico = "#aab4bd"; // cor do ícone (cinza-azulado)
+    const cx = photoX + photoW / 2;
 
-    // Cabeça — círculo no terço superior
-    const headR  = photoW * 0.22;
-    const headCY = photoY + photoH * 0.36;
-    ctx.fillStyle = ico;
+    // Gradiente no fundo da foto
+    const grad = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoH);
+    grad.addColorStop(0, "#dde4ef");
+    grad.addColorStop(1, "#c8d4e3");
+    ctx.fillStyle = grad;
+    ctx.fillRect(photoX, photoY, photoW, photoH);
+
+    // Cabeça
+    const headR  = photoW * 0.24;
+    const headCY = photoY + photoH * 0.34;
+    ctx.fillStyle = "#9fb0c2";
     ctx.beginPath(); ctx.arc(cx, headCY, headR, 0, Math.PI * 2); ctx.fill();
 
-    // Ombros — círculo grande, apenas o topo visível (cortado)
-    const bodyR  = photoW * 0.50;
-    const bodyCY = photoY + photoH * 0.85 + bodyR;
+    // Ombros — arco grande cortado
+    const bodyR  = photoW * 0.52;
+    const bodyCY = photoY + photoH * 0.88 + bodyR;
     ctx.beginPath(); ctx.arc(cx, bodyCY, bodyR, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
