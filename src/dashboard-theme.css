@@ -1,0 +1,38 @@
+/* ══ TEMA DARK — Painel Administrativo (dashboard.html) ══════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700;800&family=Exo+2:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg:        #0d1424;
+  --surface:   #141c30;
+  --surface-2: #101828;
+  --surface-3: #0d1524;
+  --surface-4: #1a2440;
+  --border:    rgba(0,210,255,0.14);
+  --border-2:  rgba(0,210,255,0.28);
+  --text:      #dde8f8;
+  --text-2:    #8fa8cc;
+  --text-3:    #566890;
+  --acc:       #00d4ff;
+  --acc-2:     #00b0e0;
+  --acc-sub:   rgba(0,212,255,0.08);
+  --acc-glow:  rgba(0,212,255,0.28);
+  --border-acc: rgba(0,212,255,0.35);
+  --sidebar-bg:     #0a1020;
+  --sidebar-hover:  rgba(0,212,255,0.08);
+  --sidebar-active: rgba(0,212,255,0.16);
+  --green:      #00e87a; --green-2: #00c066;
+  --green-sub:  rgba(0,232,122,0.12); --green-text: #00e87a;
+  --red:        #ff3d5a; --red-2: #e0002e;
+  --red-sub:    rgba(255,61,90,0.12); --red-text: #ff3d5a;
+  --amber:      #ffc200;
+  --amber-sub:  rgba(255,194,0,0.12); --amber-text: #ffc200;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow:    0 4px 20px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 36px rgba(0,0,0,0.7);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+body {
+  font-family: 'Exo 2', 'Outfit', system-ui, sans-serif;
+  background: var(--bg) !important;
+}

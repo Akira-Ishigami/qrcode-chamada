@@ -7,41 +7,10 @@
   <title>Admin — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700;800&family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/dashboard-theme.css" />
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="stylesheet" href="/src/turmas.css" />
   <style>
-    /* ══ TEMA DARK — apenas neste painel admin ══ */
-    :root {
-      --bg:        #0d1424;
-      --surface:   #141c30;
-      --surface-2: #101828;
-      --surface-3: #0d1524;
-      --surface-4: #1a2440;
-      --border:    rgba(0,210,255,0.14);
-      --border-2:  rgba(0,210,255,0.28);
-      --text:      #dde8f8;
-      --text-2:    #8fa8cc;
-      --text-3:    #566890;
-      --acc:       #00d4ff;
-      --acc-2:     #00b0e0;
-      --acc-sub:   rgba(0,212,255,0.08);
-      --acc-glow:  rgba(0,212,255,0.28);
-      --border-acc: rgba(0,212,255,0.35);
-      --sidebar-bg:     #0a1020;
-      --sidebar-hover:  rgba(0,212,255,0.08);
-      --sidebar-active: rgba(0,212,255,0.16);
-      --green:      #00e87a; --green-2: #00c066;
-      --green-sub:  rgba(0,232,122,0.12); --green-text: #00e87a;
-      --red:        #ff3d5a; --red-2: #e0002e;
-      --red-sub:    rgba(255,61,90,0.12); --red-text: #ff3d5a;
-      --amber:      #ffc200;
-      --amber-sub:  rgba(255,194,0,0.12); --amber-text: #ffc200;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
-      --shadow:    0 4px 20px rgba(0,0,0,0.6);
-      --shadow-lg: 0 8px 36px rgba(0,0,0,0.7);
-      --shadow-xl: 0 20px 60px rgba(0,0,0,0.8);
-    }
 
     /* ── Page root ── */
     #page-root { padding: 28px 24px !important; }
@@ -1110,25 +1079,32 @@
 
     /* ── Responsive ── */
     @media (max-width: 900px) {
-      .dash-stats-row { grid-template-columns: repeat(2, 1fr); }
+      .dash-stats-row { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
       .det-stats       { grid-template-columns: repeat(2, 1fr); }
       .det-body        { grid-template-columns: 1fr; }
       .dash-row2       { grid-template-columns: 1fr; }
       .notes-grid      { columns: 2 220px; }
       .ig-grid         { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-      .dash-banner     { padding: 24px 24px; }
-      .dash-title      { font-size: 1.4rem; }
-      .dash-clock      { font-size: 2rem; }
+      .dash-banner     { padding: 20px 18px; }
+      .dash-title      { font-size: 1.3rem; }
+      .dash-clock      { font-size: 1.8rem; }
+      .dash-act-row    { flex-wrap: nowrap; }
+    }
+    @media (max-width: 720px) {
+      .dash-stats-row { grid-template-columns: 1fr !important; }
+      .dash-stat-card { padding: 14px 14px; }
+      .dash-stat-num  { font-size: 1.5rem; }
     }
     @media (max-width: 520px) {
-      .dash-stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .dash-stats-row { grid-template-columns: 1fr !important; gap: 6px; }
       .det-stats  { grid-template-columns: 1fr 1fr; }
       .det-header { flex-direction: column; align-items: flex-start; }
       .det-body   { grid-template-columns: 1fr; }
       .ig-grid    { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .ig-card    { padding: 22px 16px 18px; }
       .ig-card-avatar { width: 54px; height: 54px; font-size: 1.5rem; }
-      .dash-clock { font-size: 1.6rem; }
+      .dash-clock { font-size: 1.4rem; }
+      .dash-banner { padding: 16px 14px; }
     }
 
     /* ══ EDITOR DE ANOTAÇÕES ═══════════════════════════════════════════ */
