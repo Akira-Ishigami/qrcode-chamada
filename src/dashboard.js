@@ -10,6 +10,8 @@ function clearClock() {
   if (_clockInterval) { clearInterval(_clockInterval); _clockInterval = null; }
 }
 
+let _pendingOpenTicketId = null;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -61,6 +63,10 @@ async function init() {
     setActive("nav-suporte");
     renderPedidos(); // kanban-mode adicionado dentro da função
   });
+  document.getElementById("nav-notas").addEventListener("click", () => {
+    setActive("nav-notas"); sairKanban(); window.scrollTo(0, 0);
+    renderAnotacoes();
+  });
 
   // Realtime — atualiza a view ativa quando o banco muda
   setupRealtime();
@@ -92,8 +98,13 @@ function setupRealtime() {
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "feedbacks" }, () => {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
-      if (active === "nav-suporte") renderPedidos();
+      if (active === "nav-dashboard") renderDashboard();
+      if (active === "nav-suporte")   renderPedidos();
       atualizarBadgePedidos();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "suporte_mensagens" }, () => {
+      const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
+      if (active === "nav-dashboard") renderDashboard();
     })
     .subscribe();
 }
@@ -109,7 +120,7 @@ async function atualizarBadgePedidos() {
   else           { badge.style.display = "none"; }
 }
 
-// ══ VIEW 1: DASHBOARD (read-only) ════════════════════════════════════════════
+// ══ VIEW 1: DASHBOARD ════════════════════════════════════════════════════════
 async function renderDashboard() {
   clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
@@ -119,34 +130,43 @@ async function renderDashboard() {
   const h       = new Date().getHours();
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 
-  const [
-    { data: instituicoes, error: e1 },
-    { data: alunos,       error: e2 },
-    { data: profs,        error: e3 },
-    { data: chamadas,     error: e4 },
-  ] = await Promise.all([
-    supabaseAdmin.from("instituicoes").select("id, nome"),
-    supabaseAdmin.from("alunos").select("id"),
-    supabaseAdmin.from("profiles").select("id").eq("role", "professor"),
-    supabaseAdmin.from("chamadas")
-      .select("id, aberta, turmas(nome, instituicoes(nome))")
-      .eq("data", hoje)
-      .limit(15),
-  ]);
+  const { data: feedbacks } = await supabaseAdmin
+    .from("feedbacks")
+    .select("id, tipo, titulo, status, criado_em, instituicao_id, instituicoes(nome), suporte_mensagens(texto, criado_em)")
+    .order("criado_em", { ascending: false })
+    .limit(50);
 
-  const fetchErr = e1 || e2 || e3 || e4;
-  if (fetchErr) {
-    root.innerHTML = `<div class="tv-error">Erro ao carregar dados: ${fetchErr.message}</div>`;
-    return;
-  }
+  const tickets = (feedbacks ?? []).map(f => {
+    const msgs = (f.suporte_mensagens ?? []).sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+    return { ...f, ultima_msg: msgs[0]?.texto ?? null, ultima_at: msgs[0]?.criado_em ?? f.criado_em };
+  });
 
-  const nInst   = (instituicoes ?? []).length;
-  const nAlunos = (alunos ?? []).length;
-  const nProfs  = (profs ?? []).length;
-  const nCham   = (chamadas ?? []).length;
-  const nAbr    = (chamadas ?? []).filter(c => c.aberta).length;
+  const nAbertos   = tickets.filter(t => t.status === "aberto").length;
+  const nAndamento = tickets.filter(t => t.status === "em_andamento").length;
+  const nFinaliz   = tickets.filter(t => t.status === "finalizado").length;
+
+  // Tickets do dia (criados hoje) + tickets abertos — sem duplicar
+  const ticketsHoje   = tickets.filter(t => t.criado_em?.startsWith(hoje));
+  const abertosExtra  = tickets.filter(t => t.status === "aberto" && !t.criado_em?.startsWith(hoje));
+  const destaque = [...ticketsHoje, ...abertosExtra].slice(0, 10);
 
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+
+  const STATUS_LABEL = { aberto: "Aberto", em_andamento: "Em andamento", finalizado: "Finalizado" };
+  const STATUS_CSS   = {
+    aberto:       "background:#fef3c7;color:#92400e;border:1px solid #fde68a",
+    em_andamento: "background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe",
+    finalizado:   "background:#dcfce7;color:#14532d;border:1px solid #86efac",
+  };
+
+  function fmtTime(iso) {
+    const d = new Date(iso), now = new Date(), ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    if (d.toDateString() === now.toDateString())
+      return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (d.toDateString() === ontem.toDateString()) return "Ontem";
+    return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+  }
 
   root.innerHTML = `
     <!-- Banner executivo -->
@@ -158,9 +178,9 @@ async function renderDashboard() {
         <div class="dash-greeting">${greeting}</div>
         <div class="dash-title">Painel Administrativo</div>
         <div class="dash-subtitle">${dataFmt}</div>
-        ${nAbr > 0
-          ? `<div class="dash-live-pill"><span class="dash-live-dot"></span>${nAbr} chamada${nAbr>1?"s":""} aberta${nAbr>1?"s":""}</div>`
-          : `<div class="dash-live-pill quiet">Nenhuma chamada aberta</div>`
+        ${nAbertos > 0
+          ? `<div class="dash-live-pill"><span class="dash-live-dot"></span>${nAbertos} chamado${nAbertos>1?"s":""} em aberto</div>`
+          : `<div class="dash-live-pill quiet">Suporte em dia</div>`
         }
       </div>
       <div class="dash-banner-right">
@@ -169,66 +189,100 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="dash-stats-row">
+    <!-- Stats suporte — 3 cards principais -->
+    <div class="dash-stats-row" style="grid-template-columns:repeat(3,1fr)">
       <div class="dash-stat-card" style="animation-delay:.05s">
-        <div class="dash-stat-icon blue">${svgInst()}</div>
+        <div class="dash-stat-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
         <div class="dash-stat-info">
-          <div class="dash-stat-num">${nInst}</div>
-          <div class="dash-stat-lbl">Instituições</div>
+          <div class="dash-stat-num">${nAbertos}</div>
+          <div class="dash-stat-lbl">Abertos</div>
         </div>
       </div>
       <div class="dash-stat-card" style="animation-delay:.1s">
-        <div class="dash-stat-icon green">${svgAluno()}</div>
+        <div class="dash-stat-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
         <div class="dash-stat-info">
-          <div class="dash-stat-num">${nAlunos}</div>
-          <div class="dash-stat-lbl">Alunos cadastrados</div>
+          <div class="dash-stat-num">${nAndamento}</div>
+          <div class="dash-stat-lbl">Em análise</div>
         </div>
       </div>
       <div class="dash-stat-card" style="animation-delay:.15s">
-        <div class="dash-stat-icon purple">${svgProf()}</div>
-        <div class="dash-stat-info">
-          <div class="dash-stat-num">${nProfs}</div>
-          <div class="dash-stat-lbl">Professores</div>
+        <div class="dash-stat-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-      </div>
-      <div class="dash-stat-card" style="animation-delay:.2s">
-        <div class="dash-stat-icon orange">${svgQr()}</div>
         <div class="dash-stat-info">
-          <div class="dash-stat-num">${nCham}</div>
-          <div class="dash-stat-lbl">Chamadas hoje${nAbr ? `<span class="dash-badge-aberta">${nAbr} abertas</span>` : ""}</div>
+          <div class="dash-stat-num">${nFinaliz}</div>
+          <div class="dash-stat-lbl">Resolvidos</div>
         </div>
       </div>
     </div>
 
-    <!-- Chamadas de hoje -->
+    <!-- Chamados recentes -->
     <div class="dash-section-head">
-      <div class="dash-section-title">Chamadas de hoje</div>
+      <div class="dash-section-title">Suporte</div>
       <div class="dash-section-line"></div>
     </div>
-    ${nCham === 0
-      ? `<div class="dash-empty-feed">Nenhuma chamada registrada hoje.</div>`
-      : `<div class="dash-activity">
-          ${(chamadas ?? []).map((c, i) => `
-            <div class="dash-act-row" style="animation-delay:${i*.04}s">
-              <div class="dash-act-dot ${c.aberta ? "aberta" : "fechada"}"></div>
-              <div class="dash-act-info">
-                <div class="dash-act-turma">${esc(c.turmas?.nome ?? "—")}</div>
-                ${c.turmas?.instituicoes?.nome ? `<div class="dash-act-inst">${esc(c.turmas.instituicoes.nome)}</div>` : ""}
+
+    <!-- Lista tickets do dia + abertos -->
+    ${destaque.length === 0 ? `
+      <div class="dash-empty-feed">Nenhum chamado de suporte ainda.</div>
+    ` : `
+      <div class="dash-activity" id="dash-tickets">
+        ${destaque.map((t, i) => {
+          const isBug = t.tipo === "bug";
+          const isHoje = t.criado_em?.startsWith(hoje);
+          return `
+          <div class="dash-act-row dash-ticket-row" data-id="${esc(t.id)}" style="animation-delay:${i*.04}s;cursor:pointer">
+            <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:2px;background:${t.status==="aberto"?"#f59e0b":t.status==="em_andamento"?"#3b82f6":"#22c55e"}"></div>
+            <div class="dash-act-info" style="flex:1;min-width:0">
+              <div class="dash-act-turma" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                ${esc(t.titulo)}
+                ${isHoje ? `<span style="font-size:.6rem;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px">Hoje</span>` : ""}
               </div>
-              <span class="dash-act-badge ${c.aberta ? "aberta" : "fechada"}">${c.aberta ? "Aberta" : "Encerrada"}</span>
-            </div>`).join("")}
-        </div>`
-    }
+              <div class="dash-act-inst">${esc(t.instituicoes?.nome ?? "—")} · ${isBug ? "Bug" : "Melhoria"}</div>
+            </div>
+            <span style="font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;${STATUS_CSS[t.status]}">${STATUS_LABEL[t.status]}</span>
+            <span style="color:var(--text-3);font-size:.72rem;flex-shrink:0;margin-left:4px">${fmtTime(t.ultima_at)}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" style="color:var(--text-3);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="margin-top:10px;text-align:right">
+        <button id="btn-ver-suporte" style="background:none;border:none;color:var(--acc);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px;transition:background .12s">
+          Ver todos os chamados →
+        </button>
+      </div>
+    `}
   `;
 
-  // Live clock — ticks every second
+  // Live clock
   const clockEl = document.getElementById("dash-clock");
   if (clockEl) {
     _clockInterval = setInterval(() => {
       clockEl.textContent = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
     }, 1000);
   }
+
+  // Clique em ticket → abre diretamente no chat de suporte
+  root.querySelectorAll(".dash-ticket-row").forEach(row => {
+    row.addEventListener("mouseenter", () => row.style.background = "var(--surface-2)");
+    row.addEventListener("mouseleave", () => row.style.background = "");
+    row.addEventListener("click", () => {
+      _pendingOpenTicketId = row.dataset.id;
+      setActive("nav-suporte");
+      window.scrollTo(0, 0);
+      renderPedidos();
+    });
+  });
+
+  document.getElementById("btn-ver-suporte")?.addEventListener("click", () => {
+    setActive("nav-suporte");
+    window.scrollTo(0, 0);
+    renderPedidos();
+  });
 }
 
 // ══ VIEW 2: INSTITUIÇÕES (lista + detalhe) ════════════════════════════════════
@@ -333,42 +387,28 @@ async function renderInstDetalhe(instId, instNome) {
   clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const hoje = new Date().toISOString().split("T")[0];
-
   const [
-    { data: turmas,   error: e1 },
-    { data: alunos,   error: e2 },
-    { data: profs,    error: e3 },
-    { data: chamadas, error: e4 },
+    { data: turmas,  error: e1 },
+    { data: alunos,  error: e2 },
+    { data: profs,   error: e3 },
   ] = await Promise.all([
     supabaseAdmin.from("turmas").select("id, nome, materia").eq("instituicao_id", instId).order("nome"),
-    supabaseAdmin.from("alunos").select("id, nome, matricula, foto_url, turma_id, data_nascimento, telefone, id_estadual, endereco").eq("instituicao_id", instId).order("nome"),
+    supabaseAdmin.from("alunos").select("id, nome, matricula, foto_url, turma_id").eq("instituicao_id", instId).order("nome"),
     supabaseAdmin.from("profiles").select("id, nome, email").eq("instituicao_id", instId).eq("role", "professor").order("nome"),
-    supabaseAdmin.from("chamadas")
-      .select("id, aberta, data, turmas!inner(nome, instituicao_id)")
-      .eq("turmas.instituicao_id", instId)
-      .order("data", { ascending: false })
-      .limit(20),
   ]);
 
-  const fetchErr = e1 || e2 || e3 || e4;
-  if (fetchErr) {
-    root.innerHTML = `<div class="tv-error">Erro ao carregar detalhes: ${fetchErr.message}</div>`;
+  if (e1 || e2 || e3) {
+    root.innerHTML = `<div class="tv-error">Erro ao carregar detalhes.</div>`;
     return;
   }
-
-  const chamHoje = (chamadas ?? []).filter(c => c.data === hoje);
-  const abertas  = chamHoje.filter(c => c.aberta).length;
 
   // Agrupa alunos por turma
   const turmaMap = {};
   (turmas ?? []).forEach(t => { turmaMap[t.id] = { ...t, alunos: [] }; });
   (alunos ?? []).forEach(a => { if (turmaMap[a.turma_id]) turmaMap[a.turma_id].alunos.push(a); });
-
   const gruposTurma = Object.values(turmaMap);
   const semTurma    = (alunos ?? []).filter(a => !turmaMap[a.turma_id]);
 
-  const instInitial = instNome.charAt(0).toUpperCase();
   const PALETTE = [
     { bg: "#eff6ff", fg: "#2563eb" }, { bg: "#f0fdf4", fg: "#16a34a" },
     { bg: "#faf5ff", fg: "#7c3aed" }, { bg: "#fff7ed", fg: "#ea580c" },
@@ -376,259 +416,362 @@ async function renderInstDetalhe(instId, instNome) {
   ];
   const pal = PALETTE[(instNome.charCodeAt(0) || 0) % PALETTE.length];
 
+  // Carrega config do crachá em paralelo para não bloquear o render
+  const crachaConfigPromise = buscarCrachaConfig(supabaseAdmin, instId);
+
   root.innerHTML = `
-    <div class="det-breadcrumb">
-      <button class="det-btn-back" id="btn-back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="15 18 9 12 15 6"/></svg>
+    <style>
+      .nd-breadcrumb { display:flex;align-items:center;gap:6px;margin-bottom:18px;font-size:.8rem }
+      .nd-btn-back { display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;color:var(--acc);font-size:.8rem;font-weight:600;font-family:inherit;padding:4px 8px;border-radius:7px;transition:background .12s }
+      .nd-btn-back:hover { background:var(--acc-sub) }
+      .nd-bc-sep { color:var(--text-3) }
+      .nd-bc-name { color:var(--text-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px }
+      .nd-header { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap }
+      .nd-header-left { display:flex;align-items:center;gap:14px }
+      .nd-avatar { width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.45rem;font-weight:800;font-family:'Outfit',sans-serif;flex-shrink:0 }
+      .nd-title { font-size:1.2rem;font-weight:800;color:var(--text);letter-spacing:-.025em;font-family:'Outfit',sans-serif;line-height:1.2 }
+      .nd-header-actions { display:flex;gap:8px;flex-wrap:wrap }
+      .nd-btn-ghost { display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border-2);border-radius:9px;background:var(--surface);color:var(--text-2);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s }
+      .nd-btn-ghost:hover { border-color:var(--acc);color:var(--acc);background:var(--acc-sub) }
+      .nd-btn-danger { display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #fecaca;border-radius:9px;background:#fff5f5;color:var(--red);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s }
+      .nd-btn-danger:hover { background:var(--red-sub);border-color:var(--red) }
+      .nd-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px }
+      .nd-stat { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:12px;animation:fadeInUp .3s both }
+      .nd-stat-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
+      .nd-stat-num { font-size:1.45rem;font-weight:800;color:var(--text);font-family:'Outfit',sans-serif;line-height:1 }
+      .nd-stat-lbl { font-size:.72rem;color:var(--text-3);margin-top:3px }
+      .nd-section { margin-bottom:28px }
+      .nd-section-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px }
+      .nd-section-title { font-size:.65rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em }
+      .nd-turma-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px }
+      .nd-turma-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:all .16s;animation:fadeInUp .28s both;position:relative;overflow:hidden }
+      .nd-turma-card:hover { border-color:var(--acc);box-shadow:0 6px 22px rgba(37,99,235,.12);transform:translateY(-2px) }
+      .nd-turma-card::after { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0) 60%,rgba(37,99,235,.04));pointer-events:none }
+      .nd-turma-av { width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;font-family:'Outfit',sans-serif;margin-bottom:12px }
+      .nd-turma-name { font-size:.9rem;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px }
+      .nd-turma-materia { display:inline-block;font-size:.65rem;font-weight:600;color:var(--acc);background:var(--acc-sub);border-radius:20px;padding:2px 9px;margin-bottom:12px }
+      .nd-turma-foot { display:flex;align-items:center;gap:5px;padding-top:12px;border-top:1px solid var(--border);color:var(--text-3);font-size:.75rem;font-weight:500 }
+      .nd-prof-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px }
+      .nd-prof-card { background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .15s;animation:fadeInUp .28s both;text-align:center }
+      .nd-prof-card:hover { border-color:var(--acc);box-shadow:0 4px 16px rgba(37,99,235,.1);transform:translateY(-1px) }
+      .nd-prof-av { width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:800;font-family:'Outfit',sans-serif;margin:0 auto 10px;background:#eff6ff;color:#2563eb }
+      .nd-prof-name { font-size:.84rem;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:3px }
+      .nd-prof-email { font-size:.7rem;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+      .nd-cracha-wrap { background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden }
+      .nd-cracha-head { padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between }
+      .nd-cracha-head-title { font-size:.65rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em }
+      .nd-cracha-body { padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:200px;justify-content:center }
+      .nd-cracha-img { max-width:320px;width:100%;border-radius:10px;box-shadow:var(--shadow-lg);cursor:zoom-in;transition:transform .18s,box-shadow .18s }
+      .nd-cracha-img:hover { transform:scale(1.02);box-shadow:var(--shadow-xl) }
+      .nd-cracha-hint { font-size:.72rem;color:var(--text-3);text-align:center }
+      .nd-cracha-ampliar { display:flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid var(--border-2);border-radius:9px;background:var(--surface-2);color:var(--text-2);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s }
+      .nd-cracha-ampliar:hover { border-color:var(--acc);color:var(--acc);background:var(--acc-sub) }
+      .nd-modal-ov { position:fixed;inset:0;background:rgba(13,21,38,.5);z-index:800;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .2s;backdrop-filter:blur(4px) }
+      .nd-modal-ov.open { opacity:1 }
+      .nd-modal-box { background:var(--surface);border-radius:18px;width:100%;max-width:540px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-xl);transform:scale(.96) translateY(12px);transition:transform .22s cubic-bezier(.22,1,.36,1) }
+      .nd-modal-ov.open .nd-modal-box { transform:scale(1) translateY(0) }
+      .nd-modal-head { padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0 }
+      .nd-modal-title { font-size:.95rem;font-weight:700;color:var(--text) }
+      .nd-modal-sub { font-size:.75rem;color:var(--text-3);margin-top:2px }
+      .nd-modal-x { width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--text-3);border-radius:8px;transition:background .12s,color .12s }
+      .nd-modal-x:hover { background:var(--surface-3);color:var(--text) }
+      .nd-modal-body { overflow-y:auto;padding:16px 20px;flex:1 }
+      .nd-aluno-row { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;transition:background .1s }
+      .nd-aluno-row:hover { background:var(--surface-2) }
+      .nd-aluno-num { font-size:.7rem;font-weight:600;color:var(--text-3);width:20px;text-align:right;flex-shrink:0 }
+      .nd-aluno-av { width:30px;height:30px;border-radius:8px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0 }
+      .nd-aluno-nome { flex:1;font-size:.84rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+      .nd-aluno-mat { font-size:.7rem;color:var(--text-3);flex-shrink:0 }
+      .nd-aluno-cracha { display:flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--text-2);font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s;flex-shrink:0 }
+      .nd-aluno-cracha:hover { border-color:var(--acc);color:var(--acc);background:var(--acc-sub) }
+      .nd-aluno-cracha:disabled { opacity:.45;cursor:not-allowed }
+      .nd-empty { padding:32px 16px;text-align:center;color:var(--text-3);font-size:.84rem }
+      .nd-prof-detail { display:flex;flex-direction:column;align-items:center;padding:24px 16px;gap:12px }
+      .nd-prof-detail-av { width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:800;font-family:'Outfit',sans-serif;background:#eff6ff;color:#2563eb }
+      .nd-prof-detail-name { font-size:1.05rem;font-weight:800;color:var(--text) }
+      .nd-prof-detail-email { font-size:.82rem;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;display:flex;align-items:center;gap:6px }
+    </style>
+
+    <div class="nd-breadcrumb">
+      <button class="nd-btn-back" id="btn-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
         Instituições
       </button>
-      <span class="det-bc-sep">/</span>
-      <span class="det-bc-name">${esc(instNome)}</span>
+      <span class="nd-bc-sep">/</span>
+      <span class="nd-bc-name">${esc(instNome)}</span>
     </div>
 
-    <div class="det-header">
-      <div class="det-header-left">
-        <div class="det-avatar" style="background:${pal.bg};color:${pal.fg}">${instInitial}</div>
-        <div class="det-title">${esc(instNome)}</div>
+    <div class="nd-header">
+      <div class="nd-header-left">
+        <div class="nd-avatar" style="background:${pal.bg};color:${pal.fg}">${instNome.charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="nd-title">${esc(instNome)}</div>
+        </div>
       </div>
-      <div class="det-header-actions">
-        <button class="det-btn-reset" id="btn-reset">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      <div class="nd-header-actions">
+        <button class="nd-btn-ghost" id="btn-reset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           Redefinir senha
         </button>
-        <button class="det-btn-del" id="btn-del">
+        <button class="nd-btn-danger" id="btn-del">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           Excluir
         </button>
       </div>
     </div>
 
-    <div class="det-stats">
-      <div class="det-stat">
-        <div class="det-stat-icon" style="background:#eff6ff;color:#2563eb">${svgTurma()}</div>
-        <div class="det-stat-num">${(turmas??[]).length}</div>
-        <div class="det-stat-lbl">Turmas</div>
+    <!-- Stats -->
+    <div class="nd-stats">
+      <div class="nd-stat" style="animation-delay:.04s">
+        <div class="nd-stat-icon" style="background:#eff6ff;color:#2563eb">${svgTurma()}</div>
+        <div>
+          <div class="nd-stat-num">${(turmas??[]).length}</div>
+          <div class="nd-stat-lbl">Turmas</div>
+        </div>
       </div>
-      <div class="det-stat">
-        <div class="det-stat-icon" style="background:#f0fdf4;color:#16a34a">${svgAluno()}</div>
-        <div class="det-stat-num">${(alunos??[]).length}</div>
-        <div class="det-stat-lbl">Alunos</div>
+      <div class="nd-stat" style="animation-delay:.08s">
+        <div class="nd-stat-icon" style="background:#f0fdf4;color:#16a34a">${svgAluno()}</div>
+        <div>
+          <div class="nd-stat-num">${(alunos??[]).length}</div>
+          <div class="nd-stat-lbl">Alunos</div>
+        </div>
       </div>
-      <div class="det-stat">
-        <div class="det-stat-icon" style="background:#faf5ff;color:#7c3aed">${svgProf()}</div>
-        <div class="det-stat-num">${(profs??[]).length}</div>
-        <div class="det-stat-lbl">Professores</div>
-      </div>
-      <div class="det-stat">
-        <div class="det-stat-icon" style="background:#fff7ed;color:#ea580c">${svgQr()}</div>
-        <div class="det-stat-num">${chamHoje.length}</div>
-        <div class="det-stat-lbl">Chamadas hoje${abertas ? `<br><span style="font-size:.6rem;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:700">${abertas} abertas</span>` : ""}</div>
+      <div class="nd-stat" style="animation-delay:.12s">
+        <div class="nd-stat-icon" style="background:#faf5ff;color:#7c3aed">${svgProf()}</div>
+        <div>
+          <div class="nd-stat-num">${(profs??[]).length}</div>
+          <div class="nd-stat-lbl">Professores</div>
+        </div>
       </div>
     </div>
 
-    <div class="det-body">
-      <!-- Coluna principal: alunos por turma -->
-      <div class="det-main-col">
-        <div class="det-section">
-          <div class="det-section-title">Alunos por turma (${(alunos??[]).length})</div>
-          ${gruposTurma.length === 0 && semTurma.length === 0
-            ? `<div class="det-empty">Nenhum aluno cadastrado.</div>`
-            : `<div id="det-alunos-list"></div>`
-          }
-        </div>
+    <!-- Turmas -->
+    <div class="nd-section">
+      <div class="nd-section-head">
+        <span class="nd-section-title">Turmas · ${gruposTurma.length + (semTurma.length > 0 ? 1 : 0)}</span>
       </div>
+      ${gruposTurma.length === 0
+        ? `<div class="nd-empty">Nenhuma turma cadastrada.</div>`
+        : `<div class="nd-turma-grid" id="nd-turma-grid"></div>`
+      }
+    </div>
 
-      <!-- Coluna lateral: professores + chamadas -->
-      <div class="det-side-col">
-        <div class="det-section">
-          <div class="det-section-title">Professores (${(profs??[]).length})</div>
-          ${(profs??[]).length === 0
-            ? `<div class="det-empty">Nenhum professor cadastrado.</div>`
-            : `<div class="det-table-wrap">
-                <table class="det-table">
-                  <thead><tr><th>Nome</th><th>E-mail</th></tr></thead>
-                  <tbody>
-                    ${(profs??[]).map(p => `
-                      <tr>
-                        <td>
-                          <div class="det-prof-cell">
-                            <div class="det-prof-avatar">${esc((p.nome||p.email||"?").charAt(0).toUpperCase())}</div>
-                            <span class="det-td-name">${esc(p.nome||"—")}</span>
-                          </div>
-                        </td>
-                        <td><span class="det-td-sub">${esc(p.email||"—")}</span></td>
-                      </tr>`).join("")}
-                  </tbody>
-                </table>
-              </div>`
-          }
+    <!-- Professores -->
+    <div class="nd-section">
+      <div class="nd-section-head">
+        <span class="nd-section-title">Professores · ${(profs??[]).length}</span>
+      </div>
+      ${(profs??[]).length === 0
+        ? `<div class="nd-empty">Nenhum professor cadastrado.</div>`
+        : `<div class="nd-prof-grid" id="nd-prof-grid"></div>`
+      }
+    </div>
+
+    <!-- Crachá -->
+    <div class="nd-section">
+      <div class="nd-cracha-wrap">
+        <div class="nd-cracha-head">
+          <span class="nd-cracha-head-title">Crachá da Instituição</span>
         </div>
-
-        <div class="det-section">
-          <div class="det-section-title">Chamadas recentes (${(chamadas??[]).length})</div>
-          ${(chamadas??[]).length === 0
-            ? `<div class="det-empty">Nenhuma chamada registrada ainda.</div>`
-            : `<div class="det-table-wrap">
-                ${(chamadas??[]).map(c => `
-                  <div class="det-cham-row">
-                    <div class="det-cham-dot ${c.aberta ? "open" : "done"}"></div>
-                    <div class="det-cham-info">
-                      <div class="det-cham-nome">${esc(c.turmas?.nome??"—")}</div>
-                      <div class="det-cham-data">${new Date(c.data+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"})}</div>
-                    </div>
-                    <span class="det-badge ${c.aberta?"open":"done"}">${c.aberta?"Aberta":"Encerrada"}</span>
-                  </div>`).join("")}
-              </div>`
-          }
-        </div>
-
-        <!-- Crachá preview -->
-        <div class="det-section">
-          <div class="det-section-title" style="display:flex;align-items:center;justify-content:space-between">
-            Crachá da Instituição
-          </div>
-          <div id="det-cracha-box" class="det-cracha-box">
-            <div class="det-cracha-loading">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="opacity:.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
-              <span>Gerando preview…</span>
-            </div>
+        <div class="nd-cracha-body" id="nd-cracha-body">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" style="opacity:.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
+            <span style="font-size:.8rem">Gerando preview…</span>
           </div>
         </div>
       </div>
     </div>
   `;
 
-  // Popula alunos por turma com accordion
-  if (document.getElementById("det-alunos-list")) {
-    const list = document.getElementById("det-alunos-list");
-    gruposTurma.forEach(t => {
-      const group = document.createElement("div");
-      group.className = "det-turma-group";
-      group.innerHTML = `
-        <div class="det-turma-label" data-open="false">
-          <span>${esc(t.nome)}${t.materia ? ` <span style="color:var(--text-3);font-weight:500">· ${esc(t.materia)}</span>` : ""}</span>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="det-turma-count">${t.alunos.length} aluno${t.alunos.length!==1?"s":""}</span>
-            <svg class="det-turma-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
-        </div>
-        <div class="det-turma-body">
-          ${t.alunos.length === 0
-            ? `<div style="padding:10px 14px;color:var(--text-3);font-size:.82rem">Nenhum aluno nesta turma.</div>`
-            : t.alunos.map((a, i) => `
-                <div class="det-aluno-row">
-                  <span class="det-aluno-num">${i+1}</span>
-                  <span class="det-aluno-nome">${esc(a.nome)}</span>
-                  ${a.matricula ? `<span class="det-aluno-mat">${esc(a.matricula)}</span>` : ""}
-                  <button class="det-cracha-btn" data-aluno-id="${esc(a.id)}" title="Baixar crachá">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg>
-                    Crachá
-                  </button>
-                </div>`).join("")
-          }
-        </div>
-      `;
-      const label = group.querySelector(".det-turma-label");
-      const body  = group.querySelector(".det-turma-body");
-      label.addEventListener("click", () => {
-        const open = label.dataset.open === "true";
-        label.dataset.open = !open;
-        label.classList.toggle("open", !open);
-        body.classList.toggle("open", !open);
-      });
-      list.appendChild(group);
-    });
-
-    if (semTurma.length > 0) {
-      const group = document.createElement("div");
-      group.className = "det-turma-group";
-      group.innerHTML = `
-        <div class="det-turma-label" data-open="false">
-          <span style="color:var(--text-3)">Sem turma atribuída</span>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="det-turma-count">${semTurma.length} aluno${semTurma.length!==1?"s":""}</span>
-            <svg class="det-turma-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
-        </div>
-        <div class="det-turma-body">
-          ${semTurma.map((a, i) => `
-            <div class="det-aluno-row">
-              <span class="det-aluno-num">${i+1}</span>
-              <span class="det-aluno-nome">${esc(a.nome)}</span>
-              ${a.matricula ? `<span class="det-aluno-mat">${esc(a.matricula)}</span>` : ""}
-            </div>`).join("")}
-        </div>
-      `;
-      const label = group.querySelector(".det-turma-label");
-      const body  = group.querySelector(".det-turma-body");
-      label.addEventListener("click", () => {
-        const open = label.dataset.open === "true";
-        label.dataset.open = !open;
-        label.classList.toggle("open", !open);
-        body.classList.toggle("open", !open);
-      });
-      list.appendChild(group);
-    }
-  }
-
   document.getElementById("btn-back").addEventListener("click", () => renderInstituicoes());
   document.getElementById("btn-reset").addEventListener("click", () => abrirModalResetSenha(instId, instNome));
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 
-  // Preview do crachá da instituição (lado direito)
-  const crachaConfig = await buscarCrachaConfig(supabaseAdmin, instId);
-  const crachaBox = document.getElementById("det-cracha-box");
-  if (crachaBox) {
-    try {
-      const demoAluno = {
-        nome: (alunos??[])[0]?.nome || "Aluno Demo",
-        matricula: (alunos??[])[0]?.matricula || "001",
-        foto_url: (alunos??[])[0]?.foto_url || null,
-        turma: { nome: (turmas??[])[0]?.nome || "Turma" },
-      };
-      const dataUrl = await gerarCracha(demoAluno, crachaConfig, instNome);
-      crachaBox.innerHTML = `
-        <img src="${dataUrl}"
-          class="det-cracha-img"
-          title="Clique para ampliar"
-          alt="Preview do crachá" />
-        <div class="det-cracha-hint">Clique para ampliar · Baseado no 1º aluno</div>
+  // ── Turma cards ──────────────────────────────────────────────────────────────
+  const tGrid = document.getElementById("nd-turma-grid");
+  if (tGrid) {
+    const TPALETTE = [
+      { bg: "#eff6ff", fg: "#2563eb" }, { bg: "#f0fdf4", fg: "#16a34a" },
+      { bg: "#faf5ff", fg: "#7c3aed" }, { bg: "#fff7ed", fg: "#ea580c" },
+      { bg: "#fdf4ff", fg: "#9333ea" }, { bg: "#ecfeff", fg: "#0891b2" },
+    ];
+    gruposTurma.forEach((t, i) => {
+      const tp = TPALETTE[i % TPALETTE.length];
+      const card = document.createElement("div");
+      card.className = "nd-turma-card";
+      card.style.animationDelay = `${i * .05}s`;
+      card.innerHTML = `
+        <div class="nd-turma-av" style="background:${tp.bg};color:${tp.fg}">${esc(t.nome.charAt(0).toUpperCase())}</div>
+        <div class="nd-turma-name">${esc(t.nome)}</div>
+        ${t.materia ? `<div class="nd-turma-materia">${esc(t.materia)}</div>` : `<div style="margin-bottom:12px"></div>`}
+        <div class="nd-turma-foot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          ${t.alunos.length} aluno${t.alunos.length !== 1 ? "s" : ""}
+          <span style="margin-left:auto;font-size:.65rem;color:var(--acc);font-weight:600">Ver alunos →</span>
+        </div>
       `;
-      crachaBox.querySelector("img").addEventListener("click", () => {
-        const overlay = document.createElement("div");
-        overlay.className = "cracha-lightbox";
-        overlay.innerHTML = `<img src="${dataUrl}" /><button class="cracha-lb-close">✕</button>`;
-        document.body.appendChild(overlay);
-        setTimeout(() => overlay.classList.add("open"), 10);
-        const close = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 250); };
-        overlay.querySelector(".cracha-lb-close").addEventListener("click", close);
-        overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
-      });
-    } catch {
-      crachaBox.innerHTML = `<div class="det-cracha-loading"><span style="color:var(--text-3);font-size:.78rem">Sem configuração de crachá ainda.</span></div>`;
+      card.addEventListener("click", () => abrirModalTurmaAlunos(t, crachaConfigPromise, instNome));
+      tGrid.appendChild(card);
+    });
+
+    if (semTurma.length > 0) {
+      const card = document.createElement("div");
+      card.className = "nd-turma-card";
+      card.style.animationDelay = `${gruposTurma.length * .05}s`;
+      card.innerHTML = `
+        <div class="nd-turma-av" style="background:#f1f5f9;color:#64748b">?</div>
+        <div class="nd-turma-name" style="color:var(--text-2)">Sem turma atribuída</div>
+        <div style="margin-bottom:12px"></div>
+        <div class="nd-turma-foot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          ${semTurma.length} aluno${semTurma.length !== 1 ? "s" : ""}
+          <span style="margin-left:auto;font-size:.65rem;color:var(--acc);font-weight:600">Ver alunos →</span>
+        </div>
+      `;
+      card.addEventListener("click", () => abrirModalTurmaAlunos(
+        { nome: "Sem turma atribuída", materia: null, alunos: semTurma },
+        crachaConfigPromise, instNome
+      ));
+      tGrid.appendChild(card);
     }
   }
 
-  // Botões de crachá nos alunos
-  root.querySelectorAll(".det-cracha-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const alunoId = btn.dataset.alunoId;
-      const aluno   = [...gruposTurma.flatMap(t => t.alunos), ...semTurma].find(a => a.id === alunoId);
-      if (!aluno) return;
-      btn.disabled = true; btn.style.opacity = "0.5";
-      try {
-        // Monta objeto aluno com turma
-        const turmaInfo = gruposTurma.find(t => t.alunos.some(a => a.id === alunoId));
-        const alunoComTurma = { ...aluno, turma: turmaInfo ? { nome: turmaInfo.nome } : null };
-        const dataUrl = await gerarCracha(alunoComTurma, crachaConfig, instNome);
-        downloadCracha(dataUrl, aluno.nome);
-      } catch (e) {
-        showToast("Erro ao gerar crachá.", "error");
-      } finally {
-        btn.disabled = false; btn.style.opacity = "";
-      }
+  // ── Professor cards ──────────────────────────────────────────────────────────
+  const pGrid = document.getElementById("nd-prof-grid");
+  if (pGrid) {
+    (profs ?? []).forEach((p, i) => {
+      const card = document.createElement("div");
+      card.className = "nd-prof-card";
+      card.style.animationDelay = `${i * .06}s`;
+      const initials = (p.nome || p.email || "?").charAt(0).toUpperCase();
+      card.innerHTML = `
+        <div class="nd-prof-av">${initials}</div>
+        <div class="nd-prof-name">${esc(p.nome || "—")}</div>
+        <div class="nd-prof-email">${esc(p.email || "—")}</div>
+      `;
+      card.addEventListener("click", () => abrirModalProfessor(p));
+      pGrid.appendChild(card);
     });
+  }
+
+  // ── Crachá preview ───────────────────────────────────────────────────────────
+  const crachaBody = document.getElementById("nd-cracha-body");
+  try {
+    const crachaConfig = await crachaConfigPromise;
+    const demoAluno = {
+      nome: "Aluno Exemplo",
+      matricula: "2024001",
+      foto_url: null,
+      turma: { nome: (turmas ?? [])[0]?.nome || "Turma Exemplo" },
+    };
+    const dataUrl = await gerarCracha(demoAluno, crachaConfig, instNome);
+    if (crachaBody) {
+      crachaBody.innerHTML = `
+        <img src="${dataUrl}" class="nd-cracha-img" alt="Preview do crachá" title="Clique para ampliar" />
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="nd-cracha-ampliar" id="nd-ampliar-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Ampliar
+          </button>
+          <span class="nd-cracha-hint">Baseado no 1º aluno cadastrado</span>
+        </div>
+      `;
+      crachaBody.querySelector(".nd-cracha-img").addEventListener("click", () => abrirLightbox(dataUrl));
+      crachaBody.querySelector("#nd-ampliar-btn").addEventListener("click", () => abrirLightbox(dataUrl));
+    }
+  } catch {
+    if (crachaBody) crachaBody.innerHTML = `<div class="nd-empty">Sem configuração de crachá ainda.</div>`;
+  }
+}
+
+// ── Modal turma → lista de alunos ─────────────────────────────────────────────
+function abrirModalTurmaAlunos(turma) {
+  const ov = document.createElement("div");
+  ov.className = "nd-modal-ov";
+  ov.innerHTML = `
+    <div class="nd-modal-box">
+      <div class="nd-modal-head">
+        <div>
+          <div class="nd-modal-title">${esc(turma.nome)}</div>
+          ${turma.materia ? `<div class="nd-modal-sub">${esc(turma.materia)}</div>` : ""}
+        </div>
+        <button class="nd-modal-x" id="nd-mx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="nd-modal-body">
+        ${turma.alunos.length === 0
+          ? `<div class="nd-empty">Nenhum aluno nesta turma.</div>`
+          : turma.alunos.map((a, i) => `
+              <div class="nd-aluno-row">
+                <span class="nd-aluno-num">${i + 1}</span>
+                <div class="nd-aluno-av">${esc((a.nome || "?").charAt(0).toUpperCase())}</div>
+                <span class="nd-aluno-nome">${esc(a.nome)}</span>
+                ${a.matricula ? `<span class="nd-aluno-mat">${esc(a.matricula)}</span>` : ""}
+              </div>`).join("")
+        }
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  setTimeout(() => ov.classList.add("open"), 10);
+
+  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 220); };
+  ov.querySelector("#nd-mx").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
   });
+}
+
+// ── Modal professor ───────────────────────────────────────────────────────────
+function abrirModalProfessor(prof) {
+  const inicial = (prof.nome || prof.email || "?").charAt(0).toUpperCase();
+  const ov = document.createElement("div");
+  ov.className = "nd-modal-ov";
+  ov.innerHTML = `
+    <div class="nd-modal-box" style="max-width:360px">
+      <div class="nd-modal-head">
+        <div class="nd-modal-title">Professor</div>
+        <button class="nd-modal-x" id="nd-mx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="nd-modal-body">
+        <div class="nd-prof-detail">
+          <div class="nd-prof-detail-av">${inicial}</div>
+          <div class="nd-prof-detail-name">${esc(prof.nome || "—")}</div>
+          <div class="nd-prof-detail-email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            ${esc(prof.email || "—")}
+          </div>
+          <button onclick="navigator.clipboard.writeText('${esc(prof.email || "")}');this.textContent='Copiado!';setTimeout(()=>this.textContent='Copiar e-mail',1400)"
+            style="padding:8px 18px;border:1px solid var(--border-2);border-radius:9px;background:var(--surface-2);color:var(--text-2);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;transition:all .12s"
+          >Copiar e-mail</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  setTimeout(() => ov.classList.add("open"), 10);
+  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 220); };
+  ov.querySelector("#nd-mx").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
+  });
+}
+
+// ── Lightbox crachá ───────────────────────────────────────────────────────────
+function abrirLightbox(dataUrl) {
+  const overlay = document.createElement("div");
+  overlay.className = "cracha-lightbox";
+  overlay.innerHTML = `<img src="${dataUrl}" /><button class="cracha-lb-close">✕</button>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.classList.add("open"), 10);
+  const close = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 250); };
+  overlay.querySelector(".cracha-lb-close").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
 }
 
 // ══ VIEW 3: SUPORTE — CHAT ESTILO WHATSAPP ═══════════════════════════════════
@@ -708,6 +851,13 @@ async function renderPedidos() {
   `;
 
   renderWaConvList(_waAllTickets);
+
+  // Auto-open ticket se veio do dashboard
+  if (_pendingOpenTicketId) {
+    const autoTicket = _waAllTickets.find(t => t.id === _pendingOpenTicketId);
+    _pendingOpenTicketId = null;
+    if (autoTicket) setTimeout(() => abrirWaChat(autoTicket), 80);
+  }
 
   document.getElementById("wa-tabs").addEventListener("click", e => {
     const tab = e.target.closest(".wa-tab");
@@ -971,10 +1121,232 @@ function buildWaBubble(msg, isAdminView = false) {
   `;
   return wrap;
 }
-// ══ ANOTAÇÕES (legado — substituído por Pedidos no ADM) ═══════════════════════
+// ══ ANOTAÇÕES — EDITOR COM ABAS ═══════════════════════════════════════════════
 function renderAnotacoes() {
-  // Mantido para compatibilidade, redireciona para pedidos
-  renderPedidos();
+  clearClock();
+  root.classList.remove("kanban-mode");
+
+  const KEY    = `adm_notebook_v1_${window._adminId || "local"}`;
+  const load   = () => JSON.parse(localStorage.getItem(KEY) || "[]");
+  const save   = (n) => localStorage.setItem(KEY, JSON.stringify(n));
+  const newId  = () => crypto.randomUUID();
+  const newNote = () => ({
+    id: newId(), title: "", body: "", done: false,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  });
+
+  let activeId = null;
+  const saveTimers = {};
+
+  function scheduleSave(id, field, value) {
+    clearTimeout(saveTimers[id + field]);
+    saveTimers[id + field] = setTimeout(() => {
+      const notes = load();
+      const n = notes.find(x => x.id === id);
+      if (!n) return;
+      n[field] = value;
+      n.updatedAt = new Date().toISOString();
+      save(notes);
+      updateStatusBar();
+      // Update tab label if title changed
+      if (field === "title") {
+        const tab = root.querySelector(`.nbed-tab[data-id="${id}"] .nbed-tab-label`);
+        if (tab) tab.textContent = value || "Sem título";
+      }
+    }, 500);
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString("pt-BR", { day:"2-digit", month:"short", year:"numeric" }) + " " +
+           new Date(iso).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+  }
+
+  function updateStatusBar() {
+    const notes = load();
+    const note  = notes.find(n => n.id === activeId);
+    const chars = (note?.body || "").length;
+    const total = notes.length;
+    const done  = notes.filter(n => n.done).length;
+    const sb    = root.querySelector(".nbed-statusbar");
+    if (sb) sb.innerHTML = `
+      <span>${chars} caractere${chars !== 1 ? "s" : ""}</span>
+      <span>${total} nota${total !== 1 ? "s" : ""} · ${done} concluída${done !== 1 ? "s" : ""}</span>
+      ${note ? `<span>Salvo ${fmtDate(note.updatedAt)}</span>` : ""}
+    `;
+  }
+
+  function renderEditor() {
+    const notes = load();
+    const note  = notes.find(n => n.id === activeId);
+
+    const editorArea = root.querySelector(".nbed-editor-area");
+    if (!editorArea) return;
+
+    if (!note) {
+      editorArea.innerHTML = `
+        <div class="nbed-empty">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1" width="60" height="60">
+            <rect x="8" y="6" width="32" height="36" rx="3"/>
+            <line x1="16" y1="17" x2="32" y2="17"/>
+            <line x1="16" y1="24" x2="28" y2="24"/>
+            <line x1="16" y1="31" x2="22" y2="31"/>
+          </svg>
+          <div class="nbed-empty-title">NENHUMA NOTA ABERTA</div>
+          <div class="nbed-empty-sub">Crie uma nova aba ou selecione uma nota</div>
+        </div>`;
+      root.querySelector(".nbed-toolbar").style.visibility = "hidden";
+      return;
+    }
+
+    root.querySelector(".nbed-toolbar").style.visibility = "visible";
+
+    // Sync toolbar done state
+    const checkBtn = root.querySelector(".nbed-check");
+    const doneLabel = root.querySelector(".nbed-done-label");
+    if (checkBtn) { checkBtn.classList.toggle("checked", note.done); }
+    if (doneLabel) { doneLabel.textContent = note.done ? "Concluído" : "Marcar como concluído"; doneLabel.classList.toggle("done", note.done); }
+
+    editorArea.innerHTML = `
+      <div class="nbed-title-wrap">
+        <input class="nbed-title${note.done ? " done-text" : ""}" id="nbed-title-inp"
+          placeholder="Sem título…" value="${esc(note.title)}" maxlength="120" autocomplete="off"/>
+      </div>
+      <div class="nbed-editor">
+        <textarea class="nbed-body${note.done ? " done-text" : ""}" id="nbed-body-inp"
+          placeholder="Comece a escrever…">${esc(note.body)}</textarea>
+      </div>
+    `;
+
+    // Auto-height textarea
+    const ta = root.querySelector("#nbed-body-inp");
+    const resize = () => { ta.style.height = "auto"; ta.style.height = Math.max(200, ta.scrollHeight) + "px"; };
+    requestAnimationFrame(resize);
+
+    root.querySelector("#nbed-title-inp").addEventListener("input", e => {
+      scheduleSave(note.id, "title", e.target.value);
+    });
+    ta.addEventListener("input", e => {
+      resize();
+      scheduleSave(note.id, "body", e.target.value);
+      updateStatusBar();
+    });
+
+    updateStatusBar();
+    setTimeout(() => { root.querySelector(note.title ? "#nbed-body-inp" : "#nbed-title-inp")?.focus(); }, 40);
+  }
+
+  function renderTabs() {
+    const notes = load();
+    const tabbar = root.querySelector(".nbed-tabbar");
+    if (!tabbar) return;
+
+    // Keep new-tab button
+    const newBtn = tabbar.querySelector(".nbed-tab-new");
+    tabbar.innerHTML = "";
+    tabbar.appendChild(newBtn);
+
+    notes.forEach(note => {
+      const tab = document.createElement("div");
+      tab.className = `nbed-tab${note.id === activeId ? " active" : ""}${note.done ? " done-tab" : ""}`;
+      tab.dataset.id = note.id;
+      tab.innerHTML = `
+        <span class="nbed-tab-label">${esc(note.title || "Sem título")}</span>
+        <button class="nbed-tab-close" data-id="${note.id}" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      `;
+      tab.addEventListener("click", e => {
+        if (e.target.closest(".nbed-tab-close")) return;
+        activeId = note.id;
+        renderTabs();
+        renderEditor();
+      });
+      tab.querySelector(".nbed-tab-close").addEventListener("click", e => {
+        e.stopPropagation();
+        const updated = load().filter(n => n.id !== note.id);
+        save(updated);
+        if (activeId === note.id) activeId = updated[0]?.id ?? null;
+        renderTabs();
+        renderEditor();
+      });
+      tabbar.insertBefore(tab, newBtn);
+    });
+  }
+
+  // ── Render shell ─────────────────────────────────────────────────────────────
+  root.innerHTML = `
+    <div class="nbed-wrap">
+      <!-- Tab bar -->
+      <div class="nbed-tabbar">
+        <button class="nbed-tab-new" id="nbed-new" title="Nova nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="nbed-toolbar" style="visibility:hidden">
+        <button class="nbed-check" id="nbed-check" title="Marcar como concluído">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <span class="nbed-done-label" id="nbed-done-label">Marcar como concluído</span>
+        <div class="nbed-toolbar-sep"></div>
+        <button class="nbed-del-btn" id="nbed-del">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Excluir
+        </button>
+        <div class="nbed-toolbar-right">
+          <span class="nbed-char-count" id="nbed-char-count"></span>
+        </div>
+      </div>
+
+      <!-- Editor + empty -->
+      <div class="nbed-editor-area" style="flex:1;display:flex;flex-direction:column;min-height:0;animation:editorFade .2s ease">
+      </div>
+
+      <!-- Status bar -->
+      <div class="nbed-statusbar"></div>
+    </div>
+  `;
+
+  // Init active note
+  const initial = load();
+  if (initial.length > 0 && !activeId) activeId = initial[0].id;
+
+  renderTabs();
+  renderEditor();
+
+  // New note
+  root.querySelector("#nbed-new").addEventListener("click", () => {
+    const n = newNote();
+    const notes = load();
+    notes.unshift(n);
+    save(notes);
+    activeId = n.id;
+    renderTabs();
+    renderEditor();
+  });
+
+  // Toggle done
+  root.querySelector("#nbed-check").addEventListener("click", () => {
+    const notes = load();
+    const n = notes.find(x => x.id === activeId);
+    if (!n) return;
+    n.done = !n.done;
+    n.updatedAt = new Date().toISOString();
+    save(notes);
+    renderTabs();
+    renderEditor();
+  });
+
+  // Delete active
+  root.querySelector("#nbed-del").addEventListener("click", () => {
+    if (!activeId) return;
+    const notes = load().filter(n => n.id !== activeId);
+    save(notes);
+    activeId = notes[0]?.id ?? null;
+    renderTabs();
+    renderEditor();
+  });
 }
 
 function _renderAnotacoesLegado() {
@@ -1356,6 +1728,7 @@ function svgInst()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="curre
 function svgAluno() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`; }
 function svgProf()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`; }
 function svgQr()    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>`; }
+function svgMsg()   { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`; }
 function svgTurma() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`; }
 
 init();
