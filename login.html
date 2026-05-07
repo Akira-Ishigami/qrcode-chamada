@@ -436,9 +436,148 @@
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Welcome overlay ───────────────────────────────────────────── */
+    #welcome-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--bg);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    #welcome-screen.show { opacity: 1; pointer-events: all; }
+    #welcome-screen.hide { opacity: 0; }
+
+    .wlc-ring-wrap {
+      position: relative; width: 100px; height: 100px; margin-bottom: 40px;
+    }
+    .wlc-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2px solid transparent;
+      animation: ringExpand 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .wlc-ring-1 {
+      border-color: rgba(0,212,255,0.6);
+      box-shadow: 0 0 24px rgba(0,212,255,0.4), inset 0 0 24px rgba(0,212,255,0.1);
+      animation-delay: 0s;
+    }
+    .wlc-ring-2 {
+      inset: 12px;
+      border-color: rgba(0,212,255,0.35);
+      animation-delay: 0.1s;
+    }
+    .wlc-ring-3 {
+      inset: 24px;
+      border-color: rgba(0,212,255,0.2);
+      animation-delay: 0.2s;
+    }
+    .wlc-icon {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cyan);
+      animation: fadeInUp 0.5s 0.3s both;
+    }
+    @keyframes ringExpand {
+      from { opacity: 0; transform: scale(0.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Spinning arc */
+    .wlc-arc {
+      position: absolute; inset: -4px; border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--cyan);
+      animation: spin 1.5s linear infinite;
+      box-shadow: 0 0 12px var(--cyan);
+    }
+
+    .wlc-tag {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 0.6rem; font-weight: 700; color: var(--cyan);
+      text-transform: uppercase; letter-spacing: 0.22em;
+      margin-bottom: 14px;
+      animation: fadeInUp 0.5s 0.4s both;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .wlc-tag::before, .wlc-tag::after {
+      content: ''; flex: 1; max-width: 40px; height: 1px;
+      background: var(--cyan); opacity: 0.5;
+    }
+
+    .wlc-greeting {
+      font-family: 'Exo 2', sans-serif;
+      font-size: 0.88rem; font-weight: 400; color: rgba(200,214,239,0.5);
+      margin-bottom: 10px;
+      animation: fadeInUp 0.5s 0.5s both;
+      letter-spacing: 0.04em;
+    }
+
+    .wlc-name {
+      font-family: 'Oxanium', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 700; color: #e8f0ff;
+      letter-spacing: 0.02em; line-height: 1.15;
+      text-align: center; max-width: 600px; padding: 0 20px;
+      animation: fadeInUp 0.6s 0.6s both;
+    }
+    .wlc-name .wlc-highlight {
+      color: var(--cyan);
+      text-shadow: 0 0 30px rgba(0,212,255,0.5);
+    }
+
+    .wlc-sub {
+      font-size: 0.88rem; color: rgba(200,214,239,0.4);
+      margin-top: 14px; font-family: 'Exo 2', sans-serif;
+      animation: fadeInUp 0.5s 0.75s both;
+      font-style: italic;
+    }
+
+    /* Progress bar */
+    .wlc-bar-wrap {
+      width: 180px; height: 2px;
+      background: rgba(0,212,255,0.12);
+      border-radius: 2px; margin-top: 48px;
+      overflow: hidden;
+      animation: fadeInUp 0.4s 0.9s both;
+    }
+    .wlc-bar {
+      height: 100%; width: 0;
+      background: linear-gradient(90deg, var(--cyan), #7af4ff);
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--cyan);
+      animation: barFill 1.8s cubic-bezier(0.4,0,0.2,1) 1s forwards;
+    }
+    @keyframes barFill {
+      from { width: 0; }
+      to   { width: 100%; }
+    }
   </style>
 </head>
 <body>
+
+<!-- Welcome overlay -->
+<div id="welcome-screen">
+  <div class="wlc-ring-wrap">
+    <div class="wlc-ring wlc-ring-1"></div>
+    <div class="wlc-ring wlc-ring-2"></div>
+    <div class="wlc-ring wlc-ring-3"></div>
+    <div class="wlc-arc"></div>
+    <div class="wlc-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+        <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wlc-tag">Chamada QR · Acesso autorizado</div>
+  <div class="wlc-greeting" id="wlc-greeting"></div>
+  <div class="wlc-name" id="wlc-name"></div>
+  <div class="wlc-sub" id="wlc-sub"></div>
+  <div class="wlc-bar-wrap"><div class="wlc-bar" id="wlc-bar"></div></div>
+</div>
 
 <canvas id="bg-canvas"></canvas>
 <div class="grid-overlay"></div>
@@ -613,15 +752,56 @@
 <script type="module">
 import { supabase } from '/src/supabase.js';
 
+const WELCOME_DURATION = 3500;
+
+function showWelcome(profile, destino) {
+  const screen  = document.getElementById('welcome-screen');
+  const greeting = document.getElementById('wlc-greeting');
+  const nameEl   = document.getElementById('wlc-name');
+  const subEl    = document.getElementById('wlc-sub');
+  const bar      = document.getElementById('wlc-bar');
+
+  const role = profile?.role;
+  const nome = profile?.nome || '';
+
+  if (role === 'admin') {
+    greeting.textContent = 'Bem-vindo de volta,';
+    nameEl.innerHTML = `Olá, <span class="wlc-highlight">Chefe</span> 👑`;
+    subEl.textContent = 'O que manda para hoje?';
+  } else if (role === 'professor') {
+    greeting.textContent = 'Bem-vindo(a) ao sistema,';
+    nameEl.innerHTML = `Professor(a) <span class="wlc-highlight">${nome || 'Professor'}</span>`;
+    subEl.textContent = 'Pronto(a) para a chamada de hoje?';
+  } else {
+    greeting.textContent = 'Bem-vindo(a),';
+    nameEl.innerHTML = `<span class="wlc-highlight">${nome || 'Instituição'}</span>`;
+    subEl.textContent = 'Gerencie sua instituição com facilidade.';
+  }
+
+  // Reinicia a barra para animar
+  bar.style.animation = 'none';
+  bar.offsetHeight; // reflow
+  bar.style.animation = `barFill ${WELCOME_DURATION / 1000}s cubic-bezier(0.4,0,0.2,1) forwards`;
+
+  screen.classList.add('show');
+
+  setTimeout(() => {
+    screen.classList.add('hide');
+    setTimeout(() => window.location.replace(destino), 500);
+  }, WELCOME_DURATION);
+}
+
+// Já logado → welcome + redirect
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+  const { data: profile } = await supabase
+    .from('profiles').select('role, nome').eq('id', session.user.id).single();
   if (profile?.role) localStorage.setItem('qr_role', profile.role);
-  window.location.replace(
+  const destino =
     profile?.role === 'professor' ? '/chamada.html' :
     profile?.role === 'admin'    ? '/dashboard.html' :
-    '/inst-dashboard.html'
-  );
+    '/inst-dashboard.html';
+  showWelcome(profile, destino);
 }
 
 const form      = document.getElementById('login-form');
@@ -652,13 +832,14 @@ form.addEventListener('submit', async (e) => {
     spinner.style.display = 'none';
   } else {
     const { data: { session: s } } = await supabase.auth.getSession();
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', s.user.id).single();
+    const { data: profile } = await supabase
+      .from('profiles').select('role, nome').eq('id', s.user.id).single();
     if (profile?.role) localStorage.setItem('qr_role', profile.role);
-    window.location.replace(
+    const destino =
       profile?.role === 'professor' ? '/chamada.html' :
       profile?.role === 'admin'    ? '/dashboard.html' :
-      '/inst-dashboard.html'
-    );
+      '/inst-dashboard.html';
+    showWelcome(profile, destino);
   }
 });
 </script>
