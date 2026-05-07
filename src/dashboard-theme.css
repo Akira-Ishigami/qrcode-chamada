@@ -1,7 +1,10 @@
-/* ══ TEMA DARK — Painel Administrativo (dashboard.html) ══════════════════════ */
+/* ══ TEMA DARK — Painel Administrativo (dashboard.html) ══════════════════════
+   Usa body.admin-dark para ter mais especificidade que :root em style.css
+   e garantir que funcione no build de produção do Vite/Vercel.
+═══════════════════════════════════════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700;800&family=Exo+2:wght@300;400;500;600;700;800&display=swap');
 
-:root {
+body.admin-dark {
   --bg:        #0d1424;
   --surface:   #141c30;
   --surface-2: #101828;
@@ -30,9 +33,7 @@
   --shadow:    0 4px 20px rgba(0,0,0,0.6);
   --shadow-lg: 0 8px 36px rgba(0,0,0,0.7);
   --shadow-xl: 0 20px 60px rgba(0,0,0,0.8);
-}
 
-body {
-  font-family: 'Exo 2', 'Outfit', system-ui, sans-serif;
-  background: var(--bg) !important;
+  background: #0d1424;
+  font-family: 'Exo 2', system-ui, sans-serif;
 }
