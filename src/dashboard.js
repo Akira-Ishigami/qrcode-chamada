@@ -1286,7 +1286,7 @@ function renderAnotacoes() {
       <!-- Toolbar -->
       <div class="nbed-toolbar" style="visibility:hidden">
         <button class="nbed-check" id="nbed-check" title="Marcar como concluído">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2a7a2a" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
         <span class="nbed-done-label" id="nbed-done-label">Marcar como concluído</span>
         <div class="nbed-toolbar-sep"></div>
