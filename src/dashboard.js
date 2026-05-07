@@ -1122,47 +1122,68 @@ function buildWaBubble(msg, isAdminView = false) {
   return wrap;
 }
 // ══ ANOTAÇÕES — EDITOR COM ABAS ═══════════════════════════════════════════════
-function renderAnotacoes() {
+async function renderAnotacoes() {
   clearClock();
   root.classList.remove("kanban-mode");
 
-  const KEY    = `adm_notebook_v1_${window._adminId || "local"}`;
-  const load   = () => JSON.parse(localStorage.getItem(KEY) || "[]");
-  const save   = (n) => localStorage.setItem(KEY, JSON.stringify(n));
-  const newId  = () => crypto.randomUUID();
-  const newNote = () => ({
-    id: newId(), title: "", body: "", done: false,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  });
-
+  const adminId = window._adminId;
+  let notes = [];
   let activeId = null;
   const saveTimers = {};
 
-  function scheduleSave(id, field, value) {
-    clearTimeout(saveTimers[id + field]);
-    saveTimers[id + field] = setTimeout(() => {
-      const notes = load();
-      const n = notes.find(x => x.id === id);
-      if (!n) return;
-      n[field] = value;
-      n.updatedAt = new Date().toISOString();
-      save(notes);
-      updateStatusBar();
-      // Update tab label if title changed
-      if (field === "title") {
-        const tab = root.querySelector(`.nbed-tab[data-id="${id}"] .nbed-tab-label`);
-        if (tab) tab.textContent = value || "Sem título";
-      }
-    }, 500);
+  // ── Supabase helpers ─────────────────────────────────────────────────────────
+  async function dbLoad() {
+    const { data } = await supabase
+      .from("anotacoes")
+      .select("*")
+      .eq("admin_id", adminId)
+      .order("updated_at", { ascending: false });
+    notes = data ?? [];
   }
 
+  async function dbInsert(note) {
+    const { data, error } = await supabase
+      .from("anotacoes")
+      .insert({ admin_id: adminId, title: note.title, body: note.body, done: note.done })
+      .select()
+      .single();
+    if (!error && data) notes.unshift(data);
+    return data;
+  }
+
+  async function dbUpdate(id, fields) {
+    await supabase
+      .from("anotacoes")
+      .update({ ...fields, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    const n = notes.find(x => x.id === id);
+    if (n) Object.assign(n, fields, { updated_at: new Date().toISOString() });
+  }
+
+  async function dbDelete(id) {
+    await supabase.from("anotacoes").delete().eq("id", id);
+    notes = notes.filter(n => n.id !== id);
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────────
   function fmtDate(iso) {
     return new Date(iso).toLocaleDateString("pt-BR", { day:"2-digit", month:"short", year:"numeric" }) + " " +
            new Date(iso).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
   }
 
+  function scheduleSave(id, fields) {
+    clearTimeout(saveTimers[id]);
+    saveTimers[id] = setTimeout(async () => {
+      await dbUpdate(id, fields);
+      updateStatusBar();
+      if (fields.title !== undefined) {
+        const tab = root.querySelector(`.nbed-tab[data-id="${id}"] .nbed-tab-label`);
+        if (tab) tab.textContent = fields.title || "Sem título";
+      }
+    }, 600);
+  }
+
   function updateStatusBar() {
-    const notes = load();
     const note  = notes.find(n => n.id === activeId);
     const chars = (note?.body || "").length;
     const total = notes.length;
@@ -1171,14 +1192,12 @@ function renderAnotacoes() {
     if (sb) sb.innerHTML = `
       <span>${chars} caractere${chars !== 1 ? "s" : ""}</span>
       <span>${total} nota${total !== 1 ? "s" : ""} · ${done} concluída${done !== 1 ? "s" : ""}</span>
-      ${note ? `<span>Salvo ${fmtDate(note.updatedAt)}</span>` : ""}
+      ${note ? `<span>Salvo ${fmtDate(note.updated_at)}</span>` : ""}
     `;
   }
 
   function renderEditor() {
-    const notes = load();
-    const note  = notes.find(n => n.id === activeId);
-
+    const note = notes.find(n => n.id === activeId);
     const editorArea = root.querySelector(".nbed-editor-area");
     if (!editorArea) return;
 
@@ -1192,18 +1211,16 @@ function renderAnotacoes() {
             <line x1="16" y1="31" x2="22" y2="31"/>
           </svg>
           <div class="nbed-empty-title">NENHUMA NOTA ABERTA</div>
-          <div class="nbed-empty-sub">Crie uma nova aba ou selecione uma nota</div>
+          <div class="nbed-empty-sub">Clique em + para criar uma nova nota</div>
         </div>`;
       root.querySelector(".nbed-toolbar").style.visibility = "hidden";
       return;
     }
 
     root.querySelector(".nbed-toolbar").style.visibility = "visible";
-
-    // Sync toolbar done state
-    const checkBtn = root.querySelector(".nbed-check");
+    const checkBtn  = root.querySelector(".nbed-check");
     const doneLabel = root.querySelector(".nbed-done-label");
-    if (checkBtn) { checkBtn.classList.toggle("checked", note.done); }
+    checkBtn?.classList.toggle("checked", note.done);
     if (doneLabel) { doneLabel.textContent = note.done ? "Concluído" : "Marcar como concluído"; doneLabel.classList.toggle("done", note.done); }
 
     editorArea.innerHTML = `
@@ -1217,17 +1234,21 @@ function renderAnotacoes() {
       </div>
     `;
 
-    // Auto-height textarea
-    const ta = root.querySelector("#nbed-body-inp");
+    const ta     = root.querySelector("#nbed-body-inp");
     const resize = () => { ta.style.height = "auto"; ta.style.height = Math.max(200, ta.scrollHeight) + "px"; };
     requestAnimationFrame(resize);
 
+    let pendingTitle = note.title;
+    let pendingBody  = note.body;
+
     root.querySelector("#nbed-title-inp").addEventListener("input", e => {
-      scheduleSave(note.id, "title", e.target.value);
+      pendingTitle = e.target.value;
+      scheduleSave(note.id, { title: pendingTitle, body: pendingBody });
     });
     ta.addEventListener("input", e => {
       resize();
-      scheduleSave(note.id, "body", e.target.value);
+      pendingBody = e.target.value;
+      scheduleSave(note.id, { title: pendingTitle, body: pendingBody });
       updateStatusBar();
     });
 
@@ -1236,11 +1257,8 @@ function renderAnotacoes() {
   }
 
   function renderTabs() {
-    const notes = load();
     const tabbar = root.querySelector(".nbed-tabbar");
     if (!tabbar) return;
-
-    // Keep new-tab button
     const newBtn = tabbar.querySelector(".nbed-tab-new");
     tabbar.innerHTML = "";
     tabbar.appendChild(newBtn);
@@ -1251,7 +1269,7 @@ function renderAnotacoes() {
       tab.dataset.id = note.id;
       tab.innerHTML = `
         <span class="nbed-tab-label">${esc(note.title || "Sem título")}</span>
-        <button class="nbed-tab-close" data-id="${note.id}" title="Fechar">
+        <button class="nbed-tab-close" title="Fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       `;
@@ -1261,11 +1279,10 @@ function renderAnotacoes() {
         renderTabs();
         renderEditor();
       });
-      tab.querySelector(".nbed-tab-close").addEventListener("click", e => {
+      tab.querySelector(".nbed-tab-close").addEventListener("click", async e => {
         e.stopPropagation();
-        const updated = load().filter(n => n.id !== note.id);
-        save(updated);
-        if (activeId === note.id) activeId = updated[0]?.id ?? null;
+        await dbDelete(note.id);
+        if (activeId === note.id) activeId = notes[0]?.id ?? null;
         renderTabs();
         renderEditor();
       });
@@ -1273,17 +1290,14 @@ function renderAnotacoes() {
     });
   }
 
-  // ── Render shell ─────────────────────────────────────────────────────────────
+  // ── Shell ─────────────────────────────────────────────────────────────────────
   root.innerHTML = `
     <div class="nbed-wrap">
-      <!-- Tab bar -->
       <div class="nbed-tabbar">
         <button class="nbed-tab-new" id="nbed-new" title="Nova nota">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
-
-      <!-- Toolbar -->
       <div class="nbed-toolbar" style="visibility:hidden">
         <button class="nbed-check" id="nbed-check" title="Marcar como concluído">
           <svg viewBox="0 0 24 24" fill="none" stroke="#2a7a2a" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1294,55 +1308,47 @@ function renderAnotacoes() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           Excluir
         </button>
-        <div class="nbed-toolbar-right">
-          <span class="nbed-char-count" id="nbed-char-count"></span>
+        <div class="nbed-toolbar-right"><span class="nbed-char-count"></span></div>
+      </div>
+      <div class="nbed-editor-area" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="nbed-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:rgba(80,60,0,.2)">
+          <span style="font-family:Georgia,serif;font-size:.85rem">Carregando…</span>
         </div>
       </div>
-
-      <!-- Editor + empty -->
-      <div class="nbed-editor-area" style="flex:1;display:flex;flex-direction:column;min-height:0;animation:editorFade .2s ease">
-      </div>
-
-      <!-- Status bar -->
       <div class="nbed-statusbar"></div>
     </div>
   `;
 
-  // Init active note
-  const initial = load();
-  if (initial.length > 0 && !activeId) activeId = initial[0].id;
-
+  // Carrega do banco e renderiza
+  await dbLoad();
+  if (notes.length > 0) activeId = notes[0].id;
   renderTabs();
   renderEditor();
 
-  // New note
-  root.querySelector("#nbed-new").addEventListener("click", () => {
-    const n = newNote();
-    const notes = load();
-    notes.unshift(n);
-    save(notes);
-    activeId = n.id;
-    renderTabs();
-    renderEditor();
+  // Nova nota
+  root.querySelector("#nbed-new").addEventListener("click", async () => {
+    const inserted = await dbInsert({ title: "", body: "", done: false });
+    if (inserted) {
+      activeId = inserted.id;
+      renderTabs();
+      renderEditor();
+    }
   });
 
   // Toggle done
-  root.querySelector("#nbed-check").addEventListener("click", () => {
-    const notes = load();
-    const n = notes.find(x => x.id === activeId);
-    if (!n) return;
-    n.done = !n.done;
-    n.updatedAt = new Date().toISOString();
-    save(notes);
+  root.querySelector("#nbed-check").addEventListener("click", async () => {
+    const note = notes.find(n => n.id === activeId);
+    if (!note) return;
+    note.done = !note.done;
+    await dbUpdate(activeId, { done: note.done });
     renderTabs();
     renderEditor();
   });
 
-  // Delete active
-  root.querySelector("#nbed-del").addEventListener("click", () => {
+  // Excluir
+  root.querySelector("#nbed-del").addEventListener("click", async () => {
     if (!activeId) return;
-    const notes = load().filter(n => n.id !== activeId);
-    save(notes);
+    await dbDelete(activeId);
     activeId = notes[0]?.id ?? null;
     renderTabs();
     renderEditor();
