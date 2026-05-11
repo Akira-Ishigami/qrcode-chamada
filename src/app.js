@@ -141,18 +141,17 @@ btnIniciar.addEventListener("click", async () => {
   chamadaData = new Date().toISOString().split("T")[0];
   turmaNome   = turma?.nome ?? "Turma";
 
-  // Verifica chamada de hoje — aberta OU encerrada
-  let { data: chamadaHoje } = await supabase
+  // Verifica chamada ABERTA hoje
+  let { data: chamadaExistente } = await supabase
     .from("chamadas")
-    .select("id, aberta")
+    .select("id")
     .eq("turma_id", turmaId)
     .eq("data", chamadaData)
+    .eq("aberta", true)
     .maybeSingle();
 
-  if (chamadaHoje) {
-    chamadaId = chamadaHoje.id;
-    // Se encerrada, entra em modo somente-leitura + presença manual
-    _chamadaEncerrada = !chamadaHoje.aberta;
+  if (chamadaExistente) {
+    chamadaId = chamadaExistente.id;
   } else {
     const { data: novaChamada, error } = await supabase
       .from("chamadas")
@@ -166,8 +165,9 @@ btnIniciar.addEventListener("click", async () => {
       return;
     }
     chamadaId = novaChamada.id;
-    _chamadaEncerrada = false;
   }
+
+  _chamadaEncerrada = false;
 
   // Mostra topbar com info da chamada
   document.getElementById("topbar-titulo").textContent  = turma?.nome       ?? "—";
@@ -177,7 +177,7 @@ btnIniciar.addEventListener("click", async () => {
   if (statusBadge)   statusBadge.style.display   = "";
 
   await carregarAlunos(turmaId);
-  if (chamadaHoje) await carregarPresencasExistentes();
+  if (chamadaExistente) await carregarPresencasExistentes();
 
   renderList();
   updateStats();
