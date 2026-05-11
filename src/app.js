@@ -12,6 +12,7 @@ let decoding   = false;
 let stream     = null;
 let animFrame  = null;
 let lastResult = null;
+let _chamadaEncerrada = false;
 
 // ─── DOM ──────────────────────────────────────────────────────────────────────
 const viewSelector  = document.getElementById("view-selector");
@@ -139,17 +140,18 @@ btnIniciar.addEventListener("click", async () => {
   chamadaData = new Date().toISOString().split("T")[0];
   turmaNome   = turma?.nome ?? "Turma";
 
-  // Verifica chamada aberta hoje
-  let { data: chamadaExistente } = await supabase
+  // Verifica chamada de hoje — aberta OU encerrada
+  let { data: chamadaHoje } = await supabase
     .from("chamadas")
-    .select("id")
+    .select("id, aberta")
     .eq("turma_id", turmaId)
     .eq("data", chamadaData)
-    .eq("aberta", true)
     .maybeSingle();
 
-  if (chamadaExistente) {
-    chamadaId = chamadaExistente.id;
+  if (chamadaHoje) {
+    chamadaId = chamadaHoje.id;
+    // Se encerrada, entra em modo somente-leitura + presença manual
+    _chamadaEncerrada = !chamadaHoje.aberta;
   } else {
     const { data: novaChamada, error } = await supabase
       .from("chamadas")
@@ -163,6 +165,7 @@ btnIniciar.addEventListener("click", async () => {
       return;
     }
     chamadaId = novaChamada.id;
+    _chamadaEncerrada = false;
   }
 
   // Mostra topbar com info da chamada
@@ -173,10 +176,11 @@ btnIniciar.addEventListener("click", async () => {
   if (statusBadge)   statusBadge.style.display   = "";
 
   await carregarAlunos(turmaId);
-  if (chamadaExistente) await carregarPresencasExistentes();
+  if (chamadaHoje) await carregarPresencasExistentes();
 
   renderList();
   updateStats();
+  aplicarModoEncerrada();
   mostrarViewChamada();
 
   btnIniciar.disabled    = false;
@@ -230,6 +234,7 @@ document.getElementById("btn-confirm-ok").addEventListener("click", async () => 
   ALUNOS      = [];
   turmaNome   = "";
   chamadaData = "";
+  _chamadaEncerrada = false;
 
   if (contentTopbar) contentTopbar.style.display = "none";
   if (statusBadge)   statusBadge.style.display   = "none";
@@ -459,6 +464,164 @@ function scanLoop() {
   }
 
   animFrame = requestAnimationFrame(scanLoop);
+}
+
+// ─── Modo chamada encerrada ───────────────────────────────────────────────────
+function aplicarModoEncerrada() {
+  const btnEncerrar = document.getElementById("btn-encerrar");
+  const btnScan     = document.getElementById("btn-scan");
+  const btnExportar = document.getElementById("btn-exportar");
+
+  // Remove botão de presença manual anterior se existir
+  document.getElementById("btn-presenca-manual")?.remove();
+
+  if (_chamadaEncerrada) {
+    if (btnEncerrar) btnEncerrar.style.display = "none";
+    if (btnScan)     btnScan.style.display     = "none";
+
+    // Insere badge "Encerrada" e botão de presença manual
+    const btnManual = document.createElement("button");
+    btnManual.id        = "btn-presenca-manual";
+    btnManual.className = "scan-btn";
+    btnManual.style.cssText = "background:#7c3aed;box-shadow:0 4px 14px rgba(124,58,237,0.4);gap:8px;display:flex;align-items:center;justify-content:center;";
+    btnManual.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <line x1="19" y1="8" x2="19" y2="14"/>
+        <line x1="22" y1="11" x2="16" y2="11"/>
+      </svg>
+      Adicionar presença manual
+    `;
+    btnManual.addEventListener("click", abrirModalPresencaManual);
+    btnScan?.parentNode?.insertBefore(btnManual, btnScan);
+  } else {
+    if (btnEncerrar) btnEncerrar.style.display = "";
+    if (btnScan)     btnScan.style.display     = "";
+  }
+}
+
+async function abrirModalPresencaManual() {
+  const ausentes = ALUNOS.filter(a => !a.presente);
+
+  const ov = document.createElement("div");
+  ov.style.cssText = `
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(7,9,18,0.65);backdrop-filter:blur(5px);
+    opacity:0;transition:opacity .2s;
+  `;
+
+  ov.innerHTML = `
+    <div id="pm-card" style="
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:20px 20px 0 0;width:100%;max-width:520px;
+      box-shadow:0 -8px 40px rgba(0,0,0,0.4);
+      transform:translateY(100%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+      display:flex;flex-direction:column;max-height:80vh;overflow:hidden;
+    ">
+      <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:.6rem;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Presença manual</div>
+          <h3 style="font-size:1rem;font-weight:800;color:var(--text);letter-spacing:-.02em">Alunos ausentes</h3>
+          <p style="font-size:.78rem;color:var(--text-3);margin-top:2px">Selecione quem chegou atrasado</p>
+        </div>
+        <button id="pm-fechar" style="width:30px;height:30px;border-radius:50%;background:var(--surface-3);border:none;cursor:pointer;color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+      </div>
+
+      <div id="pm-lista" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;">
+        ${ausentes.length === 0
+          ? `<div style="padding:32px;text-align:center;color:var(--text-3);font-size:.875rem">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.3;margin-bottom:10px">
+                 <polyline points="20 6 9 17 4 12"/>
+               </svg>
+               <p>Todos os alunos já estão presentes!</p>
+             </div>`
+          : ausentes.map(a => {
+              const ini = a.nome.split(" ").slice(0,2).map(n=>n[0]).join("");
+              return `
+              <label style="display:flex;align-items:center;gap:12px;padding:11px 13px;
+                background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+                cursor:pointer;transition:background .12s;" class="pm-row">
+                <input type="checkbox" value="${a.id}" style="width:16px;height:16px;accent-color:#7c3aed;flex-shrink:0;cursor:pointer">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(124,58,237,0.12);
+                  color:#7c3aed;display:flex;align-items:center;justify-content:center;
+                  font-size:.75rem;font-weight:700;flex-shrink:0">${ini}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:.875rem;font-weight:600;color:var(--text)">${a.nome}</div>
+                  <div style="font-size:.72rem;color:var(--text-3)">Matrícula: ${a.matricula}</div>
+                </div>
+              </label>`;
+            }).join("")
+        }
+      </div>
+
+      ${ausentes.length > 0 ? `
+        <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:10px">
+          <button id="pm-cancelar" style="flex:1;padding:12px;border:1px solid var(--border-2);border-radius:10px;
+            background:var(--surface-2);color:var(--text-2);font-size:.875rem;font-weight:600;
+            cursor:pointer;font-family:inherit;transition:all .13s">Cancelar</button>
+          <button id="pm-confirmar" style="flex:2;padding:12px;border:none;border-radius:10px;
+            background:#7c3aed;color:white;font-size:.875rem;font-weight:700;
+            cursor:pointer;font-family:inherit;transition:all .13s;
+            box-shadow:0 4px 14px rgba(124,58,237,0.4)">
+            Confirmar presenças
+          </button>
+        </div>` : ""}
+    </div>
+  `;
+
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => {
+    ov.style.opacity = "1";
+    ov.querySelector("#pm-card").style.transform = "translateY(0)";
+  });
+
+  const fechar = () => {
+    ov.style.opacity = "0";
+    ov.querySelector("#pm-card").style.transform = "translateY(100%)";
+    setTimeout(() => ov.remove(), 250);
+  };
+
+  ov.querySelector("#pm-fechar").addEventListener("click", fechar);
+  ov.querySelector("#pm-cancelar")?.addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+
+  // Hover nas linhas
+  ov.querySelectorAll(".pm-row").forEach(row => {
+    row.addEventListener("mouseenter", () => row.style.background = "var(--surface-3)");
+    row.addEventListener("mouseleave", () => row.style.background = "var(--surface-2)");
+  });
+
+  ov.querySelector("#pm-confirmar")?.addEventListener("click", async () => {
+    const selecionados = [...ov.querySelectorAll("input[type=checkbox]:checked")].map(cb => cb.value);
+    if (selecionados.length === 0) {
+      showToast("Selecione pelo menos um aluno.", "error");
+      return;
+    }
+
+    const btn = ov.querySelector("#pm-confirmar");
+    btn.disabled = true; btn.textContent = "Salvando…";
+
+    const inserts = selecionados.map(alunoId => ({ chamada_id: chamadaId, aluno_id: alunoId }));
+    const { error } = await supabase.from("presencas").insert(inserts);
+
+    if (error) {
+      showToast("Erro ao salvar presenças: " + error.message, "error");
+      btn.disabled = false; btn.textContent = "Confirmar presenças";
+      return;
+    }
+
+    // Atualiza estado local
+    selecionados.forEach(id => {
+      const a = ALUNOS.find(x => x.id === id);
+      if (a) { a.presente = true; refreshCard(a); }
+    });
+    updateStats();
+
+    fechar();
+    showToast(`${selecionados.length} presença${selecionados.length > 1 ? "s" : ""} adicionada${selecionados.length > 1 ? "s" : ""}!`, "success");
+  });
 }
 
 // ─── Navegação entre views ────────────────────────────────────────────────────
