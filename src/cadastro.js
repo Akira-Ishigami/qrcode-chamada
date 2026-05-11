@@ -509,9 +509,16 @@ function abrirModalEditar(aluno) {
       </div>
 
       <div class="form-modal-footer" style="justify-content:space-between">
-        <button class="fmb-cancel ed-btn-excluir" id="ed-excluir" style="color:var(--red);border-color:#fca5a5">
-          Excluir aluno
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="fmb-cancel ed-btn-excluir" id="ed-excluir" style="color:var(--red);border-color:#fca5a5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Excluir
+          </button>
+          <button class="fmb-cancel" id="ed-transferir" style="color:#7c3aed;border-color:#c4b5fd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            Transferir
+          </button>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="fmb-cancel" id="ed-cancelar">Cancelar</button>
           <button class="fmb-submit" id="ed-salvar">
@@ -624,13 +631,231 @@ function abrirModalEditar(aluno) {
   });
 
   // ── excluir ──
-  overlay.querySelector("#ed-excluir").addEventListener("click", async () => {
-    if (!confirm(`Excluir "${aluno.nome}"? Esta ação não pode ser desfeita.`)) return;
-    const { error } = await supabaseAdmin.from("alunos").delete().eq("id", aluno.id);
-    if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
-    fechar();
-    showToast(`"${aluno.nome}" excluído.`, "success");
-    await carregarAlunos();
+  overlay.querySelector("#ed-excluir").addEventListener("click", () => {
+    confirmarExcluirAluno(aluno, async () => {
+      const { error } = await supabaseAdmin.from("alunos").delete().eq("id", aluno.id);
+      if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
+      fechar();
+      showToast(`"${aluno.nome}" excluído.`, "success");
+      await carregarAlunos();
+    });
+  });
+
+  // ── transferir turma ──
+  overlay.querySelector("#ed-transferir").addEventListener("click", () => {
+    const instId = _adminInstId || aluno.inst?.id;
+    abrirModalTransferirAluno(aluno, instId, async (novaTurmaId) => {
+      const { error } = await supabaseAdmin.from("alunos")
+        .update({ turma_id: novaTurmaId }).eq("id", aluno.id);
+      if (error) { showToast("Erro ao transferir: " + error.message, "error"); return; }
+      fechar();
+      showToast(`"${aluno.nome}" transferido com sucesso!`, "success");
+      await carregarAlunos();
+    });
+  });
+}
+
+// ── Modal de confirmação de exclusão ─────────────────────────────────────────
+function confirmarExcluirAluno(aluno, onConfirm) {
+  const ov = document.createElement("div");
+  ov.style.cssText = `
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    background:rgba(7,9,18,0.7);backdrop-filter:blur(6px);
+    opacity:0;transition:opacity .2s;
+  `;
+
+  ov.innerHTML = `
+    <div style="
+      background:var(--surface);border:1px solid rgba(220,38,38,0.25);
+      border-radius:18px;padding:32px 28px;max-width:380px;width:100%;
+      box-shadow:0 24px 64px rgba(0,0,0,0.5),0 0 0 1px rgba(220,38,38,0.08);
+      transform:scale(.94) translateY(12px);transition:transform .25s cubic-bezier(.22,1,.36,1);
+      text-align:center;
+    " id="del-card">
+
+      <!-- Ícone -->
+      <div style="
+        width:56px;height:56px;border-radius:50%;margin:0 auto 20px;
+        background:rgba(220,38,38,0.1);border:2px solid rgba(220,38,38,0.3);
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 0 24px rgba(220,38,38,0.2);
+      ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="24" height="24">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+
+      <p style="font-size:.62rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">
+        Ação irreversível
+      </p>
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-bottom:8px">
+        Excluir aluno?
+      </h3>
+      <p style="font-size:.84rem;color:var(--text-2);line-height:1.6;margin-bottom:6px">
+        O aluno <strong style="color:var(--text)">${esc(aluno.nome)}</strong> será removido permanentemente do sistema.
+      </p>
+      <p style="font-size:.76rem;color:var(--text-3);margin-bottom:28px">
+        Esta ação não pode ser desfeita.
+      </p>
+
+      <div style="display:flex;gap:10px">
+        <button id="del-cancel" style="
+          flex:1;padding:11px;border:1px solid var(--border-2);border-radius:10px;
+          background:var(--surface-2);color:var(--text-2);font-size:.84rem;font-weight:600;
+          cursor:pointer;font-family:inherit;transition:all .13s;
+        ">Cancelar</button>
+        <button id="del-confirm" style="
+          flex:1;padding:11px;border:none;border-radius:10px;
+          background:var(--red);color:white;font-size:.84rem;font-weight:700;
+          cursor:pointer;font-family:inherit;transition:all .13s;
+          box-shadow:0 4px 14px rgba(220,38,38,0.35);
+        ">Excluir permanentemente</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => {
+    ov.style.opacity = "1";
+    ov.querySelector("#del-card").style.transform = "scale(1) translateY(0)";
+  });
+
+  const fecharDel = () => {
+    ov.style.opacity = "0";
+    ov.querySelector("#del-card").style.transform = "scale(.94) translateY(12px)";
+    setTimeout(() => ov.remove(), 220);
+  };
+
+  ov.querySelector("#del-cancel").addEventListener("click", fecharDel);
+  ov.addEventListener("click", e => { if (e.target === ov) fecharDel(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fecharDel(); document.removeEventListener("keydown", onEsc); }
+  });
+
+  ov.querySelector("#del-cancel").addEventListener("mouseenter", function() { this.style.background = "var(--surface-3)"; this.style.color = "var(--text)"; });
+  ov.querySelector("#del-cancel").addEventListener("mouseleave", function() { this.style.background = "var(--surface-2)"; this.style.color = "var(--text-2)"; });
+  ov.querySelector("#del-confirm").addEventListener("mouseenter", function() { this.style.background = "var(--red-2)"; this.style.transform = "translateY(-1px)"; });
+  ov.querySelector("#del-confirm").addEventListener("mouseleave", function() { this.style.background = "var(--red)"; this.style.transform = ""; });
+
+  ov.querySelector("#del-confirm").addEventListener("click", async () => {
+    const btn = ov.querySelector("#del-confirm");
+    btn.disabled = true; btn.textContent = "Excluindo…";
+    await onConfirm();
+    fecharDel();
+  });
+}
+
+// ── Modal de transferência de turma ──────────────────────────────────────────
+async function abrirModalTransferirAluno(aluno, instId, onConfirm) {
+  const { data: turmas } = await supabaseAdmin
+    .from("turmas").select("id, nome")
+    .eq("instituicao_id", instId).order("nome");
+
+  const opcoes = (turmas ?? []).filter(t => t.id !== aluno.turma?.id);
+
+  const ov = document.createElement("div");
+  ov.style.cssText = `
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    background:rgba(7,9,18,0.7);backdrop-filter:blur(6px);
+    opacity:0;transition:opacity .2s;
+  `;
+
+  ov.innerHTML = `
+    <div style="
+      background:var(--surface);border:1px solid rgba(124,58,237,0.25);
+      border-radius:18px;padding:32px 28px;max-width:400px;width:100%;
+      box-shadow:0 24px 64px rgba(0,0,0,0.5),0 0 0 1px rgba(124,58,237,0.08);
+      transform:scale(.94) translateY(12px);transition:transform .25s cubic-bezier(.22,1,.36,1);
+    " id="tr-card">
+
+      <!-- Ícone -->
+      <div style="
+        width:52px;height:52px;border-radius:14px;margin-bottom:20px;
+        background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 0 20px rgba(124,58,237,0.15);
+      ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="22" height="22">
+          <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+      </div>
+
+      <h3 style="font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-bottom:5px">
+        Transferir aluno
+      </h3>
+      <p style="font-size:.82rem;color:var(--text-2);margin-bottom:20px">
+        <strong style="color:var(--text)">${esc(aluno.nome)}</strong> —
+        turma atual: <em style="color:var(--text-3)">${esc(aluno.turma?.nome || "Sem turma")}</em>
+      </p>
+
+      <label style="font-size:.65rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:7px">
+        Nova turma
+      </label>
+      <select id="tr-select" style="
+        width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;
+        background:var(--surface-2);color:var(--text);font-size:.88rem;font-family:inherit;
+        font-weight:500;outline:none;margin-bottom:24px;cursor:pointer;
+        transition:border-color .15s,box-shadow .15s;
+      ">
+        <option value="">Selecione uma turma…</option>
+        ${opcoes.map(t => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("")}
+        ${opcoes.length === 0 ? `<option disabled>Nenhuma outra turma disponível</option>` : ""}
+      </select>
+      <span id="tr-err" style="display:block;font-size:.76rem;color:var(--red);font-weight:600;min-height:16px;margin-top:-18px;margin-bottom:16px"></span>
+
+      <div style="display:flex;gap:10px">
+        <button id="tr-cancel" style="
+          flex:1;padding:11px;border:1px solid var(--border-2);border-radius:10px;
+          background:var(--surface-2);color:var(--text-2);font-size:.84rem;font-weight:600;
+          cursor:pointer;font-family:inherit;transition:all .13s;
+        ">Cancelar</button>
+        <button id="tr-confirm" style="
+          flex:1;padding:11px;border:none;border-radius:10px;
+          background:#7c3aed;color:white;font-size:.84rem;font-weight:700;
+          cursor:pointer;font-family:inherit;transition:all .13s;
+          box-shadow:0 4px 14px rgba(124,58,237,0.35);
+        ">Confirmar transferência</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => {
+    ov.style.opacity = "1";
+    ov.querySelector("#tr-card").style.transform = "scale(1) translateY(0)";
+  });
+
+  const fecharTr = () => {
+    ov.style.opacity = "0";
+    ov.querySelector("#tr-card").style.transform = "scale(.94) translateY(12px)";
+    setTimeout(() => ov.remove(), 220);
+  };
+
+  ov.querySelector("#tr-cancel").addEventListener("click", fecharTr);
+  ov.addEventListener("click", e => { if (e.target === ov) fecharTr(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fecharTr(); document.removeEventListener("keydown", onEsc); }
+  });
+
+  const sel = ov.querySelector("#tr-select");
+  sel.addEventListener("focus", () => { sel.style.borderColor = "var(--acc)"; sel.style.boxShadow = "0 0 0 3px var(--acc-sub)"; });
+  sel.addEventListener("blur",  () => { sel.style.borderColor = "var(--border)"; sel.style.boxShadow = ""; });
+
+  ov.querySelector("#tr-confirm").addEventListener("click", async () => {
+    const err = ov.querySelector("#tr-err");
+    const novaTurmaId = sel.value;
+    if (!novaTurmaId) { err.textContent = "Selecione uma turma de destino."; return; }
+    err.textContent = "";
+    const btn = ov.querySelector("#tr-confirm");
+    btn.disabled = true; btn.textContent = "Transferindo…";
+    await onConfirm(novaTurmaId);
+    fecharTr();
   });
 }
 
