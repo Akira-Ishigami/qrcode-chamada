@@ -655,6 +655,11 @@ function abrirModalEditar(aluno) {
   });
 }
 
+// ── Escaping helper local ─────────────────────────────────────────────────────
+function _esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
 // ── Modal de confirmação de exclusão ─────────────────────────────────────────
 function confirmarExcluirAluno(aluno, onConfirm) {
   const ov = document.createElement("div");
@@ -696,7 +701,7 @@ function confirmarExcluirAluno(aluno, onConfirm) {
         Excluir aluno?
       </h3>
       <p style="font-size:.84rem;color:var(--text-2);line-height:1.6;margin-bottom:6px">
-        O aluno <strong style="color:var(--text)">${esc(aluno.nome)}</strong> será removido permanentemente do sistema.
+        O aluno <strong style="color:var(--text)">${_esc(aluno.nome)}</strong> será removido permanentemente do sistema.
       </p>
       <p style="font-size:.76rem;color:var(--text-3);margin-bottom:28px">
         Esta ação não pode ser desfeita.
@@ -790,8 +795,8 @@ async function abrirModalTransferirAluno(aluno, instId, onConfirm) {
         Transferir aluno
       </h3>
       <p style="font-size:.82rem;color:var(--text-2);margin-bottom:20px">
-        <strong style="color:var(--text)">${esc(aluno.nome)}</strong> —
-        turma atual: <em style="color:var(--text-3)">${esc(aluno.turma?.nome || "Sem turma")}</em>
+        <strong style="color:var(--text)">${_esc(aluno.nome)}</strong> —
+        turma atual: <em style="color:var(--text-3)">${_esc(aluno.turma?.nome || "Sem turma")}</em>
       </p>
 
       <label style="font-size:.65rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:7px">
@@ -804,7 +809,7 @@ async function abrirModalTransferirAluno(aluno, instId, onConfirm) {
         transition:border-color .15s,box-shadow .15s;
       ">
         <option value="">Selecione uma turma…</option>
-        ${opcoes.map(t => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("")}
+        ${opcoes.map(t => `<option value="${_esc(t.id)}">${_esc(t.nome)}</option>`).join("")}
         ${opcoes.length === 0 ? `<option disabled>Nenhuma outra turma disponível</option>` : ""}
       </select>
       <span id="tr-err" style="display:block;font-size:.76rem;color:var(--red);font-weight:600;min-height:16px;margin-top:-18px;margin-bottom:16px"></span>
