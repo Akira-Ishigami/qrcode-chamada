@@ -242,19 +242,173 @@
 </div><!-- /app-layout -->
 
 <!-- ─── Modal scanner ────────────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>Escanear QR Code</h2>
-      <button class="close-btn" id="btn-fechar-modal">✕</button>
+<div class="modal-overlay" id="modal-overlay" style="align-items:center;">
+  <div class="modal qr-modal">
+    <div class="qr-modal-header">
+      <div class="qr-modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+          <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+        </svg>
+      </div>
+      <span class="qr-modal-title">Escanear QR Code</span>
+      <button class="qr-modal-close" id="btn-fechar-modal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
-    <div class="video-wrapper">
+
+    <div class="video-wrapper qr-video-wrapper">
       <video id="video" playsinline muted></video>
-      <div class="scan-overlay"><div class="scan-frame"></div></div>
+
+      <!-- Canto neon: 4 cantos animados -->
+      <div class="qr-corners">
+        <div class="qr-corner tl"></div>
+        <div class="qr-corner tr"></div>
+        <div class="qr-corner bl"></div>
+        <div class="qr-corner br"></div>
+        <!-- Linha de scan animada -->
+        <div class="qr-scanline"></div>
+        <!-- Zona escura ao redor -->
+        <div class="qr-vignette"></div>
+      </div>
     </div>
-    <div class="modal-status" id="modal-status">Iniciando câmera...</div>
+
+    <div class="qr-modal-status" id="modal-status">
+      <div class="qr-status-dot"></div>
+      <span>Aponte para o QR Code do aluno</span>
+    </div>
   </div>
 </div>
+
+<style>
+  /* ── QR Scanner modal ─────────────────────────────────────────────────── */
+  #modal-overlay { align-items: center !important; }
+
+  .qr-modal {
+    border-radius: 20px !important;
+    max-width: 360px;
+    width: calc(100% - 32px);
+    margin: 0 auto;
+    overflow: hidden;
+    background: #060912;
+    border: 1px solid rgba(0,212,255,0.2);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(0,212,255,0.08);
+    animation: qrModalIn .3s cubic-bezier(.22,1,.36,1) both !important;
+  }
+  @keyframes qrModalIn {
+    from { opacity:0; transform: scale(.93) translateY(12px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+
+  .qr-modal-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    background: rgba(0,212,255,0.05);
+    border-bottom: 1px solid rgba(0,212,255,0.1);
+  }
+  .qr-modal-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    color: #00d4ff; flex-shrink: 0;
+  }
+  .qr-modal-title {
+    flex: 1; font-size: .84rem; font-weight: 700;
+    color: #c8daf0; letter-spacing: .02em;
+  }
+  .qr-modal-close {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: rgba(255,255,255,0.06); border: none;
+    cursor: pointer; color: #566890;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .13s, color .13s;
+  }
+  .qr-modal-close:hover { background: rgba(255,61,90,0.15); color: #ff3d5a; }
+
+  /* Video */
+  .qr-video-wrapper {
+    position: relative;
+    width: 100%; height: 300px;
+    background: #000; overflow: hidden;
+  }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Canto neon 4x */
+  .qr-corners {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .qr-corner {
+    position: absolute;
+    width: 36px; height: 36px;
+    border-color: #00d4ff; border-style: solid;
+    box-shadow: 0 0 10px rgba(0,212,255,0.6);
+  }
+  .qr-corner.tl { top: calc(50% - 90px); left: calc(50% - 90px); border-width: 3px 0 0 3px; border-radius: 8px 0 0 0; }
+  .qr-corner.tr { top: calc(50% - 90px); right: calc(50% - 90px); border-width: 3px 3px 0 0; border-radius: 0 8px 0 0; }
+  .qr-corner.bl { bottom: calc(50% - 90px); left: calc(50% - 90px); border-width: 0 0 3px 3px; border-radius: 0 0 0 8px; }
+  .qr-corner.br { bottom: calc(50% - 90px); right: calc(50% - 90px); border-width: 0 3px 3px 0; border-radius: 0 0 8px 0; }
+
+  /* Zona escura ao redor da área de scan */
+  .qr-vignette {
+    position: absolute; inset: 0;
+    box-shadow: inset 0 0 0 9999px rgba(0,0,0,0.52);
+    border-radius: 0;
+    /* Abertura no centro */
+    -webkit-mask: radial-gradient(
+      ellipse 180px 180px at center,
+      transparent 96%,
+      black 100%
+    );
+    mask: radial-gradient(
+      ellipse 180px 180px at center,
+      transparent 96%,
+      black 100%
+    );
+  }
+
+  /* Scan line */
+  .qr-scanline {
+    position: absolute;
+    left: calc(50% - 87px); width: 174px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+    box-shadow: 0 0 12px #00d4ff, 0 0 4px rgba(0,212,255,0.8);
+    animation: qrScan 2s ease-in-out infinite;
+    border-radius: 2px;
+  }
+  @keyframes qrScan {
+    0%   { top: calc(50% - 86px); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: calc(50% + 84px); opacity: 0; }
+  }
+
+  /* Status */
+  .qr-modal-status {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 16px;
+    background: rgba(0,0,0,0.4);
+    font-size: .78rem; color: rgba(200,214,239,0.65); font-weight: 500;
+    border-top: 1px solid rgba(0,212,255,0.08);
+  }
+  .qr-status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #00e87a;
+    box-shadow: 0 0 8px rgba(0,232,122,0.7);
+    flex-shrink: 0;
+    animation: dotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%     { opacity:.5; transform:scale(.7); }
+  }
+</style>
 
 <!-- ─── Flash de presença confirmada ─────────────────────────────────────────── -->
 <div id="presenca-flash" class="pf-overlay">
