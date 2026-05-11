@@ -49,14 +49,15 @@ async function init() {
 
   if (profile.role === "professor" && profile.instituicao_id) {
     _isProfessor = true;
-    // Esconde o grupo de instituição
     const instGroup = selInst.closest(".sel-group");
     if (instGroup) instGroup.style.display = "none";
-    // Carrega turmas direto da instituição do professor
     await carregarTurmasDeInst(profile.instituicao_id);
   } else {
     await carregarInstituicoes();
   }
+
+  // Carrega chamadas recentes para adicionar atrasados
+  carregarChamadasRecentes();
 }
 
 async function carregarInstituicoes() {
@@ -464,6 +465,184 @@ function scanLoop() {
   }
 
   animFrame = requestAnimationFrame(scanLoop);
+}
+
+// ─── Chamadas recentes (últimas 12h) para adicionar atrasados ────────────────
+async function carregarChamadasRecentes() {
+  const doze = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from("chamadas")
+    .select("id, aberta, created_at, turmas(id, nome, instituicao_id, instituicoes(nome))")
+    .eq("aberta", false)
+    .gte("created_at", doze)
+    .order("created_at", { ascending: false });
+
+  const section = document.getElementById("recentes-section");
+  const lista   = document.getElementById("recentes-lista");
+  if (!section || !lista) return;
+
+  if (!data?.length) { section.style.display = "none"; return; }
+
+  section.style.display = "";
+  lista.innerHTML = "";
+
+  data.forEach(c => {
+    const turma    = c.turmas;
+    const inst     = turma?.instituicoes?.nome ?? "";
+    const horaFmt  = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+
+    const card = document.createElement("button");
+    card.style.cssText = `
+      width:100%;display:flex;align-items:center;gap:12px;
+      padding:13px 15px;background:white;
+      border:1px solid #fde68a;border-radius:12px;
+      cursor:pointer;text-align:left;font-family:inherit;
+      transition:all .15s;box-shadow:0 1px 4px rgba(245,158,11,.1);
+    `;
+    card.innerHTML = `
+      <div style="width:36px;height:36px;border-radius:10px;background:#fef3c7;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" width="18" height="18">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.875rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${turma?.nome ?? "Turma"}
+        </div>
+        <div style="font-size:.72rem;color:#64748b;margin-top:2px">
+          ${inst} · Encerrada às ${horaFmt}
+        </div>
+      </div>
+      <div style="font-size:.7rem;font-weight:700;color:#d97706;background:#fef3c7;
+        padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0">
+        + Atrasados
+      </div>
+    `;
+    card.addEventListener("mouseenter", () => { card.style.background = "#fffbeb"; card.style.borderColor = "#f59e0b"; });
+    card.addEventListener("mouseleave", () => { card.style.background = "white";   card.style.borderColor = "#fde68a"; });
+    card.addEventListener("click", () => abrirModalAtrasados(c.id, turma?.nome ?? "Turma", turma?.id));
+    lista.appendChild(card);
+  });
+}
+
+async function abrirModalAtrasados(chamadaIdRef, turmaNomeRef, turmaIdRef) {
+  // Busca alunos da turma e presenças já registradas
+  const [{ data: alunos }, { data: presentes }] = await Promise.all([
+    supabase.from("alunos").select("id, nome, matricula").eq("turma_id", turmaIdRef).order("nome"),
+    supabase.from("presencas").select("aluno_id").eq("chamada_id", chamadaIdRef),
+  ]);
+
+  const presenteIds = new Set((presentes ?? []).map(p => p.aluno_id));
+  const ausentes = (alunos ?? []).filter(a => !presenteIds.has(a.id));
+
+  const ov = document.createElement("div");
+  ov.style.cssText = `
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);
+    opacity:0;transition:opacity .2s;
+  `;
+
+  ov.innerHTML = `
+    <div id="at-card" style="
+      background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;
+      box-shadow:0 -8px 40px rgba(0,0,0,0.2);
+      transform:translateY(100%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+      display:flex;flex-direction:column;max-height:80vh;overflow:hidden;
+    ">
+      <div style="padding:16px 18px 12px;border-bottom:1px solid #f1f5f9;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:.6rem;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">
+            ⏰ Chegada tardia
+          </div>
+          <h3 style="font-size:1rem;font-weight:800;color:#1e293b">${turmaNomeRef}</h3>
+          <p style="font-size:.78rem;color:#94a3b8;margin-top:2px">Selecione quem chegou atrasado</p>
+        </div>
+        <button id="at-fechar" style="width:30px;height:30px;border-radius:50%;background:#f1f5f9;border:none;cursor:pointer;color:#64748b;font-size:1rem">✕</button>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;">
+        ${ausentes.length === 0
+          ? `<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.875rem">
+               <div style="font-size:2rem;margin-bottom:8px">✅</div>
+               Todos os alunos já foram registrados!
+             </div>`
+          : ausentes.map(a => {
+              const ini = a.nome.split(" ").slice(0,2).map(n=>n[0]).join("");
+              return `
+              <label style="display:flex;align-items:center;gap:12px;padding:11px 13px;
+                background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+                cursor:pointer;" class="at-row">
+                <input type="checkbox" value="${a.id}" style="width:16px;height:16px;accent-color:#f59e0b;cursor:pointer;flex-shrink:0">
+                <div style="width:34px;height:34px;border-radius:50%;background:#fef3c7;
+                  color:#d97706;display:flex;align-items:center;justify-content:center;
+                  font-size:.75rem;font-weight:700;flex-shrink:0">${ini}</div>
+                <div style="flex:1">
+                  <div style="font-size:.875rem;font-weight:600;color:#1e293b">${a.nome}</div>
+                  <div style="font-size:.72rem;color:#94a3b8">Matrícula: ${a.matricula}</div>
+                </div>
+              </label>`;
+            }).join("")
+        }
+      </div>
+
+      ${ausentes.length > 0 ? `
+        <div style="padding:14px 16px;border-top:1px solid #f1f5f9;flex-shrink:0;display:flex;gap:10px">
+          <button id="at-cancelar" style="flex:1;padding:12px;border:1px solid #e2e8f0;border-radius:10px;
+            background:#f8fafc;color:#64748b;font-size:.875rem;font-weight:600;
+            cursor:pointer;font-family:inherit">Cancelar</button>
+          <button id="at-confirmar" style="flex:2;padding:12px;border:none;border-radius:10px;
+            background:#f59e0b;color:white;font-size:.875rem;font-weight:700;
+            cursor:pointer;font-family:inherit;
+            box-shadow:0 4px 14px rgba(245,158,11,0.4)">
+            Registrar como atrasado
+          </button>
+        </div>` : ""}
+    </div>
+  `;
+
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => {
+    ov.style.opacity = "1";
+    ov.querySelector("#at-card").style.transform = "translateY(0)";
+  });
+
+  const fechar = () => {
+    ov.style.opacity = "0";
+    ov.querySelector("#at-card").style.transform = "translateY(100%)";
+    setTimeout(() => ov.remove(), 250);
+  };
+
+  ov.querySelector("#at-fechar").addEventListener("click", fechar);
+  ov.querySelector("#at-cancelar")?.addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+
+  ov.querySelector("#at-confirmar")?.addEventListener("click", async () => {
+    const selecionados = [...ov.querySelectorAll("input:checked")].map(cb => cb.value);
+    if (!selecionados.length) { showToast("Selecione pelo menos um aluno.", "error"); return; }
+
+    const btn = ov.querySelector("#at-confirmar");
+    btn.disabled = true; btn.textContent = "Registrando…";
+
+    const inserts = selecionados.map(alunoId => ({
+      chamada_id: chamadaIdRef,
+      aluno_id:   alunoId,
+      atrasado:   true,
+    }));
+
+    const { error } = await supabase.from("presencas").insert(inserts);
+    if (error) {
+      showToast("Erro: " + error.message, "error");
+      btn.disabled = false; btn.textContent = "Registrar como atrasado";
+      return;
+    }
+
+    fechar();
+    showToast(`${selecionados.length} aluno${selecionados.length > 1 ? "s" : ""} registrado${selecionados.length > 1 ? "s" : ""} como atrasado!`, "success");
+    carregarChamadasRecentes(); // atualiza a lista
+  });
 }
 
 // ─── Modo chamada encerrada ───────────────────────────────────────────────────
