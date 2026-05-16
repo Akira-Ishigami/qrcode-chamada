@@ -839,11 +839,23 @@ async function carregarHistoricoHoje(instId) {
 
   const hoje = new Date().toISOString().split("T")[0];
 
+  // Busca turmas do professor/instituição primeiro
+  const { data: turmasData } = await supabase
+    .from("turmas")
+    .select("id")
+    .eq("instituicao_id", instId);
+
+  const turmaIds = (turmasData ?? []).map(t => t.id);
+  if (!turmaIds.length) {
+    lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-3);font-size:.82rem">Nenhuma turma cadastrada</div>`;
+    return;
+  }
+
   const { data } = await supabase
     .from("chamadas")
-    .select("id, aberta, created_at, encerrada_em, duracao_seg, turmas!inner(id, nome, instituicao_id)")
+    .select("id, aberta, created_at, encerrada_em, duracao_seg, turma_id, turmas(id, nome)")
     .eq("data", hoje)
-    .eq("turmas.instituicao_id", instId)
+    .in("turma_id", turmaIds)
     .order("created_at", { ascending: false });
 
   painel.style.display = "flex";
