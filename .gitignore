@@ -4,3 +4,5 @@ dist/
 .env.local
 rtk/
 .claude/settings.local.json
+.agents/skills/
+.claude/skills/
