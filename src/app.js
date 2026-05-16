@@ -14,6 +14,7 @@ let animFrame  = null;
 let lastResult = null;
 let _chamadaEncerrada = false;
 let _modoReabertura   = false;   // true = QR registra como atrasado
+let _instIdAtual      = null;    // instituicao_id do usuário logado
 
 // Timer
 let _timerStart    = null;
@@ -53,21 +54,16 @@ async function init() {
 
   if (!profile) { window.location.href = "/login.html"; return; }
 
-  // Esconde select de instituição — sempre ligado ao login
-  const instGroup = selInst?.closest(".sel-group");
-  if (instGroup) instGroup.style.display = "none";
+  if (profile.role === "professor") _isProfessor = true;
+  _instIdAtual = profile.instituicao_id;
 
-  if (profile.role === "professor" && profile.instituicao_id) {
-    _isProfessor = true;
+  if (profile.instituicao_id) {
     await carregarTurmasDeInst(profile.instituicao_id);
-  } else if (profile.instituicao_id) {
-    // instituicao role — carrega turmas direto
-    await carregarTurmasDeInst(profile.instituicao_id);
+    carregarHistoricoHoje(profile.instituicao_id);
   } else {
+    // fallback: admin sem instituição vinculada
     await carregarInstituicoes();
   }
-
-  carregarHistoricoHoje(profile.instituicao_id);
 }
 
 async function carregarInstituicoes() {
@@ -96,7 +92,7 @@ async function carregarInstituicoes() {
 
 async function carregarTurmasDeInst(instId) {
   selTurma.innerHTML = '<option value="">Carregando turmas…</option>';
-  selTurma.disabled  = true;
+  selTurma.disabled  = false;
   btnIniciar.disabled = true;
 
   const { data, error } = await supabase
@@ -499,7 +495,7 @@ function scanLoop() {
   animFrame = requestAnimationFrame(scanLoop);
 }
 
-// ─── Chamadas recentes (últimas 12h) para adicionar atrasados ────────────────
+// ─── Chamadas recentes (mantida para compatibilidade) ─────────────────────────
 async function carregarChamadasRecentes() {
   const doze = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
 
@@ -975,69 +971,6 @@ function abrirModalObservacao(durSeg, presentes, ausentes, onSalvar) {
   el("obs-salvar").onclick  = () => fechar(el("obs-texto").value.trim());
 }
 
-// ─── Chamadas recentes (painel lateral) ───────────────────────────────────────
-async function carregarChamadasRecentes(turmaIdFiltro) {
-  const section = document.getElementById("recentes-section");
-  const lista   = document.getElementById("recentes-lista");
-  const vazio   = document.getElementById("recentes-vazio");
-  if (!section || !lista) return;
-
-  // Últimas 48h, apenas encerradas
-  const limite = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  let query = supabase
-    .from("chamadas")
-    .select("id, data, created_at, encerrada_em, duracao_seg, observacao, turmas(id, nome)")
-    .eq("aberta", false)
-    .gte("created_at", limite)
-    .order("created_at", { ascending: false })
-    .limit(15);
-
-  if (turmaIdFiltro) query = query.eq("turma_id", turmaIdFiltro);
-
-  const { data } = await query;
-  section.style.display = "flex";
-
-  if (!data?.length) {
-    lista.innerHTML = "";
-    if (vazio) vazio.style.display = "";
-    return;
-  }
-  if (vazio) vazio.style.display = "none";
-
-  lista.innerHTML = "";
-  data.forEach((c, i) => {
-    const turma   = c.turmas;
-    const hora    = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
-    const dur     = c.duracao_seg ? fmtSeg(c.duracao_seg) : "—";
-    const dataFmt = new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"short" });
-
-    const card = document.createElement("div");
-    card.style.cssText = `
-      background:var(--surface);border:1px solid var(--border);border-radius:12px;
-      padding:12px 14px;animation:dashUp .25s cubic-bezier(.22,1,.36,1) ${i*.05}s both;
-    `;
-    card.innerHTML = `
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-        <div>
-          <div style="font-size:.84rem;font-weight:700;color:var(--text)">${turma?.nome ?? "Turma"}</div>
-          <div style="font-size:.7rem;color:var(--text-3);margin-top:2px">${dataFmt} · ${hora} · ⏱ ${dur}</div>
-          ${c.observacao ? `<div style="font-size:.72rem;color:var(--text-2);margin-top:4px;font-style:italic">"${c.observacao}"</div>` : ""}
-        </div>
-        <button class="btn-reabrir" data-id="${c.id}" data-turma="${turma?.id}" data-nome="${turma?.nome ?? ""}" style="
-          flex-shrink:0;padding:6px 12px;border-radius:8px;
-          background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);
-          color:#d97706;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;
-          transition:all .13s;white-space:nowrap
-        ">⏰ Reabrir</button>
-      </div>
-    `;
-    card.querySelector(".btn-reabrir").addEventListener("click", (e) => {
-      const btn = e.currentTarget;
-      reabrirChamada(btn.dataset.id, btn.dataset.turma, btn.dataset.nome);
-    });
-    lista.appendChild(card);
-  });
-}
 
 async function reabrirChamada(cId, turmaId, nome) {
   chamadaId         = cId;
@@ -1100,12 +1033,8 @@ function mostrarViewSeletor() {
     selInst.value      = "";
   }
 
-  // Atualiza histórico de hoje
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    const { data: profile } = await supabase.from("profiles").select("instituicao_id").eq("id", session.user.id).single();
-    if (profile?.instituicao_id) carregarHistoricoHoje(profile.instituicao_id);
-  }
+  // Atualiza histórico
+  if (_instIdAtual) carregarHistoricoHoje(_instIdAtual);
 }
 
 // ─── Flash de confirmação de presença ────────────────────────────────────────
