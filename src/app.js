@@ -1031,7 +1031,7 @@ function mostrarViewChamada() {
 
 function mostrarViewSeletor() {
   viewChamada.style.display  = "none";
-  viewSelector.style.display = "flex";
+  viewSelector.style.display = "";
   btnIniciar.disabled = true;
   pararTimer();
   document.getElementById("banner-reabertura")?.remove();
