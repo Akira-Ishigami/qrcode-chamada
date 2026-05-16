@@ -53,18 +53,21 @@ async function init() {
 
   if (!profile) { window.location.href = "/login.html"; return; }
 
+  // Esconde select de instituição — sempre ligado ao login
+  const instGroup = selInst?.closest(".sel-group");
+  if (instGroup) instGroup.style.display = "none";
+
   if (profile.role === "professor" && profile.instituicao_id) {
     _isProfessor = true;
-    const instGroup = selInst.closest(".sel-group");
-    if (instGroup) instGroup.style.display = "none";
+    await carregarTurmasDeInst(profile.instituicao_id);
+  } else if (profile.instituicao_id) {
+    // instituicao role — carrega turmas direto
     await carregarTurmasDeInst(profile.instituicao_id);
   } else {
     await carregarInstituicoes();
   }
 
-  // Painel lateral de chamadas recentes
-  const turmaIdProf = _isProfessor ? null : null;
-  carregarChamadasRecentes(turmaIdProf);
+  carregarHistoricoHoje(profile.instituicao_id);
 }
 
 async function carregarInstituicoes() {
@@ -832,6 +835,85 @@ async function abrirModalPresencaManual() {
   });
 }
 
+// ─── Histórico de hoje (painel direito) ──────────────────────────────────────
+async function carregarHistoricoHoje(instId) {
+  const painel = document.getElementById("historico-hoje");
+  const lista  = document.getElementById("historico-lista");
+  if (!painel || !lista) return;
+
+  const hoje = new Date().toISOString().split("T")[0];
+
+  const { data } = await supabase
+    .from("chamadas")
+    .select("id, aberta, created_at, encerrada_em, duracao_seg, turmas!inner(id, nome, instituicao_id)")
+    .eq("data", hoje)
+    .eq("turmas.instituicao_id", instId)
+    .order("created_at", { ascending: false });
+
+  painel.style.display = "flex";
+  lista.innerHTML = "";
+
+  if (!data?.length) {
+    lista.innerHTML = `
+      <div style="padding:32px 12px;text-align:center;color:var(--text-3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.25;margin-bottom:10px">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <p style="font-size:.82rem">Nenhuma chamada hoje ainda</p>
+      </div>`;
+    return;
+  }
+
+  data.forEach((c, i) => {
+    const hora    = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    const dur     = c.duracao_seg ? fmtSeg(c.duracao_seg) : null;
+    const aberta  = c.aberta;
+
+    const row = document.createElement("div");
+    row.style.cssText = `
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:12px 13px;animation:dashUp .25s cubic-bezier(.22,1,.36,1) ${i*.06}s both;
+    `;
+    row.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:.84rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${c.turmas?.nome ?? "Turma"}
+          </div>
+          <div style="font-size:.7rem;color:var(--text-3);margin-top:3px;display:flex;align-items:center;gap:6px">
+            <span>${hora}</span>
+            ${dur ? `<span>·</span><span>⏱ ${dur}</span>` : ""}
+          </div>
+        </div>
+        <span style="flex-shrink:0;font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:20px;
+          ${aberta
+            ? "background:#dcfce7;color:#14532d;border:1px solid #86efac"
+            : "background:var(--surface-3);color:var(--text-3);border:1px solid var(--border)"
+          }">
+          ${aberta ? "Em andamento" : "Encerrada"}
+        </span>
+      </div>
+      ${!aberta ? `
+        <button data-id="${c.id}" data-turma="${c.turmas?.id}" data-nome="${c.turmas?.nome ?? ""}"
+          class="btn-reabrir-hist"
+          style="margin-top:8px;width:100%;padding:7px;border-radius:8px;
+            background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);
+            color:#d97706;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;
+            transition:all .13s">
+          ⏰ Reabrir para atrasados
+        </button>` : ""}
+    `;
+
+    if (!aberta) {
+      row.querySelector(".btn-reabrir-hist").addEventListener("click", (e) => {
+        const btn = e.currentTarget;
+        reabrirChamada(btn.dataset.id, btn.dataset.turma, btn.dataset.nome);
+      });
+    }
+    lista.appendChild(row);
+  });
+}
+
 // ─── Timer ────────────────────────────────────────────────────────────────────
 function fmtSeg(s) {
   const h = Math.floor(s / 3600);
@@ -1018,8 +1100,12 @@ function mostrarViewSeletor() {
     selInst.value      = "";
   }
 
-  // Atualiza painel lateral
-  carregarChamadasRecentes(null);
+  // Atualiza histórico de hoje
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const { data: profile } = await supabase.from("profiles").select("instituicao_id").eq("id", session.user.id).single();
+    if (profile?.instituicao_id) carregarHistoricoHoje(profile.instituicao_id);
+  }
 }
 
 // ─── Flash de confirmação de presença ────────────────────────────────────────
