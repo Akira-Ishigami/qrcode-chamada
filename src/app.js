@@ -15,6 +15,7 @@ let lastResult = null;
 let _chamadaEncerrada = false;
 let _modoReabertura   = false;   // true = QR registra como atrasado
 let _instIdAtual      = null;    // instituicao_id do usuário logado
+let _userId           = null;    // id do usuário logado
 
 // Timer
 let _timerStart    = null;
@@ -48,6 +49,8 @@ let _isProfessor = false;
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = "/login.html"; return; }
+
+  _userId = session.user.id;
 
   const { data: profile } = await supabase
     .from("profiles").select("role, nome, instituicao_id").eq("id", session.user.id).single();
@@ -161,7 +164,7 @@ btnIniciar.addEventListener("click", async () => {
   } else {
     const { data: novaChamada, error } = await supabase
       .from("chamadas")
-      .insert({ turma_id: turmaId, data: chamadaData })
+      .insert({ turma_id: turmaId, data: chamadaData, professor_id: _userId || null })
       .select("id").single();
 
     if (error) {
@@ -501,10 +504,10 @@ async function carregarChamadasRecentes() {
 
   const { data } = await supabase
     .from("chamadas")
-    .select("id, aberta, created_at, turmas(id, nome, instituicao_id, instituicoes(nome))")
+    .select("id, aberta, criado_em, turmas(id, nome, instituicao_id, instituicoes(nome))")
     .eq("aberta", false)
-    .gte("created_at", doze)
-    .order("created_at", { ascending: false });
+    .gte("criado_em", doze)
+    .order("criado_em", { ascending: false });
 
   const section = document.getElementById("recentes-section");
   const lista   = document.getElementById("recentes-lista");
@@ -518,7 +521,7 @@ async function carregarChamadasRecentes() {
   data.forEach(c => {
     const turma    = c.turmas;
     const inst     = turma?.instituicoes?.nome ?? "";
-    const horaFmt  = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    const horaFmt  = new Date(c.criado_em).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
 
     const card = document.createElement("button");
     card.style.cssText = `
@@ -839,24 +842,46 @@ async function carregarHistoricoHoje(instId) {
 
   const hoje = new Date().toISOString().split("T")[0];
 
-  // Busca turmas do professor/instituição primeiro
-  const { data: turmasData } = await supabase
-    .from("turmas")
-    .select("id")
-    .eq("instituicao_id", instId);
-
-  const turmaIds = (turmasData ?? []).map(t => t.id);
-  if (!turmaIds.length) {
-    lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-3);font-size:.82rem">Nenhuma turma cadastrada</div>`;
-    return;
-  }
-
-  const { data } = await supabase
+  // Para professor: filtra por professor_id direto na chamada
+  // Para admin/instituição: filtra por turmas da instituição
+  let chamadasQuery = supabase
     .from("chamadas")
-    .select("id, aberta, created_at, encerrada_em, duracao_seg, turma_id, turmas(id, nome)")
+    .select("id, aberta, criado_em, duracao_seg, turma_id, turmas(id, nome)")
     .eq("data", hoje)
-    .in("turma_id", turmaIds)
-    .order("created_at", { ascending: false });
+    .order("criado_em", { ascending: false });
+
+  const baseQuery = () => supabase
+    .from("chamadas")
+    .select("id, aberta, criado_em, duracao_seg, turma_id, turmas(id, nome)")
+    .eq("data", hoje)
+    .order("criado_em", { ascending: false });
+
+  // Para professor: tenta filtrar por professor_id; se a coluna ainda não estiver
+  // no cache do Supabase (400), cai no fallback por turmas da instituição
+  let data;
+  if (_isProfessor && _userId) {
+    const { data: porProfessor, error } = await baseQuery().eq("professor_id", _userId);
+    if (!error) {
+      data = porProfessor;
+    } else {
+      const { data: turmasData } = await supabase
+        .from("turmas").select("id").eq("instituicao_id", instId);
+      const turmaIds = (turmasData ?? []).map(t => t.id);
+      if (!turmaIds.length) { lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-3);font-size:.82rem">Nenhuma turma cadastrada</div>`; return; }
+      const { data: porTurma } = await baseQuery().in("turma_id", turmaIds);
+      data = porTurma;
+    }
+  } else {
+    const { data: turmasData } = await supabase
+      .from("turmas").select("id").eq("instituicao_id", instId);
+    const turmaIds = (turmasData ?? []).map(t => t.id);
+    if (!turmaIds.length) {
+      lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-3);font-size:.82rem">Nenhuma turma cadastrada</div>`;
+      return;
+    }
+    const { data: porTurma } = await baseQuery().in("turma_id", turmaIds);
+    data = porTurma;
+  }
 
   painel.style.display = "flex";
   lista.innerHTML = "";
@@ -873,7 +898,7 @@ async function carregarHistoricoHoje(instId) {
   }
 
   data.forEach((c, i) => {
-    const hora    = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    const hora    = new Date(c.criado_em).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
     const dur     = c.duracao_seg ? fmtSeg(c.duracao_seg) : null;
     const aberta  = c.aberta;
 
@@ -920,7 +945,33 @@ async function carregarHistoricoHoje(instId) {
     }
     lista.appendChild(row);
   });
+
+  // Atualiza badge do FAB mobile
+  const badge = document.getElementById("hist-fab-badge");
+  if (badge) badge.textContent = data.length;
 }
+
+// ─── Bottom sheet histórico (mobile) ─────────────────────────────────────────
+function abrirHistorico() {
+  document.getElementById("historico-hoje")?.classList.add("hist-aberto");
+  const bd = document.getElementById("hist-backdrop");
+  if (bd) { bd.style.display = "block"; requestAnimationFrame(() => bd.classList.add("visivel")); }
+  document.getElementById("hist-fab")?.classList.add("oculto");
+}
+function fecharHistorico() {
+  document.getElementById("historico-hoje")?.classList.remove("hist-aberto");
+  const bd = document.getElementById("hist-backdrop");
+  if (bd) {
+    bd.classList.remove("visivel");
+    setTimeout(() => { bd.style.display = "none"; }, 300);
+  }
+  document.getElementById("hist-fab")?.classList.remove("oculto");
+}
+
+document.getElementById("hist-fab")?.addEventListener("click", abrirHistorico);
+document.getElementById("hist-fechar")?.addEventListener("click", fecharHistorico);
+document.getElementById("hist-handle")?.addEventListener("click", fecharHistorico);
+document.getElementById("hist-backdrop")?.addEventListener("click", fecharHistorico);
 
 // ─── Timer ────────────────────────────────────────────────────────────────────
 function fmtSeg(s) {
@@ -953,7 +1004,7 @@ async function carregarMediaChamadas(turmaId) {
     .select("duracao_seg")
     .eq("turma_id", turmaId)
     .not("duracao_seg", "is", null)
-    .order("created_at", { ascending: false })
+    .order("criado_em", { ascending: false })
     .limit(10);
   if (!data?.length) return;
   const media = Math.round(data.reduce((s, c) => s + c.duracao_seg, 0) / data.length);
@@ -1025,6 +1076,7 @@ async function reabrirChamada(cId, turmaId, nome) {
 
 // ─── Navegação entre views ────────────────────────────────────────────────────
 function mostrarViewChamada() {
+  fecharHistorico(); // garante que backdrop e sheet fecham antes de mudar de view
   viewSelector.style.display = "none";
   viewChamada.style.display  = "block";
 }
@@ -1032,6 +1084,7 @@ function mostrarViewChamada() {
 function mostrarViewSeletor() {
   viewChamada.style.display  = "none";
   viewSelector.style.display = "";
+  fecharHistorico(); // reseta estado do sheet ao voltar
   btnIniciar.disabled = true;
   pararTimer();
   document.getElementById("banner-reabertura")?.remove();

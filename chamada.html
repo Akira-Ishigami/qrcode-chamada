@@ -120,10 +120,158 @@
 
     <!-- ─── View: Seletor de turma ──────────────────────────────────────────── -->
     <style>
-      #view-selector { display: flex !important; flex-direction: row !important; min-height: 100% !important; }
-      #sel-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+      /* ── Mobile first ─────────────────────────────────────────── */
+      #view-selector {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - var(--topbar-h));
+        position: relative;
+      }
+
+      #sel-area {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px 96px; /* espaço para o FAB */
+      }
       #sel-area .selector-card { max-width: 420px; width: 100%; }
+
+      /* ── Botão flutuante "Histórico" (mobile) ─────────────────── */
+      #hist-fab {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 98;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        background: var(--text);
+        color: #fff;
+        border: none;
+        border-radius: 99px;
+        font-family: 'Outfit', system-ui, sans-serif;
+        font-size: .82rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(13,21,38,.25);
+        transition: transform .18s, box-shadow .18s, background .15s;
+        white-space: nowrap;
+      }
+      #hist-fab:active { transform: translateX(-50%) scale(.96); }
+      #hist-fab.oculto { display: none; }
+
+      #hist-fab-badge {
+        background: var(--acc);
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 20px;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      /* ── Backdrop ─────────────────────────────────────────────── */
+      #hist-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99;
+        background: rgba(13,21,38,.45);
+        backdrop-filter: blur(3px);
+        opacity: 0;
+        transition: opacity .28s;
+      }
+      #hist-backdrop.visivel {
+        display: block;
+        opacity: 1;
+      }
+
+      /* ── Histórico: bottom sheet (mobile) ─────────────────────── */
+      #historico-hoje {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: 100;
+        height: 72vh;
+        background: var(--surface);
+        border-radius: 20px 20px 0 0;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -8px 40px rgba(13,21,38,.18);
+        display: flex;
+        flex-direction: column;
+        transform: translateY(100%);
+        transition: transform .35s cubic-bezier(.22,1,.36,1);
+        overflow: hidden;
+      }
+      #historico-hoje.hist-aberto {
+        transform: translateY(0);
+      }
+
+      /* Handle drag */
+      .hist-handle-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 12px 0 6px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .hist-handle {
+        width: 36px; height: 4px;
+        background: var(--border-2);
+        border-radius: 4px;
+      }
+
+      #hist-fechar {
+        position: absolute;
+        top: 10px; right: 16px;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: var(--surface-3);
+        border: none;
+        cursor: pointer;
+        color: var(--text-2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        z-index: 1;
+      }
+
+      /* ── Desktop: lado a lado ─────────────────────────────────── */
+      @media (min-width: 769px) {
+        #view-selector {
+          flex-direction: row;
+          overflow: hidden;
+          height: 100%;
+          min-height: unset;
+        }
+        #sel-area {
+          flex: 1;
+          padding: 24px;
+        }
+        #historico-hoje {
+          position: static;
+          width: 270px;
+          height: auto;
+          border-radius: 0;
+          border-top: none;
+          border-left: 1px solid var(--border);
+          box-shadow: none;
+          transform: none;
+          transition: none;
+          flex-shrink: 0;
+        }
+        .hist-handle-wrap { display: none; }
+        #hist-fechar      { display: none; }
+        #hist-fab         { display: none; }
+        #hist-backdrop    { display: none !important; }
+      }
     </style>
+
+    <!-- Backdrop -->
+    <div id="hist-backdrop"></div>
+
     <div id="view-selector" class="view">
 
       <!-- select de inst escondido (necessário para JS) -->
@@ -163,6 +311,7 @@
 
           <div id="sel-feedback" class="sel-feedback"></div>
 
+
           <div class="setup-hint" id="setup-hint" style="display:none">
             <div class="setup-hint-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
@@ -177,9 +326,13 @@
         </div>
       </div>
 
-      <!-- Painel histórico à direita -->
-      <div id="historico-hoje" style="width:260px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;overflow:hidden">
-        <div style="padding:16px 14px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <!-- Painel histórico (bottom sheet mobile / sidebar desktop) -->
+      <div id="historico-hoje" style="background:var(--surface-2)">
+        <div class="hist-handle-wrap" id="hist-handle">
+          <div class="hist-handle"></div>
+        </div>
+        <button id="hist-fechar">✕</button>
+        <div style="padding:0 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
           <div style="font-size:.58rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.12em">Hoje</div>
           <div style="font-size:.95rem;font-weight:800;color:var(--text);margin-top:2px">Histórico de chamadas</div>
         </div>
@@ -187,6 +340,13 @@
           <div style="padding:24px 8px;text-align:center;color:var(--text-3);font-size:.8rem">Carregando…</div>
         </div>
       </div>
+
+      <!-- FAB histórico (só mobile) -->
+      <button id="hist-fab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Histórico
+        <span id="hist-fab-badge">0</span>
+      </button>
 
     </div>
 

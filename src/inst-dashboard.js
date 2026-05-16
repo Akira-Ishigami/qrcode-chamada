@@ -67,9 +67,10 @@ async function render(profile) {
     supabaseAdmin.from("profiles").select("id").eq("instituicao_id", instId).eq("role", "professor"),
     instId ? supabaseAdmin.from("instituicoes").select("nome").eq("id", instId).single() : { data: null },
     supabaseAdmin.from("chamadas")
-      .select("id, aberta, turmas!inner(nome, professor, instituicao_id)")
+      .select("id, aberta, criado_em, duracao_seg, turmas!inner(id, nome, professor, instituicao_id)")
       .eq("data", hoje)
-      .eq("turmas.instituicao_id", instId),
+      .eq("turmas.instituicao_id", instId)
+      .order("criado_em", { ascending: false }),
   ]);
 
   const nTurmas  = (turmas  ?? []).length;
@@ -88,13 +89,13 @@ async function render(profile) {
 
   root.innerHTML = `
     <div class="idash-header">
-      <div>
+      <div class="idash-header-left">
         <div class="idash-greeting">${greeting}</div>
         <div class="idash-title">${instNome}</div>
       </div>
       <div class="idash-date-pill">
         <span class="idash-date-dot"></span>
-        ${hora} · ${data}
+        ${hora} &nbsp;&middot;&nbsp; ${data}
       </div>
     </div>
 
@@ -103,7 +104,9 @@ async function render(profile) {
         ${stat("blue",   svgTurma(), nTurmas, "Turmas",      0)}
         ${stat("green",  svgAluno(), nAlunos, "Alunos",      1)}
         ${stat("purple", svgProf(),  nProfs,  "Professores", 2)}
-        ${stat("orange", svgQr(),    nCham,   nAbertas ? `Chamadas hoje<br><span style="font-size:.62rem;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;margin-top:2px;display:inline-block">${nAbertas} aberta${nAbertas>1?"s":""}</span>` : "Chamadas hoje", 3)}
+        ${stat("orange", svgQr(),    nCham,   nAbertas
+          ? `Chamadas <span style="display:block;font-size:.58rem;font-weight:700;color:#c2410c;margin-top:3px;letter-spacing:.04em">${nAbertas} ABERTA${nAbertas>1?"S":""}</span>`
+          : "Chamadas hoje", 3)}
       </div>
 
       <div class="idash-nav-strip">
@@ -115,26 +118,174 @@ async function render(profile) {
 
       <div class="idash-section-head">
         <span class="idash-section-title">Chamadas de Hoje</span>
-        ${nAbertas > 0 ? `<span style="font-size:.68rem;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;padding:3px 11px;border-radius:20px">${nAbertas} aberta${nAbertas > 1 ? "s" : ""}</span>` : ""}
+        ${nAbertas > 0
+          ? `<span style="font-family:'Sora',sans-serif;font-size:.6rem;font-weight:700;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;padding:4px 12px;border-radius:20px;letter-spacing:.06em">${nAbertas} ABERTA${nAbertas>1?"S":""}</span>`
+          : `<span style="font-family:'Sora',sans-serif;font-size:.6rem;font-weight:600;color:#8fa4be">${nCham} registrada${nCham!==1?"s":""}</span>`}
       </div>
 
       ${nCham === 0 ? `
-        <div class="idash-empty-box">Nenhuma chamada registrada hoje.</div>
+        <div class="idash-empty-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Nenhuma chamada registrada hoje.
+        </div>
       ` : `
         <div class="idash-chamadas">
-          ${(chamadas ?? []).map((c, i) => `
-            <div class="idash-cham-row ${c.aberta ? "aberta-row" : ""}" style="animation-delay:${i * .04}s">
-              <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
-              <div class="idash-cham-info">
-                <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
-                ${c.turmas?.professor ? `<div class="idash-cham-meta">${esc(c.turmas.professor)}</div>` : ""}
+          <div class="idash-chamadas-header">
+            <div></div>
+            <div style="padding-left:14px">Turma / Professor</div>
+            <div style="padding-right:18px;text-align:right">Status</div>
+          </div>
+          ${(chamadas ?? []).map((c, i) => {
+            const horaRow = c.criado_em ? new Date(c.criado_em).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "";
+            return `
+            <div class="idash-cham-row ${c.aberta ? "aberta-row" : ""}" style="animation-delay:${i * .035}s"
+              data-id="${c.id}" data-turma-id="${c.turmas?.id ?? ""}" data-turma="${esc(c.turmas?.nome ?? "")}" data-prof="${esc(c.turmas?.professor ?? "")}" data-hora="${horaRow}">
+              <div class="idash-cham-stripe"></div>
+              <div class="idash-cham-main">
+                <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
+                <div class="idash-cham-info">
+                  <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
+                  <div class="idash-cham-meta">${[c.turmas?.professor ? esc(c.turmas.professor) : "", horaRow].filter(Boolean).join(" · ")}</div>
+                </div>
               </div>
-              <span class="idash-cham-badge ${c.aberta ? "aberta" : "fechada"}">${c.aberta ? "Aberta" : "Encerrada"}</span>
-            </div>
-          `).join("")}
+              <div class="idash-cham-right">
+                <span class="idash-cham-badge ${c.aberta ? "aberta" : "fechada"}">${c.aberta ? "Aberta" : "Encerrada"}</span>
+                <svg class="idash-cham-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>`;
+          }).join("")}
         </div>
       `}
     </div>
+  `;
+
+  bindChamadaRows();
+}
+
+// ─── Detalhes da chamada (drawer) ────────────────────────────────────────────
+function bindChamadaRows() {
+  root.querySelectorAll(".idash-cham-row[data-id]").forEach(row => {
+    row.addEventListener("click", () => {
+      abrirDetalhesChamada(
+        row.dataset.id,
+        row.dataset.turmaId,
+        row.dataset.turma,
+        row.dataset.prof,
+        row.dataset.hora
+      );
+    });
+  });
+}
+
+async function abrirDetalhesChamada(chamadaId, turmaId, turmaNome, professor, hora) {
+  // Modal centralizado
+  const ov = document.createElement("div");
+  ov.style.cssText = `position:fixed;inset:0;z-index:800;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);opacity:0;transition:opacity .2s`;
+  ov.innerHTML = `
+    <div id="det-card" style="background:var(--surface);border-radius:20px;width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.25);transform:scale(.94) translateY(10px);transition:transform .28s cubic-bezier(.22,1,.36,1)">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-size:.58rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Detalhes da chamada</div>
+          <div style="font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-.02em">${esc(turmaNome)}</div>
+          ${professor ? `<div style="font-size:.75rem;color:var(--text-3);margin-top:2px">${esc(professor)}${hora ? " · " + hora : ""}</div>` : hora ? `<div style="font-size:.75rem;color:var(--text-3);margin-top:2px">${hora}</div>` : ""}
+        </div>
+        <button id="det-fechar" style="width:30px;height:30px;border-radius:50%;background:var(--surface-3);border:none;cursor:pointer;color:var(--text-2);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+      </div>
+      <div id="det-body" style="flex:1;overflow-y:auto;padding:18px 20px">
+        <div style="text-align:center;padding:32px;color:var(--text-3);font-size:.875rem">Carregando…</div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  requestAnimationFrame(() => {
+    ov.style.opacity = "1";
+    ov.querySelector("#det-card").style.transform = "scale(1) translateY(0)";
+  });
+
+  const fechar = () => {
+    ov.style.opacity = "0";
+    ov.querySelector("#det-card").style.transform = "scale(.94) translateY(10px)";
+    setTimeout(() => ov.remove(), 250);
+  };
+  ov.querySelector("#det-fechar").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+
+  // Busca chamada (observação/duração), presenças e alunos em paralelo
+  const [{ data: chamada }, { data: presencas }, { data: alunos }] = await Promise.all([
+    supabaseAdmin.from("chamadas").select("observacao, duracao_seg, aberta").eq("id", chamadaId).single(),
+    supabaseAdmin.from("presencas").select("aluno_id, atrasado").eq("chamada_id", chamadaId),
+    turmaId ? supabaseAdmin.from("alunos").select("id, nome, matricula").eq("turma_id", turmaId).order("nome") : { data: [] },
+  ]);
+
+  const presenteIds  = new Set((presencas ?? []).map(p => p.aluno_id));
+  const atrasadoIds  = new Set((presencas ?? []).filter(p => p.atrasado).map(p => p.aluno_id));
+  const alunosList   = alunos ?? [];
+  const presentes    = alunosList.filter(a => presenteIds.has(a.id) && !atrasadoIds.has(a.id));
+  const atrasados    = alunosList.filter(a => atrasadoIds.has(a.id));
+  const ausentes     = alunosList.filter(a => !presenteIds.has(a.id));
+
+  const fmtBadge = (label, bg, color) =>
+    `<span style="font-size:.58rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${bg};color:${color}">${label}</span>`;
+
+  const alunoRow = (a, badge) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">
+        ${a.nome.split(" ").slice(0,2).map(n=>n[0]).join("")}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:600;color:var(--text)">${esc(a.nome)}</div>
+        <div style="font-size:.68rem;color:var(--text-3)">${esc(a.matricula ?? "")}</div>
+      </div>
+      ${badge}
+    </div>`;
+
+  const section = (titulo, lista, bg, color, badgeLabel) => lista.length === 0 ? "" : `
+    <div style="margin-bottom:18px">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px;display:flex;align-items:center;gap:7px">
+        ${titulo} <span style="background:var(--surface-3);color:var(--text-3);padding:2px 7px;border-radius:10px;font-size:.65rem">${lista.length}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${lista.map(a => alunoRow(a, fmtBadge(badgeLabel, bg, color))).join("")}
+      </div>
+    </div>`;
+
+  const total = alunosList.length;
+  const fmtSeg = s => { const m = Math.floor(s/60); const seg = s%60; return `${String(m).padStart(2,"0")}:${String(seg).padStart(2,"0")}`; };
+
+  const det = document.getElementById("det-body");
+  if (det) det.innerHTML = `
+    ${chamada?.observacao ? `
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--acc);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:.58rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Observação</div>
+        <div style="font-size:.875rem;color:var(--text);line-height:1.6">${esc(chamada.observacao)}</div>
+      </div>` : ""}
+    ${chamada?.duracao_seg ? `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;font-size:.78rem;color:var(--text-3)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Duração: <strong style="color:var(--text)">${fmtSeg(chamada.duracao_seg)}</strong>
+      </div>` : ""}
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:var(--text)">${total}</div>
+        <div style="font-size:.62rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Total</div>
+      </div>
+      <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#14532d">${presentes.length}</div>
+        <div style="font-size:.62rem;color:#14532d;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Presentes</div>
+      </div>
+      <div style="flex:1;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#9a3412">${atrasados.length}</div>
+        <div style="font-size:.62rem;color:#9a3412;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Atrasados</div>
+      </div>
+      <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#991b1b">${ausentes.length}</div>
+        <div style="font-size:.62rem;color:#991b1b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Ausentes</div>
+      </div>
+    </div>
+    ${section("Presentes", presentes, "#dcfce7", "#14532d", "Presente")}
+    ${section("Atrasados", atrasados, "#fed7aa", "#9a3412", "Atrasado")}
+    ${section("Ausentes",  ausentes,  "#fee2e2", "#991b1b", "Ausente")}
+    ${total === 0 ? `<div style="text-align:center;padding:24px;color:var(--text-3);font-size:.875rem">Nenhum aluno cadastrado nesta turma.</div>` : ""}
   `;
 }
 
@@ -146,10 +297,12 @@ function esc(s) {
 function stat(color, icon, num, lbl, idx) {
   return `
     <div class="idash-stat ${color}" style="animation-delay:${idx * .07}s">
-      <div class="idash-stat-icon ${color}">${icon}</div>
+      <div class="idash-stat-left">
+        <div class="idash-stat-icon ${color}">${icon}</div>
+        <div class="idash-stat-lbl">${lbl}</div>
+      </div>
       <div class="idash-stat-info">
         <div class="idash-stat-num">${num}</div>
-        <div class="idash-stat-lbl">${lbl}</div>
       </div>
     </div>`;
 }
@@ -159,6 +312,7 @@ function pill(href, icon, label, idx) {
     <a href="${href}" class="idash-nav-pill" style="animation-delay:${idx * .06}s">
       <div class="idash-nav-pill-icon">${icon}</div>
       <span>${label}</span>
+      <svg style="margin-left:auto;opacity:.3;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
     </a>`;
 }
 
