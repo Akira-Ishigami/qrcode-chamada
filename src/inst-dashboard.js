@@ -220,9 +220,11 @@ async function abrirDetalhesChamada(chamadaId, turmaId, turmaNome, professor, ho
   const presenteIds  = new Set((presencas ?? []).map(p => p.aluno_id));
   const atrasadoIds  = new Set((presencas ?? []).filter(p => p.atrasado).map(p => p.aluno_id));
   const alunosList   = alunos ?? [];
+  // Atrasado = presente com chegada tardia; ambos contam como presença
   const presentes    = alunosList.filter(a => presenteIds.has(a.id) && !atrasadoIds.has(a.id));
   const atrasados    = alunosList.filter(a => atrasadoIds.has(a.id));
   const ausentes     = alunosList.filter(a => !presenteIds.has(a.id));
+  const totalPresenca = presentes.length + atrasados.length; // quem compareceu
 
   const fmtBadge = (label, bg, color) =>
     `<span style="font-size:.58rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${bg};color:${color}">${label}</span>`;
@@ -270,19 +272,16 @@ async function abrirDetalhesChamada(chamadaId, turmaId, turmaNome, professor, ho
         <div style="font-size:.62rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Total</div>
       </div>
       <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:#14532d">${presentes.length}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#14532d">${totalPresenca}</div>
         <div style="font-size:.62rem;color:#14532d;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Presentes</div>
-      </div>
-      <div style="flex:1;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:#9a3412">${atrasados.length}</div>
-        <div style="font-size:.62rem;color:#9a3412;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Atrasados</div>
+        ${atrasados.length > 0 ? `<div style="font-size:.58rem;color:#9a3412;margin-top:3px">${atrasados.length} atrasado${atrasados.length>1?"s":""}</div>` : ""}
       </div>
       <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center">
         <div style="font-size:1.3rem;font-weight:800;color:#991b1b">${ausentes.length}</div>
         <div style="font-size:.62rem;color:#991b1b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Ausentes</div>
       </div>
     </div>
-    ${section("Presentes", presentes, "#dcfce7", "#14532d", "Presente")}
+    ${section("Presentes no horário", presentes, "#dcfce7", "#14532d", "Presente")}
     ${section("Atrasados", atrasados, "#fed7aa", "#9a3412", "Atrasado")}
     ${section("Ausentes",  ausentes,  "#fee2e2", "#991b1b", "Ausente")}
     ${total === 0 ? `<div style="text-align:center;padding:24px;color:var(--text-3);font-size:.875rem">Nenhum aluno cadastrado nesta turma.</div>` : ""}
