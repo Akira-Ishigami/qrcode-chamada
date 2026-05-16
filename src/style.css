@@ -131,6 +131,17 @@ body {
 body.sidebar-open { overflow: hidden; }
 
 /* ══════════════════════════════════════════════
+   iOS SAFE AREA — garante que botões não ficam
+   atrás da barra home do iPhone
+══════════════════════════════════════════════ */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+}
+
+/* ══════════════════════════════════════════════
    LAYOUT — MOBILE FIRST
 ══════════════════════════════════════════════ */
 .app-layout {
@@ -360,6 +371,7 @@ body.sidebar-open { overflow: hidden; }
 /* Logout footer */
 .sidebar-footer {
   padding: 10px;
+  padding-bottom: calc(10px + var(--safe-bottom));
   border-top: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
 }

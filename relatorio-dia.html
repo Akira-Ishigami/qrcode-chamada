@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Histórico de Chamadas — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -320,16 +320,19 @@
     @keyframes histUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
 
     @media (max-width: 640px) {
+      #page-root { padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important; }
       .rel-filter-bar { flex-direction: column; align-items: stretch; }
       .rel-filter-left { flex-direction: column; }
-      .rel-select, .rel-input { width: 100%; }
+      .rel-select, .rel-input { width: 100%; min-width: unset; height: 44px; }
       .hist-detail-inner { grid-template-columns: 1fr; }
       .hist-detail-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
       .hist-stat-sep { display: none; }
-      .rel-tabs { width: 100%; }
-      .rel-tab { flex: 1; justify-content: center; font-size: .75rem; padding: 7px 8px; }
+      .rel-tabs { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .rel-tabs::-webkit-scrollbar { display: none; }
+      .rel-tab { flex-shrink: 0; font-size: .78rem; padding: 8px 14px; }
       .rel-resumo-grid { grid-template-columns: 1fr; }
-      .rel-btn-download { width: 100%; justify-content: center; }
+      .rel-btn-download { width: 100%; justify-content: center; height: 44px; }
+      .rel-btn-clear { height: 44px; }
     }
   </style>
 </head>
