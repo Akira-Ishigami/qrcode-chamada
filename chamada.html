@@ -119,10 +119,10 @@
     </div>
 
     <!-- ─── View: Seletor de turma ──────────────────────────────────────────── -->
-    <div id="view-selector" class="view" style="display:flex;height:100%">
+    <div id="view-selector" class="view" style="display:flex;flex-direction:row;min-height:calc(100vh - var(--topbar-h))">
 
       <!-- Centro: form de chamada -->
-      <div style="flex:1;display:flex;align-items:center;justify-content:center">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px">
         <div class="selector-card" style="margin:0">
 
           <div class="selector-icon">
@@ -173,7 +173,7 @@
       </div>
 
       <!-- Direita: histórico de hoje -->
-      <div id="historico-hoje" style="width:260px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;overflow:hidden">
+      <div id="historico-hoje" style="width:260px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;overflow-y:auto;min-height:100%">
         <div style="padding:16px 14px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
           <div style="font-size:.58rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.12em">Hoje</div>
           <div style="font-size:.95rem;font-weight:800;color:var(--text);margin-top:2px">Histórico de chamadas</div>
