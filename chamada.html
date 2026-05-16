@@ -119,14 +119,19 @@
     </div>
 
     <!-- ─── View: Seletor de turma ──────────────────────────────────────────── -->
-    <div id="view-selector" class="view" style="position:relative;">
+    <style>
+      #view-selector { display: flex !important; flex-direction: row !important; min-height: 100% !important; }
+      #sel-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+      #sel-area .selector-card { max-width: 420px; width: 100%; }
+    </style>
+    <div id="view-selector" class="view">
 
       <!-- select de inst escondido (necessário para JS) -->
       <select id="sel-inst" style="display:none"></select>
 
-      <!-- Card centralizado (com margem direita para o painel) -->
-      <div class="selector-wrapper" style="padding-right:260px">
-        <div class="selector-card">
+      <!-- Card centralizado -->
+      <div id="sel-area">
+        <div class="selector-card" style="margin:0;width:100%">
 
           <div class="selector-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -172,8 +177,8 @@
         </div>
       </div>
 
-      <!-- Painel histórico fixo à direita -->
-      <div id="historico-hoje" style="position:absolute;top:0;right:0;bottom:0;width:260px;border-left:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;overflow:hidden">
+      <!-- Painel histórico à direita -->
+      <div id="historico-hoje" style="width:260px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;overflow:hidden">
         <div style="padding:16px 14px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
           <div style="font-size:.58rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.12em">Hoje</div>
           <div style="font-size:.95rem;font-weight:800;color:var(--text);margin-top:2px">Histórico de chamadas</div>
