@@ -13,6 +13,12 @@ let stream     = null;
 let animFrame  = null;
 let lastResult = null;
 let _chamadaEncerrada = false;
+let _modoReabertura   = false;   // true = QR registra como atrasado
+
+// Timer
+let _timerStart    = null;
+let _timerInterval = null;
+let _duracaoSeg    = 0;          // duração calculada ao encerrar
 
 // ─── DOM ──────────────────────────────────────────────────────────────────────
 const viewSelector  = document.getElementById("view-selector");
@@ -56,8 +62,9 @@ async function init() {
     await carregarInstituicoes();
   }
 
-  // Carrega chamadas recentes para adicionar atrasados
-  carregarChamadasRecentes();
+  // Painel lateral de chamadas recentes
+  const turmaIdProf = _isProfessor ? null : null;
+  carregarChamadasRecentes(turmaIdProf);
 }
 
 async function carregarInstituicoes() {
@@ -168,6 +175,7 @@ btnIniciar.addEventListener("click", async () => {
   }
 
   _chamadaEncerrada = false;
+  _modoReabertura   = false;
 
   // Mostra topbar com info da chamada
   document.getElementById("topbar-titulo").textContent  = turma?.nome       ?? "—";
@@ -182,6 +190,8 @@ btnIniciar.addEventListener("click", async () => {
   renderList();
   updateStats();
   aplicarModoEncerrada();
+  iniciarTimer();
+  if (turmaId) carregarMediaChamadas(turmaId);
   mostrarViewChamada();
 
   btnIniciar.disabled    = false;
@@ -228,14 +238,33 @@ document.getElementById("btn-confirm-cancel").addEventListener("click", () => {
 document.getElementById("btn-confirm-ok").addEventListener("click", async () => {
   modalEncerrar.classList.remove("open");
 
-  await supabase
-    .from("chamadas").update({ aberta: false }).eq("id", chamadaId);
+  pararTimer();
+  const agora = new Date().toISOString();
+
+  await supabase.from("chamadas").update({
+    aberta: false,
+    encerrada_em: agora,
+    duracao_seg: _duracaoSeg,
+  }).eq("id", chamadaId);
+
+  const presentes = ALUNOS.filter(a => a.presente).length;
+  const ausentes  = ALUNOS.length - presentes;
+  const cIdAtual  = chamadaId;
+
+  // Modal de observação
+  abrirModalObservacao(_duracaoSeg, presentes, ausentes, async (obs) => {
+    if (obs) {
+      await supabase.from("chamadas").update({ observacao: obs }).eq("id", cIdAtual);
+    }
+  });
 
   chamadaId   = null;
   ALUNOS      = [];
   turmaNome   = "";
   chamadaData = "";
   _chamadaEncerrada = false;
+  _modoReabertura   = false;
+  _duracaoSeg       = 0;
 
   if (contentTopbar) contentTopbar.style.display = "none";
   if (statusBadge)   statusBadge.style.display   = "none";
@@ -385,7 +414,7 @@ async function handleQRResult(qrValue) {
 
   const { error } = await supabase
     .from("presencas")
-    .insert({ chamada_id: chamadaId, aluno_id: aluno.id });
+    .insert({ chamada_id: chamadaId, aluno_id: aluno.id, atrasado: _modoReabertura });
 
   if (error && error.code !== "23505") {
     showToast("Erro ao registrar presença.", "error");
@@ -803,6 +832,170 @@ async function abrirModalPresencaManual() {
   });
 }
 
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function fmtSeg(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2,"0")}m`;
+  return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+}
+
+function iniciarTimer() {
+  _timerStart = Date.now();
+  _timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - _timerStart) / 1000);
+    const el = document.getElementById("timer-display");
+    if (el) el.textContent = fmtSeg(elapsed);
+  }, 1000);
+}
+
+function pararTimer() {
+  clearInterval(_timerInterval);
+  _timerInterval = null;
+  _duracaoSeg = _timerStart ? Math.floor((Date.now() - _timerStart) / 1000) : 0;
+  _timerStart = null;
+}
+
+async function carregarMediaChamadas(turmaId) {
+  const { data } = await supabase
+    .from("chamadas")
+    .select("duracao_seg")
+    .eq("turma_id", turmaId)
+    .not("duracao_seg", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (!data?.length) return;
+  const media = Math.round(data.reduce((s, c) => s + c.duracao_seg, 0) / data.length);
+  const el = document.getElementById("timer-media");
+  const wrap = document.getElementById("timer-media-wrap");
+  if (el && wrap) { el.textContent = fmtSeg(media); wrap.style.display = "block"; }
+}
+
+// ─── Modal de observação pós-chamada ──────────────────────────────────────────
+function abrirModalObservacao(durSeg, presentes, ausentes, onSalvar) {
+  const ov = document.getElementById("modal-observacao");
+  if (!ov) { onSalvar(""); return; }
+
+  const el = (id) => document.getElementById(id);
+  el("obs-duracao").textContent   = fmtSeg(durSeg);
+  el("obs-presentes").textContent = presentes;
+  el("obs-ausentes").textContent  = ausentes;
+  el("obs-texto").value = "";
+  ov.classList.add("open");
+
+  const fechar = (texto) => {
+    ov.classList.remove("open");
+    onSalvar(texto || "");
+  };
+
+  el("obs-pular").onclick   = () => fechar("");
+  el("obs-salvar").onclick  = () => fechar(el("obs-texto").value.trim());
+}
+
+// ─── Chamadas recentes (painel lateral) ───────────────────────────────────────
+async function carregarChamadasRecentes(turmaIdFiltro) {
+  const section = document.getElementById("recentes-section");
+  const lista   = document.getElementById("recentes-lista");
+  const vazio   = document.getElementById("recentes-vazio");
+  if (!section || !lista) return;
+
+  // Últimas 48h, apenas encerradas
+  const limite = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  let query = supabase
+    .from("chamadas")
+    .select("id, data, created_at, encerrada_em, duracao_seg, observacao, turmas(id, nome)")
+    .eq("aberta", false)
+    .gte("created_at", limite)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
+  if (turmaIdFiltro) query = query.eq("turma_id", turmaIdFiltro);
+
+  const { data } = await query;
+  section.style.display = "flex";
+
+  if (!data?.length) {
+    lista.innerHTML = "";
+    if (vazio) vazio.style.display = "";
+    return;
+  }
+  if (vazio) vazio.style.display = "none";
+
+  lista.innerHTML = "";
+  data.forEach((c, i) => {
+    const turma   = c.turmas;
+    const hora    = new Date(c.created_at).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    const dur     = c.duracao_seg ? fmtSeg(c.duracao_seg) : "—";
+    const dataFmt = new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"short" });
+
+    const card = document.createElement("div");
+    card.style.cssText = `
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:12px 14px;animation:dashUp .25s cubic-bezier(.22,1,.36,1) ${i*.05}s both;
+    `;
+    card.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:.84rem;font-weight:700;color:var(--text)">${turma?.nome ?? "Turma"}</div>
+          <div style="font-size:.7rem;color:var(--text-3);margin-top:2px">${dataFmt} · ${hora} · ⏱ ${dur}</div>
+          ${c.observacao ? `<div style="font-size:.72rem;color:var(--text-2);margin-top:4px;font-style:italic">"${c.observacao}"</div>` : ""}
+        </div>
+        <button class="btn-reabrir" data-id="${c.id}" data-turma="${turma?.id}" data-nome="${turma?.nome ?? ""}" style="
+          flex-shrink:0;padding:6px 12px;border-radius:8px;
+          background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);
+          color:#d97706;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;
+          transition:all .13s;white-space:nowrap
+        ">⏰ Reabrir</button>
+      </div>
+    `;
+    card.querySelector(".btn-reabrir").addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      reabrirChamada(btn.dataset.id, btn.dataset.turma, btn.dataset.nome);
+    });
+    lista.appendChild(card);
+  });
+}
+
+async function reabrirChamada(cId, turmaId, nome) {
+  chamadaId         = cId;
+  turmaNome         = nome;
+  chamadaData       = new Date().toISOString().split("T")[0];
+  _modoReabertura   = true;
+  _chamadaEncerrada = false;
+
+  document.getElementById("topbar-titulo").textContent = nome;
+  document.getElementById("topbar-sub").textContent    = "· Reabertura — atrasados";
+  document.getElementById("topbar-horario").textContent = "";
+  if (contentTopbar) contentTopbar.style.display = "";
+  if (statusBadge)   statusBadge.style.display   = "";
+
+  await carregarAlunos(turmaId);
+  await carregarPresencasExistentes();
+  renderList();
+  updateStats();
+  aplicarModoEncerrada();
+
+  // Banner de reabertura
+  const banner = document.createElement("div");
+  banner.id = "banner-reabertura";
+  banner.style.cssText = `
+    background:linear-gradient(90deg,rgba(245,158,11,.12),rgba(245,158,11,.06));
+    border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:10px 14px;
+    margin-bottom:14px;display:flex;align-items:center;gap:8px;
+    font-size:.78rem;font-weight:600;color:#92400e;
+  `;
+  banner.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Modo reabertura — presenças registradas como <strong style="margin-left:4px">atrasado</strong>
+  `;
+  const container = viewChamada.querySelector(".container");
+  if (container) container.insertBefore(banner, container.firstChild);
+
+  iniciarTimer();
+  mostrarViewChamada();
+}
+
 // ─── Navegação entre views ────────────────────────────────────────────────────
 function mostrarViewChamada() {
   viewSelector.style.display = "none";
@@ -813,6 +1006,9 @@ function mostrarViewSeletor() {
   viewChamada.style.display  = "none";
   viewSelector.style.display = "block";
   btnIniciar.disabled = true;
+  pararTimer();
+  document.getElementById("banner-reabertura")?.remove();
+  _modoReabertura = false;
 
   if (_isProfessor) {
     selTurma.value = "";
@@ -821,6 +1017,9 @@ function mostrarViewSeletor() {
     selTurma.disabled  = true;
     selInst.value      = "";
   }
+
+  // Atualiza painel lateral
+  carregarChamadasRecentes(null);
 }
 
 // ─── Flash de confirmação de presença ────────────────────────────────────────

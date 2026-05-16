@@ -120,8 +120,8 @@
 
     <!-- ─── View: Seletor de turma ──────────────────────────────────────────── -->
     <div id="view-selector" class="view" style="display:flex; flex-direction:column;">
-      <div class="selector-wrapper">
-        <div class="selector-card">
+      <div class="selector-wrapper" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;padding:24px 16px;max-width:900px;margin:0 auto;width:100%">
+        <div class="selector-card" style="flex:0 0 360px;max-width:100%">
 
           <div class="selector-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -178,13 +178,17 @@
 
         </div>
 
-        <!-- ─── Chamadas recentes: adicionar atrasados ─── -->
-        <div id="recentes-section" style="display:none;margin-top:20px;max-width:420px;width:100%">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span style="font-size:.65rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.12em;">Adicionar atrasados</span>
+        <!-- ─── Painel chamadas recentes ─── -->
+        <div id="recentes-section" style="flex:1;min-width:280px;max-width:460px;display:none;flex-direction:column;gap:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span style="font-size:.65rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.12em">Chamadas recentes</span>
+            <span style="font-size:.6rem;color:var(--text-3);margin-left:auto">Reabra para registrar atrasados</span>
           </div>
           <div id="recentes-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="recentes-vazio" style="display:none;padding:32px 16px;text-align:center;color:var(--text-3);font-size:.82rem;background:var(--surface);border:1px dashed var(--border);border-radius:12px">
+            Nenhuma chamada encerrada recentemente
+          </div>
         </div>
 
       </div>
@@ -193,6 +197,30 @@
     <!-- ─── View: Chamada ativa ─────────────────────────────────────────────── -->
     <div id="view-chamada" class="view" style="display:none">
       <div class="container">
+
+        <!-- Timer da chamada -->
+        <div id="chamada-timer-bar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;gap:12px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div style="width:7px;height:7px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:liveDot 1.5s ease-in-out infinite;flex-shrink:0"></div>
+            <span style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em">Em andamento</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="text-align:right">
+              <div id="timer-display" style="font-size:1.1rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.04em">00:00</div>
+              <div style="font-size:.6rem;color:var(--text-3)">duração</div>
+            </div>
+            <div id="timer-media-wrap" style="text-align:right;display:none">
+              <div id="timer-media" style="font-size:.88rem;font-weight:700;color:var(--acc)">—</div>
+              <div style="font-size:.6rem;color:var(--text-3)">média</div>
+            </div>
+          </div>
+        </div>
+        <style>
+          @keyframes liveDot {
+            0%,100% { box-shadow:0 0 0 0 rgba(22,163,74,.5); }
+            50%      { box-shadow:0 0 0 5px rgba(22,163,74,0); }
+          }
+        </style>
 
         <div class="stats">
           <div class="stat-card">
@@ -492,6 +520,51 @@
     <div class="confirm-btns">
       <button class="btn-confirm-cancel" id="btn-confirm-cancel">Cancelar</button>
       <button class="btn-confirm-ok" id="btn-confirm-ok">Encerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: Observação pós-chamada ────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-observacao" style="align-items:center">
+  <div class="modal" style="border-radius:18px;max-width:440px;width:calc(100% - 32px);margin:0 auto;animation:slideUp .25s cubic-bezier(.22,1,.36,1)">
+    <div class="modal-header" style="border-bottom:1px solid var(--border)">
+      <div>
+        <h2 style="font-size:.95rem;font-weight:800">Chamada encerrada 🎉</h2>
+        <p style="font-size:.75rem;color:var(--text-3);margin-top:2px">Adicione uma observação opcional</p>
+      </div>
+      <button class="close-btn" id="obs-pular">Pular</button>
+    </div>
+    <div style="padding:20px">
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums" id="obs-duracao">—</div>
+          <div style="font-size:.65rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px">Duração</div>
+        </div>
+        <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:#16a34a" id="obs-presentes">—</div>
+          <div style="font-size:.65rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px">Presentes</div>
+        </div>
+        <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--red)" id="obs-ausentes">—</div>
+          <div style="font-size:.65rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px">Ausentes</div>
+        </div>
+      </div>
+      <label style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:6px">
+        Observação
+      </label>
+      <textarea id="obs-texto" rows="3" placeholder="Ex: Turma participativa, 3 alunos chegaram atrasados…"
+        style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;
+          font-family:inherit;font-size:.875rem;color:var(--text);background:var(--surface-2);
+          resize:vertical;outline:none;transition:border-color .15s;line-height:1.6"
+        onfocus="this.style.borderColor='var(--acc)';this.style.boxShadow='0 0 0 3px var(--acc-sub)'"
+        onblur="this.style.borderColor='var(--border)';this.style.boxShadow=''"
+      ></textarea>
+      <button id="obs-salvar" style="width:100%;margin-top:14px;padding:12px;background:var(--acc);
+        color:white;border:none;border-radius:10px;font-size:.875rem;font-weight:700;
+        font-family:inherit;cursor:pointer;transition:all .15s;
+        box-shadow:0 4px 14px var(--acc-glow)">
+        Salvar e fechar
+      </button>
     </div>
   </div>
 </div>
