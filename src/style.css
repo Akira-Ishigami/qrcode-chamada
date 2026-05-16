@@ -148,6 +148,7 @@ body.sidebar-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   padding-top: var(--topbar-h);
 }
 
@@ -241,6 +242,7 @@ body.sidebar-open { overflow: hidden; }
   top: 0; left: 0;
   width: 268px;
   height: 100vh;
+  height: 100dvh; /* Safari 15.4+ — exclui toolbar do browser */
   background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
@@ -263,7 +265,7 @@ body.sidebar-open { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: calc(var(--topbar-h) + 16px) 18px 20px;
+  padding: calc(var(--topbar-h) + 16px + env(safe-area-inset-top, 0px)) 18px 20px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   flex-shrink: 0;
 }
@@ -1262,6 +1264,7 @@ input::placeholder, textarea::placeholder { color: var(--text-3); font-weight: 4
   .app-layout {
     flex-direction: row;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     padding-top: 0;
   }
@@ -1271,6 +1274,7 @@ input::placeholder, textarea::placeholder { color: var(--text-3); font-weight: 4
     top: auto; left: auto;
     width: var(--sidebar-w);
     height: 100vh;
+    height: 100dvh;
     transform: none !important;
     transition: none;
     box-shadow: none;
@@ -1285,6 +1289,7 @@ input::placeholder, textarea::placeholder { color: var(--text-3); font-weight: 4
 
   .main-content {
     height: 100vh;
+    height: 100dvh;
     overflow-y: auto;
     min-height: unset;
     width: auto;
