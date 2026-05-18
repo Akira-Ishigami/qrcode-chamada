@@ -372,11 +372,9 @@ function abrirModal(dia, horaInicio) {
             ${matOpts}
           </select>
         </div>
-        <div class="hor-field">
+        <div class="hor-field" id="m-prof-field" style="display:none">
           <label>Professor</label>
-          <select id="m-professor" disabled>
-            <option value="">Selecione a matéria primeiro</option>
-          </select>
+          <div id="m-prof-container"></div>
         </div>
         <div class="hor-field-row">
           <div class="hor-field">
@@ -408,30 +406,47 @@ function abrirModal(dia, horaInicio) {
   document.getElementById("m-cancelar").addEventListener("click", fechar);
   modal.addEventListener("click", e => { if (e.target === modal) fechar(); });
 
-  // Filtra professores ao mudar matéria
+  // Ao selecionar matéria, mostra professor vinculado automaticamente
   document.getElementById("m-materia").addEventListener("change", () => {
-    const matId = document.getElementById("m-materia").value;
-    const selProf = document.getElementById("m-professor");
-    const profs   = _pms.filter(pm => pm.materia_id === matId);
+    const matId    = document.getElementById("m-materia").value;
+    const field    = document.getElementById("m-prof-field");
+    const container = document.getElementById("m-prof-container");
+    const profs    = _pms.filter(pm => pm.materia_id === matId);
 
-    if (!matId || !profs.length) {
-      selProf.innerHTML = `<option value="">Nenhum professor vinculado</option>`;
-      selProf.disabled = true;
+    if (!matId) { field.style.display = "none"; return; }
+
+    field.style.display = "";
+
+    if (!profs.length) {
+      container.innerHTML = `<div class="hor-prof-aviso">Nenhum professor vinculado a esta matéria. <a href="materias.html">Vincular →</a></div>`;
       return;
     }
 
-    selProf.innerHTML = `<option value="">Selecione…</option>` +
-      profs.map(pm => {
-        const p = pm.profiles;
-        return `<option value="${pm.professor_id}">${esc(p?.nome || p?.email || "—")}</option>`;
-      }).join("");
-    selProf.disabled = false;
+    if (profs.length === 1) {
+      const p   = profs[0].profiles;
+      const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
+      container.innerHTML = `
+        <div class="hor-prof-display">
+          <div class="hor-prof-avatar">${esc(ini)}</div>
+          <span class="hor-prof-name">${esc(p?.nome || p?.email || "—")}</span>
+          <input type="hidden" id="m-professor-val" value="${profs[0].professor_id}" />
+        </div>`;
+    } else {
+      container.innerHTML = `
+        <select id="m-professor-val" class="hor-field-input">
+          <option value="">Selecione…</option>
+          ${profs.map(pm => {
+            const p = pm.profiles;
+            return `<option value="${pm.professor_id}">${esc(p?.nome || p?.email || "—")}</option>`;
+          }).join("")}
+        </select>`;
+    }
   });
 
   // Salvar
   document.getElementById("m-salvar").addEventListener("click", async () => {
     const matId  = document.getElementById("m-materia").value;
-    const profId = document.getElementById("m-professor").value || null;
+    const profId = document.getElementById("m-professor-val")?.value || null;
     const inicio = document.getElementById("m-inicio").value;
     const fim    = document.getElementById("m-fim").value;
     const sala   = document.getElementById("m-sala").value.trim();

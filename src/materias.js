@@ -192,58 +192,119 @@ async function renderMaterias() {
         </div>
         <div class="mat-card-actions">
           <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
-          <svg class="mat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" style="color:var(--text-3)"><polyline points="9 18 15 12 9 6"/></svg>
           <button class="mat-btn-del" title="Excluir matéria">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>
       </div>
-
-      <div class="mat-profs-panel">
-        <div class="mat-profs-title">Professores vinculados</div>
-        <div class="mat-prof-list" id="profs-${mat.id}">
-          ${profs.length === 0
-            ? `<div class="mat-prof-vazio">Nenhum professor vinculado.</div>`
-            : profs.map(v => {
-                const p   = v.profiles;
-                const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
-                return `
-                  <div class="mat-prof-row">
-                    <div class="mat-prof-avatar">${esc(ini)}</div>
-                    <div class="mat-prof-nome">${esc(p?.nome || p?.email || "—")}</div>
-                    <button class="mat-prof-del" data-unlink-pm="${v.materia_id}" data-unlink-prof="${v.professor_id}" title="Desvincular">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                  </div>`;
-              }).join("")}
-        </div>
-        ${disponiveis.length > 0 ? `
-          <div class="mat-add-prof">
-            <select id="sel-prof-${mat.id}" class="mat-sel-prof">
-              <option value="">Selecione o professor…</option>
-              ${disponiveis.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join("")}
-            </select>
-            <button class="mat-btn-vincular" data-vincular="${mat.id}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Vincular
-            </button>
-          </div>` : `<div class="mat-all-linked">Todos os professores já vinculados.</div>`}
-      </div>
     `;
 
     card.querySelector(".mat-card-head").addEventListener("click", e => {
       if (e.target.closest(".mat-btn-del")) return;
-      card.classList.toggle("open");
+      abrirModalMateria(mat, profs, disponiveis);
     });
 
     card.querySelector(".mat-btn-del").addEventListener("click", () => confirmarExcluir(mat.id, mat.nome));
-    card.querySelector(`[data-vincular]`)?.addEventListener("click", () => vincularProfessor(mat.id));
-    card.querySelectorAll("[data-unlink-pm]").forEach(btn => {
-      btn.addEventListener("click", () => desvincularProfessor(btn.dataset.unlinkPm, btn.dataset.unlinkProf));
-    });
 
     lista.appendChild(card);
   });
+}
+
+// ── Modal de gerenciamento da matéria ─────────────────────────────────────────
+function abrirModalMateria(mat, profsIniciais, disponiveisIniciais) {
+  const ov = document.createElement("div");
+  ov.className = "mat-modal-ov";
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add("open"));
+
+  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 200); };
+
+  const renderConteudo = (profs, disponiveis) => {
+    const profRows = profs.length === 0
+      ? `<div class="mat-prof-vazio">Nenhum professor vinculado ainda.</div>`
+      : profs.map(v => {
+          const p   = v.profiles;
+          const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
+          return `
+            <div class="mat-prof-row">
+              <div class="mat-prof-avatar">${esc(ini)}</div>
+              <div class="mat-prof-nome">${esc(p?.nome || p?.email || "—")}</div>
+              <button class="mat-prof-del" data-unlink-pm="${v.materia_id}" data-unlink-prof="${v.professor_id}" title="Desvincular">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>`;
+        }).join("");
+
+    const addRow = disponiveis.length > 0 ? `
+      <div class="mat-add-prof" style="margin-top:12px">
+        <select id="modal-sel-prof" class="mat-sel-prof">
+          <option value="">Selecione o professor…</option>
+          ${disponiveis.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join("")}
+        </select>
+        <button class="mat-btn-vincular" id="modal-btn-vincular">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Vincular
+        </button>
+      </div>` : `<div class="mat-all-linked" style="margin-top:10px">Todos os professores já vinculados.</div>`;
+
+    ov.innerHTML = `
+      <div class="mat-modal">
+        <div class="mat-modal-head">
+          <div class="mat-modal-icon">${esc(mat.nome[0].toUpperCase())}</div>
+          <div>
+            <div class="mat-modal-title">${esc(mat.nome)}</div>
+            <div class="mat-modal-sub">Professores vinculados</div>
+          </div>
+          <button class="mat-modal-x" id="mgr-x">✕</button>
+        </div>
+        <div class="mat-modal-body" style="gap:0">
+          <div class="mat-profs-title">Professores</div>
+          <div class="mat-prof-list">${profRows}</div>
+          ${addRow}
+        </div>
+        <div class="mat-modal-foot" style="justify-content:flex-start">
+          <button class="mat-btn-ghost" id="mgr-fechar">Fechar</button>
+        </div>
+      </div>`;
+
+    ov.querySelector("#mgr-x").addEventListener("click", fechar);
+    ov.querySelector("#mgr-fechar").addEventListener("click", fechar);
+    ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+
+    ov.querySelectorAll("[data-unlink-pm]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await desvincularProfessor(btn.dataset.unlinkPm, btn.dataset.unlinkProf);
+        // Re-fetch e re-renderiza modal
+        const { data: vinculos } = await supabaseAdmin
+          .from("professor_materias").select("materia_id, professor_id, profiles(id, nome, email)")
+          .eq("materia_id", mat.id);
+        const novosProfs = vinculos ?? [];
+        const vinculadosIds = new Set(novosProfs.map(v => v.professor_id));
+        const novosDisp = _professores.filter(p => !vinculadosIds.has(p.id));
+        renderConteudo(novosProfs, novosDisp);
+      });
+    });
+
+    const btnVin = ov.querySelector("#modal-btn-vincular");
+    if (btnVin) {
+      btnVin.addEventListener("click", async () => {
+        const sel = ov.querySelector("#modal-sel-prof");
+        const profId = sel?.value;
+        if (!profId) { showToast("Selecione um professor.", "error"); return; }
+        await vincularProfessor(mat.id, profId);
+        const { data: vinculos } = await supabaseAdmin
+          .from("professor_materias").select("materia_id, professor_id, profiles(id, nome, email)")
+          .eq("materia_id", mat.id);
+        const novosProfs = vinculos ?? [];
+        const vinculadosIds = new Set(novosProfs.map(v => v.professor_id));
+        const novosDisp = _professores.filter(p => !vinculadosIds.has(p.id));
+        renderConteudo(novosProfs, novosDisp);
+      });
+    }
+  };
+
+  renderConteudo(profsIniciais, disponiveisIniciais);
 }
 
 // ── Confirmar exclusão (modal inline) ────────────────────────────────────────
@@ -302,9 +363,7 @@ async function excluirMateria(id, nome) {
 }
 
 // ── Vincular professor ────────────────────────────────────────────────────────
-async function vincularProfessor(materiaId) {
-  const sel    = document.getElementById(`sel-prof-${materiaId}`);
-  const profId = sel?.value;
+async function vincularProfessor(materiaId, profId) {
   if (!profId) { showToast("Selecione um professor.", "error"); return; }
 
   const { error } = await supabaseAdmin
@@ -314,7 +373,6 @@ async function vincularProfessor(materiaId) {
 
   showToast("Professor vinculado!", "success");
   await renderMaterias();
-  document.querySelector(`.mat-card[data-id="${materiaId}"]`)?.classList.add("open");
 }
 
 // ── Desvincular professor ─────────────────────────────────────────────────────
@@ -326,7 +384,6 @@ async function desvincularProfessor(materiaId, profId) {
 
   showToast("Professor desvinculado.", "success");
   await renderMaterias();
-  document.querySelector(`.mat-card[data-id="${materiaId}"]`)?.classList.add("open");
 }
 
 init();
