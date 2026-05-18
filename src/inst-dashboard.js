@@ -45,6 +45,26 @@ async function init() {
   }
 
   await render(profile);
+  setupRealtime(profile);
+}
+
+let _rtChannel   = null;
+let _renderTimer = null;
+
+function setupRealtime(profile) {
+  if (_rtChannel) supabase.removeChannel(_rtChannel);
+
+  _rtChannel = supabase
+    .channel("idash-chamadas-rt")
+    .on("postgres_changes", { event: "*", schema: "public", table: "chamadas" }, () => {
+      clearTimeout(_renderTimer);
+      _renderTimer = setTimeout(() => render(profile), 1500);
+    })
+    .subscribe();
+
+  window.addEventListener("beforeunload", () => {
+    if (_rtChannel) supabase.removeChannel(_rtChannel);
+  }, { once: true });
 }
 
 async function render(profile) {
