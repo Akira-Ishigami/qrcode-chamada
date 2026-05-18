@@ -132,6 +132,15 @@
 }
 .hor-select-wrap:hover .hor-select-chevron { color: #64748b; }
 
+/* Chips de turma (view professor) */
+.hor-turma-chip {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px; border-radius: 20px;
+  background: #eff6ff; color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-size: .75rem; font-weight: 600;
+}
+
 /* Separador vertical */
 .hor-turma-sep {
   width: 1px;

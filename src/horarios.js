@@ -22,13 +22,15 @@ const MAT_COLORS = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let _instId    = null;
-let _turmas    = [];
-let _turmaId   = null;
-let _materias  = [];   // {id, nome, colorIdx}
-let _pms       = [];   // professor_materias: {professor_id, materia_id, profiles:{nome,email}}
-let _horarios  = [];   // horários da turma selecionada
-let _popover   = null; // popover DOM atual
+let _instId       = null;
+let _turmas       = [];
+let _turmaId      = null;
+let _materias     = [];
+let _pms          = [];
+let _horarios     = [];
+let _popover      = null;
+let _isProfessor  = false;
+let _profUserId   = null;
 
 const root = document.getElementById("page-root");
 const esc  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -54,6 +56,11 @@ async function init() {
     if (!profile || profile.role === "admin") { window.location.href = "/dashboard.html"; return; }
     _instId = profile.instituicao_id;
 
+    if (profile.role === "professor") {
+      _isProfessor = true;
+      _profUserId  = session.user.id;
+    }
+
     await carregarDados(profile);
     renderShell();
   } catch (e) {
@@ -64,28 +71,36 @@ async function init() {
 
 // ── Carrega turmas + matérias + professor_materias ────────────────────────────
 async function carregarDados(profile) {
-  let turmasQ = supabaseAdmin.from("turmas").select("id, nome").order("nome");
-
-  if (profile.role === "professor") {
-    const { data: { session } } = await supabase.auth.getSession();
-    turmasQ = turmasQ.eq("professor_id", session.user.id);
-  } else {
-    turmasQ = turmasQ.eq("instituicao_id", _instId);
-  }
-
-  const [turmasRes, materiasRes, pmsRes] = await Promise.all([
-    turmasQ,
+  const [materiasRes, pmsRes] = await Promise.all([
     supabaseAdmin.from("materias").select("id, nome").eq("instituicao_id", _instId).order("nome"),
     supabaseAdmin.from("professor_materias").select("professor_id, materia_id, profiles(id, nome, email)"),
   ]);
 
-  const turmas   = turmasRes.data;
-  const materias = materiasRes.data;
-  const pms      = pmsRes.data;
+  _materias = (materiasRes.data ?? []).map((m, i) => ({ ...m, colorIdx: i % MAT_COLORS.length }));
+  _pms      = pmsRes.data ?? [];
 
-  _turmas   = turmas ?? [];
-  _materias = (materias ?? []).map((m, i) => ({ ...m, colorIdx: i % MAT_COLORS.length }));
-  _pms      = pms ?? [];
+  if (_isProfessor) {
+    // Carrega todos os horários do professor e extrai turmas únicas
+    const { data: hors } = await supabaseAdmin
+      .from("horarios")
+      .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, turma_id, materias(nome), turmas(id, nome), profiles(nome,email)")
+      .eq("professor_id", _profUserId)
+      .order("dia_semana").order("hora_inicio");
+
+    const lista = hors ?? [];
+    // Monta _horarios com colorIdx e turma info
+    _horarios = lista.map(h => {
+      const mat = _materias.find(m => m.id === h.materia_id);
+      return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? "—", turmaNome: h.turmas?.nome ?? "—" };
+    });
+    // Turmas únicas que o professor aparece
+    const turmaMap = {};
+    lista.forEach(h => { if (h.turma_id && h.turmas) turmaMap[h.turma_id] = { id: h.turma_id, nome: h.turmas.nome }; });
+    _turmas = Object.values(turmaMap).sort((a,b) => a.nome.localeCompare(b.nome));
+  } else {
+    const { data: turmas } = await supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", _instId).order("nome");
+    _turmas = turmas ?? [];
+  }
 }
 
 // ── Shell principal ───────────────────────────────────────────────────────────
@@ -98,65 +113,67 @@ function renderShell() {
     : `<option value="">Selecione a turma…</option>` +
       _turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
 
+  const subtitulo = _isProfessor
+    ? `Suas aulas — ${_horarios.length} aula${_horarios.length !== 1 ? "s" : ""} cadastrada${_horarios.length !== 1 ? "s" : ""}`
+    : "Grade semanal — clique nas células para adicionar aulas";
+
+  const turmaBarHtml = _isProfessor
+    ? `<div class="hor-turma-bar">
+        <span class="hor-turma-label">Turmas</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${_turmas.length === 0
+            ? `<span style="font-size:.82rem;color:var(--text-3)">Nenhuma turma com horário cadastrado</span>`
+            : _turmas.map(t => `<span class="hor-turma-chip">${esc(t.nome)}</span>`).join("")}
+        </div>
+      </div>`
+    : `<div class="hor-turma-bar">
+        <span class="hor-turma-label">Turma</span>
+        <div class="hor-select-wrap">
+          <select id="sel-turma" class="hor-turma-select">${turmaOpts}</select>
+          <svg class="hor-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>`;
+
+  const overlayHtml = (!_isProfessor)
+    ? `<div class="cal-no-turma" id="cal-overlay">
+        <div class="cal-no-turma-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <strong>Selecione uma turma</strong>
+        <span>Use o seletor acima para visualizar e editar os horários</span>
+      </div>`
+    : "";
+
   root.innerHTML = `
     <div class="hor-header">
       <div class="hor-header-left">
         <div class="hor-title">Horários de Aula</div>
-        <div class="hor-subtitle">Grade semanal — clique nas células para adicionar aulas</div>
+        <div class="hor-subtitle">${subtitulo}</div>
       </div>
-      <div class="hor-week-badge">
-        <span class="hor-week-dot"></span>
-        ${semana}
-      </div>
+      <div class="hor-week-badge"><span class="hor-week-dot"></span>${semana}</div>
     </div>
 
-    <div class="hor-turma-bar">
-      <span class="hor-turma-label">Turma</span>
-      <div class="hor-select-wrap">
-        <select id="sel-turma" class="hor-turma-select">
-          ${turmaOpts}
-        </select>
-        <svg class="hor-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </div>
-    </div>
+    ${turmaBarHtml}
 
     <div class="cal-outer">
-      <div class="cal-no-turma" id="cal-overlay">
-        <div class="cal-no-turma-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <strong>Selecione uma turma</strong>
-        <span>Use o seletor acima para visualizar e editar os horários</span>
-      </div>
-
+      ${overlayHtml}
       <div class="cal-legend" id="cal-legend">
-        <span class="cal-legend-empty">Selecione uma turma</span>
+        ${_isProfessor ? "" : `<span class="cal-legend-empty">Selecione uma turma</span>`}
       </div>
-
       <div class="cal-scroll">
         <div class="cal-grid" id="cal-grid"></div>
       </div>
     </div>
   `;
 
-  document.getElementById("sel-turma").addEventListener("change", e => {
-    const id = e.target.value;
-    if (id) selecionarTurma(id);
-    else {
-      _turmaId = null; _horarios = [];
-      if (!document.getElementById("cal-overlay")) {
-        const ov = document.createElement("div");
-        // re-render instead
-        renderGrid(); renderLegend();
-      }
-    }
-  });
+  if (!_isProfessor) {
+    document.getElementById("sel-turma").addEventListener("change", e => {
+      const id = e.target.value;
+      if (id) selecionarTurma(id);
+      else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
+    });
+  }
 
   renderGrid();
+  renderLegend();
   document.addEventListener("click", fecharPopover);
 }
 
@@ -243,16 +260,19 @@ function renderGrid() {
 
   grid.innerHTML = html;
 
-  // Bind células
-  if (_turmaId) {
+  // Bind células (só instituição pode editar)
+  if (_turmaId && !_isProfessor) {
     grid.querySelectorAll(".cal-cell").forEach(cell => {
       cell.addEventListener("click", () => {
         abrirModal(parseInt(cell.dataset.dia), parseInt(cell.dataset.hora));
       });
     });
+  }
 
-    // Bind blocks
+  // Bind blocks — professor: só leitura; instituição: abre popover
+  if (_turmaId || _isProfessor) {
     grid.querySelectorAll(".cal-block").forEach(block => {
+      if (_isProfessor) return; // sem ação no bloco para professor
       block.addEventListener("click", e => {
         e.stopPropagation();
         mostrarPopover(block, block.dataset.id);
@@ -272,15 +292,15 @@ function renderBlock(h) {
   const height = Math.max((endF - startF) * CELL_H - 2, 20);
 
   const c      = MAT_COLORS[h.colorIdx];
-  const prof   = h.profiles?.nome || h.profiles?.email || "";
-  const timeStr= `${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}`;
-  const sala   = h.sala ? ` · ${h.sala}` : "";
+  const sub    = _isProfessor
+    ? (h.turmaNome ?? "")
+    : (h.profiles?.nome || h.profiles?.email || `${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}${h.sala ? " · "+h.sala : ""}`);
 
   return `
-    <div class="cal-block" data-id="${h.id}"
+    <div class="cal-block${_isProfessor ? " prof-view" : ""}" data-id="${h.id}"
       style="top:${top}px;height:${height}px;background:${c.bg};border-left-color:${c.border};color:${c.text}">
       <div class="cal-block-nome">${esc(h.matNome)}</div>
-      ${height > 40 ? `<div class="cal-block-sub">${esc(prof || timeStr + sala)}</div>` : ""}
+      ${height > 40 ? `<div class="cal-block-sub">${esc(sub)}</div>` : ""}
     </div>`;
 }
 
