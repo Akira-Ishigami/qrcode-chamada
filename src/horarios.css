@@ -351,6 +351,10 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   margin-top: 1px;
 }
+.cal-block-time {
+  font-size: .55rem; opacity: .55; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* ─── POPOVER ───────────────────────────────── */
 .cal-popover {
