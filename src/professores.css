@@ -62,7 +62,23 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   max-width: 100%;
 }
-.prof-card-badge { margin-bottom: 14px; }
+.prof-card-badge { margin-bottom: 10px; }
+
+/* Resumo matérias/turmas */
+.prof-card-resumo {
+  width: 100%; padding: 0 14px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.prof-resumo-row {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .72rem; color: var(--text-3); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prof-resumo-row span { overflow: hidden; text-overflow: ellipsis; }
+.prof-resumo-vazio {
+  font-size: .72rem; color: var(--border-2); font-style: italic;
+  text-align: center; margin-bottom: 12px;
+}
 
 /* Botões de ação visíveis */
 .prof-card-actions {

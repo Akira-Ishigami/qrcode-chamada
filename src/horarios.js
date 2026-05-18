@@ -1,259 +1,482 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
-import { applyNavRole, podeAdmin } from "./nav-role.js";
+import { applyNavRole }  from "./nav-role.js";
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const CAL_START = 5;   // 05:00
+const CAL_END   = 24;  // 00:00 (meia-noite)
+const CELL_H    = 64;  // px por hora
+const DIAS_SHORT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const DIAS_FULL  = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const SHOW_DIAS  = [1,2,3,4,5,6]; // Seg–Sáb (0=Dom)
+
+const MAT_COLORS = [
+  { bg:"#dbeafe", border:"#3b82f6", text:"#1e40af" },
+  { bg:"#dcfce7", border:"#22c55e", text:"#15803d" },
+  { bg:"#fce7f3", border:"#ec4899", text:"#9d174d" },
+  { bg:"#fff7ed", border:"#f97316", text:"#c2410c" },
+  { bg:"#ede9fe", border:"#8b5cf6", text:"#5b21b6" },
+  { bg:"#fef9c3", border:"#eab308", text:"#a16207" },
+  { bg:"#ccfbf1", border:"#14b8a6", text:"#115e59" },
+  { bg:"#fee2e2", border:"#f87171", text:"#991b1b" },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let _instId    = null;
+let _turmas    = [];
+let _turmaId   = null;
+let _materias  = [];   // {id, nome, colorIdx}
+let _pms       = [];   // professor_materias: {professor_id, materia_id, profiles:{nome,email}}
+let _horarios  = [];   // horários da turma selecionada
+let _popover   = null; // popover DOM atual
 
 const root = document.getElementById("page-root");
-const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-const SVG_PLUS  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
-const SVG_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
-
-let turmaId  = null;
-let materia  = null;
+const esc  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 function showToast(msg, type = "") {
   const t = document.getElementById("toast");
   if (!t) return;
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
+  t.textContent = msg; t.className = `toast ${type} show`;
   clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => t.classList.remove("show"), 3500);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 3000);
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) { window.location.href = "/login.html"; return; }
-  await applyNavRole();
-  const { data: profile } = await supabaseAdmin.from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
-  if (!profile)                       { window.location.href = "/login.html"; return; }
-  if (profile.role === "admin")       { window.location.href = "/dashboard.html"; return; }
-  await renderPage(profile);
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = "/login.html"; return; }
+    await applyNavRole();
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles").select("role, instituicao_id").eq("id", session.user.id).single();
+
+    if (!profile || profile.role === "admin") { window.location.href = "/dashboard.html"; return; }
+    _instId = profile.instituicao_id;
+
+    await carregarDados(profile);
+    renderShell();
+  } catch (e) {
+    console.error("Horários init error:", e);
+    root.innerHTML = `<div style="padding:40px;color:var(--red)">Erro ao carregar: ${e.message}</div>`;
+  }
 }
 
-async function renderPage(profile) {
-  const isInstituicao = profile.role === "instituicao";
-  const adminInstId = isInstituicao ? profile.instituicao_id : null;
+// ── Carrega turmas + matérias + professor_materias ────────────────────────────
+async function carregarDados(profile) {
+  let turmasQ = supabaseAdmin.from("turmas").select("id, nome").order("nome");
 
-  // admin: pula o seletor de instituição e carrega turmas direto
-  const stepInstHtml = isInstituicao ? "" : `
-    <div class="hor-step">
-      <div class="hor-step-num">1</div>
-      <div class="hor-step-body">
-        <label>Instituição</label>
-        <select id="sel-inst">
-          <option value="">Selecione…</option>
-        </select>
-      </div>
-    </div>`;
+  if (profile.role === "professor") {
+    const { data: { session } } = await supabase.auth.getSession();
+    turmasQ = turmasQ.eq("professor_id", session.user.id);
+  } else {
+    turmasQ = turmasQ.eq("instituicao_id", _instId);
+  }
+
+  const [turmasRes, materiasRes, pmsRes] = await Promise.all([
+    turmasQ,
+    supabaseAdmin.from("materias").select("id, nome").eq("instituicao_id", _instId).order("nome"),
+    supabaseAdmin.from("professor_materias").select("professor_id, materia_id, profiles(id, nome, email)"),
+  ]);
+
+  const turmas   = turmasRes.data;
+  const materias = materiasRes.data;
+  const pms      = pmsRes.data;
+
+  _turmas   = turmas ?? [];
+  _materias = (materias ?? []).map((m, i) => ({ ...m, colorIdx: i % MAT_COLORS.length }));
+  _pms      = pms ?? [];
+}
+
+// ── Shell principal ───────────────────────────────────────────────────────────
+function renderShell() {
+  const hoje = new Date().toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
+  const semana = `Semana de ${new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short" })}`;
+
+  const turmaOpts = _turmas.length === 0
+    ? `<option value="">Nenhuma turma cadastrada</option>`
+    : `<option value="">Selecione a turma…</option>` +
+      _turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
 
   root.innerHTML = `
     <div class="hor-header">
-      <div>
+      <div class="hor-header-left">
         <div class="hor-title">Horários de Aula</div>
-        <div class="hor-subtitle">Selecione a turma, depois a matéria</div>
+        <div class="hor-subtitle">Grade semanal — clique nas células para adicionar aulas</div>
+      </div>
+      <div class="hor-week-badge">
+        <span class="hor-week-dot"></span>
+        ${semana}
       </div>
     </div>
-    <div class="hor-steps">
-      ${stepInstHtml}
-      <div class="hor-step">
-        <div class="hor-step-num">${isInstituicao ? "1" : "2"}</div>
-        <div class="hor-step-body">
-          <label>Turma</label>
-          <select id="sel-turma" ${isInstituicao ? "" : "disabled"}>
-            <option value="">${isInstituicao ? "Carregando…" : "— primeiro selecione a instituição —"}</option>
-          </select>
-        </div>
-      </div>
-      <div class="hor-step" id="step-materia" style="display:none">
-        <div class="hor-step-num">${isInstituicao ? "2" : "3"}</div>
-        <div class="hor-step-body">
-          <label>Matéria</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="sel-materia" style="flex:1">
-              <option value="">Selecione ou crie…</option>
-            </select>
-            <span style="color:var(--text-3);font-size:.8rem">ou</span>
-            <input type="text" id="nova-materia" placeholder="Nova matéria…" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.875rem;outline:none" />
-            <button class="btn btn-primary" id="btn-sel-mat">${SVG_PLUS} Ver</button>
-          </div>
-        </div>
+
+    <div class="hor-turma-bar">
+      <span class="hor-turma-label">Turma</span>
+      <div class="hor-select-wrap">
+        <select id="sel-turma" class="hor-turma-select">
+          ${turmaOpts}
+        </select>
+        <svg class="hor-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
       </div>
     </div>
-    <div id="hor-content"></div>`;
 
-  async function carregarTurmasDaInst(instId) {
-    const selTurma = document.getElementById("sel-turma");
-    selTurma.innerHTML = `<option value="">Carregando…</option>`;
-    selTurma.disabled = true;
-    const { data: turmas } = await supabase
-      .from("turmas").select("id, nome").eq("instituicao_id", instId).order("nome");
-    if (!turmas?.length) { selTurma.innerHTML = `<option value="">Nenhuma turma</option>`; return; }
-    selTurma.innerHTML = `<option value="">Selecione a turma…</option>` +
-      turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
-    selTurma.disabled = false;
-  }
+    <div class="cal-outer">
+      <div class="cal-no-turma" id="cal-overlay">
+        <div class="cal-no-turma-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <strong>Selecione uma turma</strong>
+        <span>Use o seletor acima para visualizar e editar os horários</span>
+      </div>
 
-  // ── Evento: selecionar instituição (só professor vê esse select) ──────────
-  if (!isInstituicao) {
-    const { data: insts } = await supabaseAdmin.from("instituicoes").select("id, nome").order("nome");
-    const selInst = document.getElementById("sel-inst");
-    selInst.innerHTML = `<option value="">Selecione…</option>` +
-      (insts || []).map(i => `<option value="${i.id}">${esc(i.nome)}</option>`).join("");
+      <div class="cal-legend" id="cal-legend">
+        <span class="cal-legend-empty">Selecione uma turma</span>
+      </div>
 
-    selInst.addEventListener("change", async () => {
-      const instId = selInst.value;
-      turmaId = null; materia = null;
-      document.getElementById("hor-content").innerHTML = "";
-      document.getElementById("step-materia").style.display = "none";
-      if (instId) await carregarTurmasDaInst(instId);
-      else {
-        const s = document.getElementById("sel-turma");
-        s.innerHTML = `<option value="">— primeiro selecione a instituição —</option>`;
-        s.disabled = true;
+      <div class="cal-scroll">
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("sel-turma").addEventListener("change", e => {
+    const id = e.target.value;
+    if (id) selecionarTurma(id);
+    else {
+      _turmaId = null; _horarios = [];
+      if (!document.getElementById("cal-overlay")) {
+        const ov = document.createElement("div");
+        // re-render instead
+        renderGrid(); renderLegend();
       }
-    });
-  } else if (adminInstId) {
-    await carregarTurmasDaInst(adminInstId);
-  }
-
-  // ── Evento: selecionar turma ─────────────────────────────────────────────────
-  document.getElementById("sel-turma").addEventListener("change", async () => {
-    turmaId = document.getElementById("sel-turma").value;
-    materia = null;
-    document.getElementById("hor-content").innerHTML = "";
-
-    if (!turmaId) { document.getElementById("step-materia").style.display = "none"; return; }
-
-    // Carrega matérias já usadas nessa turma
-    const { data: mats } = await supabase
-      .from("horarios").select("materia").eq("turma_id", turmaId);
-
-    const setMat = new Set((mats || []).map(m => m.materia));
-    const selMat = document.getElementById("sel-materia");
-    selMat.innerHTML = `<option value="">Selecione…</option>` +
-      [...setMat].sort().map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
-
-    document.getElementById("step-materia").style.display = "";
+    }
   });
 
-  // ── Evento: confirmar matéria ────────────────────────────────────────────────
-  document.getElementById("btn-sel-mat").addEventListener("click", () => {
-    const sel    = document.getElementById("sel-materia").value;
-    const custom = document.getElementById("nova-materia").value.trim();
-    materia = custom || sel;
-    if (!materia) { showToast("Selecione ou digite a matéria", "error"); return; }
-    renderHorarios();
-  });
+  renderGrid();
+  document.addEventListener("click", fecharPopover);
 }
 
-async function renderHorarios() {
-  const content = document.getElementById("hor-content");
-  content.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-3)">Carregando…</div>`;
+// ── Seleciona turma ───────────────────────────────────────────────────────────
+async function selecionarTurma(id) {
+  _turmaId = id;
 
-  const { data: horarios } = await supabase
+  // Remove overlay ao selecionar turma
+  document.getElementById("cal-overlay")?.remove();
+
+  // Remove overlay
+  document.getElementById("cal-overlay")?.remove();
+
+  // Carrega horários da turma
+  const { data } = await supabaseAdmin
     .from("horarios")
-    .select("*")
-    .eq("turma_id", turmaId)
-    .eq("materia", materia)
-    .order("dia_semana")
-    .order("hora_inicio");
+    .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome,email)")
+    .eq("turma_id", id)
+    .order("dia_semana").order("hora_inicio");
 
-  const diaOpts = DIAS.map((d, i) => `<option value="${i}">${d}</option>`).join("");
+  _horarios = (data ?? []).map(h => {
+    const mat = _materias.find(m => m.id === h.materia_id);
+    return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? h.materia_id ?? "—" };
+  });
 
-  const rows = (horarios || []).map(h => `
-    <tr>
-      <td><span class="dia-pill">${DIAS[h.dia_semana]}</span></td>
-      <td>${h.hora_inicio.slice(0,5)}</td>
-      <td>${h.hora_fim.slice(0,5)}</td>
-      <td>${esc(h.sala || "—")}</td>
-      <td style="text-align:right">
-        <button class="btn-del-row" data-id="${h.id}">${SVG_TRASH}</button>
-      </td>
-    </tr>`).join("");
 
-  content.innerHTML = `
-    <div class="hor-turma-block">
-      <div class="hor-turma-header">
-        <div class="hor-materia-label">${esc(materia)}</div>
-      </div>
+  renderGrid();
+  renderLegend();
+}
 
-      <div class="hor-table-wrap">
-        <table class="hor-table">
-          <thead>
-            <tr><th>Dia</th><th>Início</th><th>Fim</th><th>Sala</th><th style="width:48px"></th></tr>
-          </thead>
-          <tbody id="hor-tbody">
-            ${rows || `<tr><td colspan="5" style="padding:14px 16px;color:var(--text-3);font-size:.85rem">Sem horários cadastrados para esta matéria.</td></tr>`}
-          </tbody>
-        </table>
-      </div>
+// ── Legenda de matérias ───────────────────────────────────────────────────────
+function renderLegend() {
+  const leg = document.getElementById("cal-legend");
+  if (!leg) return;
 
-      <div class="hor-form">
-        <div class="hor-form-title">Adicionar horário</div>
-        <div class="hor-form-grid">
-          <div>
-            <label>Dia</label>
-            <select id="h-dia">${diaOpts}</select>
-          </div>
-          <div>
-            <label>Início</label>
-            <input type="time" id="h-inicio" value="07:00" />
-          </div>
-          <div>
-            <label>Fim</label>
-            <input type="time" id="h-fim" value="08:00" />
-          </div>
-          <div>
-            <label>Sala (opcional)</label>
-            <input type="text" id="h-sala" placeholder="Ex: Sala 5" />
-          </div>
-          <div style="display:flex;align-items:flex-end">
-            <button class="btn btn-primary" id="btn-add-hor">${SVG_PLUS} Adicionar</button>
-          </div>
-        </div>
-      </div>
+  const usadas = [...new Map(_horarios.map(h => [h.materia_id, h])).values()];
+
+  if (!usadas.length) {
+    leg.innerHTML = `<span class="cal-legend-empty">Nenhuma aula cadastrada ainda — clique nas células para adicionar</span>`;
+    return;
+  }
+
+  leg.innerHTML = usadas.map(h => {
+    const c = MAT_COLORS[h.colorIdx];
+    return `<span class="cal-legend-item" style="background:${c.bg};border-color:${c.border};color:${c.text}">${esc(h.matNome)}</span>`;
+  }).join("");
+}
+
+// ── Render da grade semanal ───────────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById("cal-grid");
+  if (!grid) return;
+
+  const hours = Array.from({ length: CAL_END - CAL_START }, (_, i) => CAL_START + i);
+  const hoje  = new Date().getDay(); // 0=Dom
+
+  // Coluna de horas
+  let html = `
+    <div class="cal-time-col">
+      <div class="cal-time-spacer"></div>
+      ${hours.map(h => `
+        <div class="cal-hour-label">${h === 24 ? "00:00" : String(h).padStart(2,"0") + ":00"}</div>
+      `).join("")}
     </div>`;
 
-  // Excluir
-  document.getElementById("hor-tbody").addEventListener("click", async (e) => {
-    const btn = e.target.closest(".btn-del-row[data-id]");
-    if (!btn) return;
-    const { error } = await supabaseAdmin.from("horarios").delete().eq("id", btn.dataset.id);
-    if (error) { showToast("Erro ao excluir", "error"); return; }
-    showToast("Removido.", "success");
-    renderHorarios();
+  // Colunas dos dias
+  SHOW_DIAS.forEach(dia => {
+    const isHoje = dia === hoje;
+    const hors   = _horarios.filter(h => h.dia_semana === dia);
+
+    html += `
+      <div class="cal-day-col${isHoje ? " today-col" : ""}">
+        <div class="cal-day-head${isHoje ? " today" : ""}">
+          ${DIAS_SHORT[dia]}
+        </div>
+        <div class="cal-day-body" id="body-${dia}">
+          ${hours.map(h => `
+            <div class="cal-cell" data-dia="${dia}" data-hora="${h}"></div>
+          `).join("")}
+          ${hors.map(h => renderBlock(h)).join("")}
+        </div>
+      </div>`;
   });
 
-  // Adicionar
-  document.getElementById("btn-add-hor").addEventListener("click", async () => {
-    const dia    = parseInt(document.getElementById("h-dia").value);
-    const inicio = document.getElementById("h-inicio").value;
-    const fim    = document.getElementById("h-fim").value;
-    const sala   = document.getElementById("h-sala").value.trim();
+  grid.innerHTML = html;
 
-    if (!inicio || !fim) { showToast("Preencha início e fim", "error"); return; }
-    if (inicio >= fim)   { showToast("Início deve ser antes do fim", "error"); return; }
-
-    const btn = document.getElementById("btn-add-hor");
-    btn.disabled = true;
-
-    const { error } = await supabaseAdmin.from("horarios").insert({
-      turma_id: turmaId, materia, dia_semana: dia,
-      hora_inicio: inicio, hora_fim: fim, sala: sala || null,
+  // Bind células
+  if (_turmaId) {
+    grid.querySelectorAll(".cal-cell").forEach(cell => {
+      cell.addEventListener("click", () => {
+        abrirModal(parseInt(cell.dataset.dia), parseInt(cell.dataset.hora));
+      });
     });
 
-    btn.disabled = false;
-    if (error) { showToast("Erro: " + error.message, "error"); return; }
+    // Bind blocks
+    grid.querySelectorAll(".cal-block").forEach(block => {
+      block.addEventListener("click", e => {
+        e.stopPropagation();
+        mostrarPopover(block, block.dataset.id);
+      });
+    });
+  }
+}
 
-    document.getElementById("h-sala").value = "";
-    showToast("Horário adicionado!", "success");
-    renderHorarios();
+// ── Bloco de horário no calendário ────────────────────────────────────────────
+function renderBlock(h) {
+  const [startH, startM] = h.hora_inicio.split(":").map(Number);
+  const [endH,   endM]   = h.hora_fim.split(":").map(Number);
+  const startF = startH + startM / 60;
+  const endF   = endH   + endM   / 60;
+
+  const top    = (startF - CAL_START) * CELL_H;
+  const height = Math.max((endF - startF) * CELL_H - 2, 20);
+
+  const c      = MAT_COLORS[h.colorIdx];
+  const prof   = h.profiles?.nome || h.profiles?.email || "";
+  const timeStr= `${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}`;
+  const sala   = h.sala ? ` · ${h.sala}` : "";
+
+  return `
+    <div class="cal-block" data-id="${h.id}"
+      style="top:${top}px;height:${height}px;background:${c.bg};border-left-color:${c.border};color:${c.text}">
+      <div class="cal-block-nome">${esc(h.matNome)}</div>
+      ${height > 40 ? `<div class="cal-block-sub">${esc(prof || timeStr + sala)}</div>` : ""}
+    </div>`;
+}
+
+// ── Popover do bloco ──────────────────────────────────────────────────────────
+function mostrarPopover(blockEl, horarioId) {
+  fecharPopover();
+
+  const h   = _horarios.find(x => x.id === horarioId);
+  if (!h) return;
+
+  const rect = blockEl.getBoundingClientRect();
+  const pop  = document.createElement("div");
+  pop.className = "cal-popover";
+  pop.id = "cal-popover";
+
+  const prof = h.profiles?.nome || h.profiles?.email || "—";
+  const sala = h.sala ? ` · ${h.sala}` : "";
+
+  pop.innerHTML = `
+    <div class="cal-pop-header">${esc(DIAS_FULL[h.dia_semana])}</div>
+    <div class="cal-pop-info">${esc(h.matNome)}</div>
+    <div class="cal-pop-time">${h.hora_inicio.slice(0,5)} – ${h.hora_fim.slice(0,5)}${sala}</div>
+    <div class="cal-pop-time" style="margin-bottom:6px">${esc(prof)}</div>
+    <button class="cal-pop-del" id="pop-del">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      Excluir horário
+    </button>
+  `;
+
+  // Posiciona
+  const left = Math.min(rect.right + 8, window.innerWidth - 175);
+  const top  = Math.min(rect.top, window.innerHeight - 160);
+  pop.style.cssText = `left:${left}px;top:${top}px`;
+
+  document.body.appendChild(pop);
+  _popover = pop;
+
+  document.getElementById("pop-del").addEventListener("click", async e => {
+    e.stopPropagation();
+    fecharPopover();
+    await excluirHorario(horarioId);
   });
 }
 
-function esc(str) {
-  return String(str || "")
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function fecharPopover() {
+  if (_popover) { _popover.remove(); _popover = null; }
+}
+
+// ── Excluir horário ───────────────────────────────────────────────────────────
+async function excluirHorario(id) {
+  const { error } = await supabaseAdmin.from("horarios").delete().eq("id", id);
+  if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
+  showToast("Horário removido.", "success");
+  _horarios = _horarios.filter(h => h.id !== id);
+  renderGrid();
+  renderLegend();
+}
+
+// ── Modal adicionar horário ───────────────────────────────────────────────────
+function abrirModal(dia, horaInicio) {
+  const modal = document.createElement("div");
+  modal.className = "hor-modal-bg";
+  modal.id = "hor-modal";
+
+  // Matérias da instituição
+  const matOpts = _materias.length
+    ? _materias.map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join("")
+    : `<option value="">Nenhuma matéria — cadastre em Matérias</option>`;
+
+  // Hora fim padrão = +1h
+  const fimH = String(Math.min(horaInicio + 1, CAL_END)).padStart(2,"0");
+
+  modal.innerHTML = `
+    <div class="hor-modal">
+      <div class="hor-modal-head">
+        <div>
+          <h3>Nova aula — ${esc(DIAS_FULL[dia])}</h3>
+          <span>${String(horaInicio).padStart(2,"0")}:00 em diante</span>
+        </div>
+        <button class="hor-modal-close" id="m-fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="hor-modal-body">
+        <div class="hor-field">
+          <label>Matéria</label>
+          <select id="m-materia">
+            <option value="">Selecione…</option>
+            ${matOpts}
+          </select>
+        </div>
+        <div class="hor-field">
+          <label>Professor</label>
+          <select id="m-professor" disabled>
+            <option value="">Selecione a matéria primeiro</option>
+          </select>
+        </div>
+        <div class="hor-field-row">
+          <div class="hor-field">
+            <label>Início</label>
+            <input type="time" id="m-inicio" value="${String(horaInicio).padStart(2,"0")}:00" />
+          </div>
+          <div class="hor-field">
+            <label>Fim</label>
+            <input type="time" id="m-fim" value="${fimH}:00" />
+          </div>
+        </div>
+        <div class="hor-field">
+          <label>Sala (opcional)</label>
+          <input type="text" id="m-sala" placeholder="Ex: Sala 5, Lab 2…" />
+        </div>
+        <div class="hor-feedback" id="m-feedback"></div>
+      </div>
+      <div class="hor-modal-foot">
+        <button class="hor-btn-cancel" id="m-cancelar">Cancelar</button>
+        <button class="hor-btn-save" id="m-salvar">Adicionar aula</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const fechar = () => modal.remove();
+  document.getElementById("m-fechar").addEventListener("click", fechar);
+  document.getElementById("m-cancelar").addEventListener("click", fechar);
+  modal.addEventListener("click", e => { if (e.target === modal) fechar(); });
+
+  // Filtra professores ao mudar matéria
+  document.getElementById("m-materia").addEventListener("change", () => {
+    const matId = document.getElementById("m-materia").value;
+    const selProf = document.getElementById("m-professor");
+    const profs   = _pms.filter(pm => pm.materia_id === matId);
+
+    if (!matId || !profs.length) {
+      selProf.innerHTML = `<option value="">Nenhum professor vinculado</option>`;
+      selProf.disabled = true;
+      return;
+    }
+
+    selProf.innerHTML = `<option value="">Selecione…</option>` +
+      profs.map(pm => {
+        const p = pm.profiles;
+        return `<option value="${pm.professor_id}">${esc(p?.nome || p?.email || "—")}</option>`;
+      }).join("");
+    selProf.disabled = false;
+  });
+
+  // Salvar
+  document.getElementById("m-salvar").addEventListener("click", async () => {
+    const matId  = document.getElementById("m-materia").value;
+    const profId = document.getElementById("m-professor").value || null;
+    const inicio = document.getElementById("m-inicio").value;
+    const fim    = document.getElementById("m-fim").value;
+    const sala   = document.getElementById("m-sala").value.trim();
+    const fb     = document.getElementById("m-feedback");
+
+    fb.textContent = "";
+    if (!matId)  { fb.textContent = "Selecione a matéria."; return; }
+    if (!inicio || !fim) { fb.textContent = "Preencha os horários."; return; }
+    if (inicio >= fim)   { fb.textContent = "Início deve ser antes do fim."; return; }
+
+    const btn = document.getElementById("m-salvar");
+    btn.disabled = true; btn.textContent = "Salvando…";
+
+    // Busca nome da matéria para coluna texto (compatibilidade)
+    const mat = _materias.find(m => m.id === matId);
+
+    const { data: novo, error } = await supabaseAdmin.from("horarios").insert({
+      turma_id:     _turmaId,
+      materia_id:   matId,
+      professor_id: profId,
+      dia_semana:   dia,
+      hora_inicio:  inicio,
+      hora_fim:     fim,
+      sala:         sala || null,
+    }).select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome,email)")
+      .single();
+
+    if (error) {
+      fb.textContent = "Erro: " + error.message;
+      btn.disabled = false; btn.textContent = "Adicionar aula";
+      return;
+    }
+
+    const matFull = _materias.find(m => m.id === novo.materia_id);
+    _horarios.push({
+      ...novo,
+      colorIdx: matFull?.colorIdx ?? 0,
+      matNome:  novo.materias?.nome ?? mat?.nome ?? "—",
+    });
+
+    fechar();
+    renderGrid();
+    renderLegend();
+    showToast("Aula adicionada!", "success");
+  });
 }
 
 init();

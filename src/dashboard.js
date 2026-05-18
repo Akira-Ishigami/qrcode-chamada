@@ -61,7 +61,11 @@ async function init() {
   });
   document.getElementById("nav-suporte").addEventListener("click", () => {
     setActive("nav-suporte");
-    renderPedidos(); // kanban-mode adicionado dentro da função
+    renderPedidos("bug");
+  });
+  document.getElementById("nav-feedbacks").addEventListener("click", () => {
+    setActive("nav-feedbacks");
+    renderPedidos("feedback");
   });
   document.getElementById("nav-notas").addEventListener("click", () => {
     setActive("nav-notas"); sairKanban(); window.scrollTo(0, 0);
@@ -98,8 +102,9 @@ function setupRealtime() {
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "feedbacks" }, () => {
       const active = document.querySelector(".sidebar-nav .sidebar-link.active")?.id;
-      if (active === "nav-dashboard") renderDashboard();
-      if (active === "nav-suporte")   renderPedidos();
+      if (active === "nav-dashboard")  renderDashboard();
+      if (active === "nav-suporte")    renderPedidos("bug");
+      if (active === "nav-feedbacks")  renderPedidos("feedback");
       atualizarBadgePedidos();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "suporte_mensagens" }, () => {
@@ -111,13 +116,17 @@ function setupRealtime() {
 
 // Atualiza o badge de abertos na sidebar
 async function atualizarBadgePedidos() {
-  const { count } = await supabaseAdmin
-    .from("feedbacks").select("id", { count: "exact", head: true })
-    .eq("status", "aberto");
-  const badge = document.getElementById("badge-suporte");
-  if (!badge) return;
-  if (count > 0) { badge.textContent = count; badge.style.display = ""; }
-  else           { badge.style.display = "none"; }
+  const [{ count: bugs }, { count: feedbacks }] = await Promise.all([
+    supabaseAdmin.from("feedbacks").select("id", { count: "exact", head: true })
+      .eq("status", "aberto").eq("tipo", "bug"),
+    supabaseAdmin.from("feedbacks").select("id", { count: "exact", head: true })
+      .eq("status", "aberto").in("tipo", ["melhoria", "outro"]),
+  ]);
+
+  const bSup = document.getElementById("badge-suporte");
+  const bFb  = document.getElementById("badge-feedbacks");
+  if (bSup) { if (bugs > 0) { bSup.textContent = bugs; bSup.style.display = ""; } else bSup.style.display = "none"; }
+  if (bFb)  { if (feedbacks > 0) { bFb.textContent = feedbacks; bFb.style.display = ""; } else bFb.style.display = "none"; }
 }
 
 // ══ VIEW 1: DASHBOARD ════════════════════════════════════════════════════════
@@ -274,14 +283,14 @@ async function renderDashboard() {
       _pendingOpenTicketId = row.dataset.id;
       setActive("nav-suporte");
       window.scrollTo(0, 0);
-      renderPedidos();
+      renderPedidos("bug");
     });
   });
 
   document.getElementById("btn-ver-suporte")?.addEventListener("click", () => {
     setActive("nav-suporte");
     window.scrollTo(0, 0);
-    renderPedidos();
+    renderPedidos("bug");
   });
 }
 
@@ -298,7 +307,7 @@ async function renderInstituicoes() {
     { data: profs,        error: e3 },
     { data: chamadas,     error: e4 },
   ] = await Promise.all([
-    supabaseAdmin.from("instituicoes").select("id, nome").order("nome"),
+    supabaseAdmin.from("instituicoes").select("id, nome, limite_professores").order("nome"),
     supabaseAdmin.from("alunos").select("id, instituicao_id"),
     supabaseAdmin.from("profiles").select("id, instituicao_id").eq("role", "professor"),
     supabaseAdmin.from("chamadas").select("id, aberta, turmas(instituicao_id)").eq("data", hoje),
@@ -355,6 +364,13 @@ async function renderInstituicoes() {
       const card = document.createElement("div");
       card.className = "ig-card";
       card.style.cssText = `animation-delay:${i * .05}s; --card-fg:${pal.fg}; --card-bg:${pal.bg}`;
+      const lim    = inst.limite_professores;
+      const limPct = lim ? Math.min(Math.round(np / lim * 100), 100) : 0;
+      const limCor = lim ? (limPct >= 90 ? "#ef4444" : limPct >= 70 ? "#f59e0b" : "#16a34a") : "#2563eb";
+      const limLabel = lim
+        ? `<span style="font-size:.62rem;color:${limPct>=90?"#ef4444":limPct>=70?"#f59e0b":"var(--text-3)"};font-weight:600">${np}/${lim} prof.</span>`
+        : `<span>${np}</span>`;
+
       card.innerHTML = `
         <div class="ig-card-avatar" style="background:${pal.bg};color:${pal.fg}">${esc(inst.nome.charAt(0).toUpperCase())}</div>
         <div class="ig-card-name">${esc(inst.nome)}</div>
@@ -365,8 +381,11 @@ async function renderInstituicoes() {
           </div>
           <div class="ig-stat-div"></div>
           <div class="ig-stat">
-            <span class="ig-stat-num">${np}</span>
-            <span class="ig-stat-lbl">prof.</span>
+            ${lim
+              ? `<span class="ig-stat-num" style="color:${limCor}">${np}</span>
+                 <span class="ig-stat-lbl">/ ${lim} prof.</span>`
+              : `<span class="ig-stat-num">${np}</span>
+                 <span class="ig-stat-lbl">prof.</span>`}
           </div>
           ${nc > 0 ? `
           <div class="ig-stat-div"></div>
@@ -375,6 +394,16 @@ async function renderInstituicoes() {
             <span class="ig-stat-lbl" style="color:#16a34a">hoje</span>
           </div>` : ""}
         </div>
+        ${lim ? `
+        <div style="margin-top:10px;padding:0 2px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Acessos</span>
+            <span style="font-size:.62rem;font-weight:700;color:${limCor}">${limPct}%</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${limPct}%;background:${limCor};border-radius:99px;transition:width .4s ease"></div>
+          </div>
+        </div>` : ""}
       `;
       card.addEventListener("click", () => renderInstDetalhe(inst.id, inst.nome));
       grid.appendChild(card);
@@ -509,6 +538,10 @@ async function renderInstDetalhe(instId, instNome) {
         </div>
       </div>
       <div class="nd-header-actions">
+        <button class="nd-btn-ghost" id="btn-editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>
         <button class="nd-btn-ghost" id="btn-reset">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           Redefinir senha
@@ -584,6 +617,7 @@ async function renderInstDetalhe(instId, instNome) {
   `;
 
   document.getElementById("btn-back").addEventListener("click", () => renderInstituicoes());
+  document.getElementById("btn-editar").addEventListener("click", () => abrirModalEditarInst(instId, instNome));
   document.getElementById("btn-reset").addEventListener("click", () => abrirModalResetSenha(instId, instNome));
   document.getElementById("btn-del").addEventListener("click", () => confirmarExcluir(instId, instNome));
 
@@ -794,15 +828,26 @@ let _waChatSub    = null;
 let _waActiveId   = null;
 let _waAllTickets = [];
 
-async function renderPedidos() {
+async function renderPedidos(modo = "bug") {
   clearClock();
   root.classList.add("kanban-mode");
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const { data: feedbacks, error } = await supabaseAdmin
+  const isBugMode = modo === "bug";
+  const tiposAlvo = isBugMode ? ["bug"] : ["melhoria", "outro"];
+
+  let query = supabaseAdmin
     .from("feedbacks")
     .select("id, tipo, titulo, descricao, status, criado_em, instituicao_id, instituicoes(nome), suporte_mensagens(id, texto, autor_role, autor_id, criado_em)")
     .order("criado_em", { ascending: false });
+
+  if (isBugMode) {
+    query = query.eq("tipo", "bug");
+  } else {
+    query = query.in("tipo", ["melhoria", "outro"]);
+  }
+
+  const { data: feedbacks, error } = await query;
 
   if (error) {
     root.classList.remove("kanban-mode");
@@ -822,11 +867,16 @@ async function renderPedidos() {
 
   atualizarBadgePedidos();
 
+  const tituloSeção = isBugMode ? "Bugs" : "Feedbacks";
+  const iconeSeção  = isBugMode
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 2l1.5 1.5"/><path d="M14.5 3.5L16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M6.3 20A5 5 0 0 0 17.7 20"/><path d="M6.3 20a5 5 0 0 1-.8-3.2c.1-1.5.9-2.8 2-3.6L9 12"/><path d="M17.7 20a5 5 0 0 0 .8-3.2c-.1-1.5-.9-2.8-2-3.6L15 12"/><path d="M4 10c.9-1 2.3-1.7 4-1.7h8c1.7 0 3.1.7 4 1.7"/><path d="M2 14h4"/><path d="M18 14h4"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+
   root.innerHTML = `
     <div class="wa-layout">
       <div class="wa-sidebar">
         <div class="wa-sidebar-head">
-          <span class="wa-sidebar-title">Suporte</span>
+          <span class="wa-sidebar-title" style="display:flex;align-items:center;gap:8px">${iconeSeção} ${tituloSeção}</span>
           <span class="wa-sidebar-count">${_waAllTickets.length}</span>
         </div>
         <div class="wa-search-wrap">
@@ -1537,6 +1587,8 @@ function abrirModalNovaInst() {
       <input class="tv-input" id="inst-email" type="email" placeholder="escola@email.com" autocomplete="off"/>
       <label class="tv-label">Senha inicial <span style="color:var(--red)">*</span></label>
       <input class="tv-input" id="inst-senha" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
+      <label class="tv-label">Limite de professores <span style="color:var(--text-3);font-weight:400;text-transform:none">(opcional — deixe vazio para ilimitado)</span></label>
+      <input class="tv-input" id="inst-limite" type="number" min="1" max="9999" placeholder="Ex: 10" />
       <div class="tv-modal-err" id="modal-err"></div>
     </div>
     <div class="tv-modal-foot">
@@ -1560,19 +1612,22 @@ function abrirModalNovaInst() {
   overlay.querySelector("#modal-ok").addEventListener("click", async () => {
     const err   = overlay.querySelector("#modal-err");
     const btn   = overlay.querySelector("#modal-ok");
-    const nome  = overlay.querySelector("#inst-nome").value.trim();
-    const email = overlay.querySelector("#inst-email").value.trim();
-    const senha = overlay.querySelector("#inst-senha").value;
+    const nome   = overlay.querySelector("#inst-nome").value.trim();
+    const email  = overlay.querySelector("#inst-email").value.trim();
+    const senha  = overlay.querySelector("#inst-senha").value;
+    const limRaw = overlay.querySelector("#inst-limite").value.trim();
+    const limite = limRaw ? parseInt(limRaw) : null;
 
     err.textContent = "";
     if (!nome)            { err.textContent = "Informe o nome.";   return; }
     if (!email)           { err.textContent = "Informe o e-mail."; return; }
     if (senha.length < 8) { err.textContent = "Senha mínimo 8 caracteres."; return; }
+    if (limRaw && (isNaN(limite) || limite < 1)) { err.textContent = "Limite deve ser um número maior que zero."; return; }
 
     btn.disabled = true; btn.textContent = "Criando…";
 
     const { data: instData, error: instErr } = await supabase
-      .from("instituicoes").insert({ nome }).select("id").single();
+      .from("instituicoes").insert({ nome, limite_professores: limite }).select("id").single();
 
     if (instErr) {
       err.textContent = instErr.code === "23505" ? "Nome já existe." : instErr.message;
@@ -1597,6 +1652,75 @@ function abrirModalNovaInst() {
     fechar();
     showToast(`"${nome}" criada!`, "success");
     await renderInstituicoes();
+  });
+}
+
+async function abrirModalEditarInst(instId, instNome) {
+  // Carrega dados atuais
+  const { data: inst } = await supabaseAdmin
+    .from("instituicoes").select("nome, limite_professores").eq("id", instId).single();
+
+  const overlay = criarOverlay(`
+    <div class="tv-modal-head">
+      <div class="tv-modal-icon inst">${svgInst()}</div>
+      <div><h2>Editar Instituição</h2><p>${esc(instNome)}</p></div>
+      <button class="tv-modal-x" id="modal-x">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="tv-modal-body">
+      <label class="tv-label">Nome da instituição <span style="color:var(--red)">*</span></label>
+      <input class="tv-input" id="edit-nome" value="${esc(inst?.nome ?? instNome)}" autocomplete="off"/>
+      <label class="tv-label" style="margin-top:4px">Limite de professores <span style="color:var(--text-3);font-weight:400;text-transform:none">(vazio = ilimitado)</span></label>
+      <input class="tv-input" id="edit-limite" type="number" min="1" max="9999"
+        value="${inst?.limite_professores ?? ""}"
+        placeholder="Ex: 10"/>
+      <div class="tv-modal-err" id="modal-err"></div>
+    </div>
+    <div class="tv-modal-foot">
+      <button class="tv-btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="tv-btn-add" id="modal-ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvar
+      </button>
+    </div>
+  `);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector("#modal-x").addEventListener("click", fechar);
+  overlay.querySelector("#modal-cancel").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
+  });
+  overlay.querySelector("#edit-nome").focus();
+
+  overlay.querySelector("#modal-ok").addEventListener("click", async () => {
+    const err    = overlay.querySelector("#modal-err");
+    const btn    = overlay.querySelector("#modal-ok");
+    const nome   = overlay.querySelector("#edit-nome").value.trim();
+    const limRaw = overlay.querySelector("#edit-limite").value.trim();
+    const limite = limRaw ? parseInt(limRaw) : null;
+
+    err.textContent = "";
+    if (!nome) { err.textContent = "Informe o nome."; return; }
+    if (limRaw && (isNaN(limite) || limite < 1)) { err.textContent = "Limite deve ser maior que zero."; return; }
+
+    btn.disabled = true; btn.textContent = "Salvando…";
+
+    const { error } = await supabaseAdmin
+      .from("instituicoes")
+      .update({ nome, limite_professores: limite })
+      .eq("id", instId);
+
+    if (error) {
+      err.textContent = error.code === "23505" ? "Nome já existe." : error.message;
+      btn.disabled = false; btn.textContent = "Salvar"; return;
+    }
+
+    fechar();
+    showToast("Instituição atualizada!", "success");
+    await renderInstDetalhe(instId, nome);
   });
 }
 

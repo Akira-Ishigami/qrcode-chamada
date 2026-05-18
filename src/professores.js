@@ -80,13 +80,20 @@ async function init() {
 async function renderPage(profile) {
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  // Só professores da própria instituição — nunca admins
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, nome, email, role, instituicao_id")
-    .eq("instituicao_id", profile.instituicao_id)
-    .eq("role", "professor")
-    .order("nome");
+  // Carrega professores + limite da instituição em paralelo
+  const [{ data, error }, { data: instData }] = await Promise.all([
+    supabase.from("profiles")
+      .select("id, nome, email, role, instituicao_id")
+      .eq("instituicao_id", profile.instituicao_id)
+      .eq("role", "professor")
+      .order("nome"),
+    supabase.from("instituicoes")
+      .select("limite_professores")
+      .eq("id", profile.instituicao_id)
+      .single(),
+  ]);
+
+  const _limite = instData?.limite_professores ?? null;
 
   if (error) {
     root.innerHTML = `<div class="prof-empty"><p>Erro: ${esc(error.message)}</p></div>`;
@@ -96,29 +103,93 @@ async function renderPage(profile) {
   _instId = profile.instituicao_id;
   profilesCache = data || [];
 
+  const profIds = profilesCache.map(p => p.id);
+
+  // Carrega matérias e turmas de todos os profs em paralelo
+  const [{ data: pmData }, { data: turmasData }] = await Promise.all([
+    profIds.length
+      ? supabase.from("professor_materias")
+          .select("professor_id, materias(nome)")
+          .in("professor_id", profIds)
+      : { data: [] },
+    profIds.length
+      ? supabase.from("turmas")
+          .select("id, nome, professor_id")
+          .eq("instituicao_id", _instId)
+          .not("professor_id", "is", null)
+      : { data: [] },
+  ]);
+
+  // Mapeia professor_id → [matéria nomes]
+  const materiasPorProf = {};
+  (pmData ?? []).forEach(pm => {
+    (materiasPorProf[pm.professor_id] ??= []).push(pm.materias?.nome);
+  });
+
+  // Mapeia professor_id → [turma nomes]
+  const turmasPorProf = {};
+  (turmasData ?? []).forEach(t => {
+    if (t.professor_id) (turmasPorProf[t.professor_id] ??= []).push(t.nome);
+  });
+
+  // Enriquece os perfis
+  profilesCache = profilesCache.map(p => ({
+    ...p,
+    _materias: (materiasPorProf[p.id] ?? []).filter(Boolean),
+    _turmas:   (turmasPorProf[p.id]   ?? []).filter(Boolean),
+  }));
+
+  const atual   = profilesCache.length;
+  const limiteAtingido = _limite !== null && atual >= _limite;
+  const limPct  = _limite ? Math.min(Math.round(atual / _limite * 100), 100) : 0;
+  const limCor  = _limite ? (limPct >= 90 ? "#ef4444" : limPct >= 70 ? "#f59e0b" : "#16a34a") : "#2563eb";
+
   root.innerHTML = `
     <div class="prof-header">
       <div>
         <div class="prof-title">Professores</div>
-        <div class="prof-subtitle">${profilesCache.length} professor${profilesCache.length !== 1 ? "es" : ""}</div>
+        <div class="prof-subtitle">${atual} professor${atual !== 1 ? "es" : ""}${_limite ? ` <span style="color:${limCor};font-weight:700">· ${atual}/${_limite} acessos usados</span>` : ""}</div>
       </div>
-      <button class="btn btn-primary" id="btn-novo">${SVG_PLUS}&nbsp; Novo Professor</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${_limite ? `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+              <span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Acessos</span>
+              <span style="font-size:.68rem;font-weight:700;color:${limCor}">${limPct}%</span>
+            </div>
+            <div style="width:100%;height:5px;background:var(--surface-3);border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:${limPct}%;background:${limCor};border-radius:99px;transition:width .4s ease"></div>
+            </div>
+          </div>` : ""}
+        <button class="btn btn-primary" id="btn-novo" ${limiteAtingido ? "disabled title='Limite de professores atingido'" : ""}>
+          ${SVG_PLUS}&nbsp; Novo Professor
+        </button>
+      </div>
     </div>
-    ${profilesCache.length
+    ${limiteAtingido ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff5f5;border:1px solid #fecaca;border-radius:10px;margin-bottom:16px;font-size:.82rem;color:#b91c1c;font-weight:600">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Limite de ${_limite} professor${_limite !== 1 ? "es" : ""} atingido. Aumente o limite no painel do administrador para adicionar mais.
+      </div>` : ""}
+    ${atual
       ? `<div class="prof-grid" id="prof-grid">${profilesCache.map(buildCard).join("")}</div>`
       : `<div class="prof-empty">${SVG_USER_BIG}<p>Nenhum professor cadastrado ainda.</p></div>`
     }`;
 
-  document.getElementById("btn-novo").addEventListener("click", () => modalNovoUsuario());
+  document.getElementById("btn-novo").addEventListener("click", () => {
+    if (limiteAtingido) return;
+    modalNovoUsuario();
+  });
 
   // Bind direto em cada card
   document.querySelectorAll(".prof-card[data-prof-id]").forEach(card => {
     const id = card.dataset.profId;
     const p  = profilesCache.find(x => x.id === id);
     if (!p) return;
-    card.querySelector(".pc-btn-edit")?.addEventListener("click",   ()  => modalEditar(p));
-    card.querySelector(".pc-btn-turmas")?.addEventListener("click", async () => modalTurmas(p));
-    card.querySelector(".pc-btn-del")?.addEventListener("click",    ()  => modalExcluir(p));
+    card.querySelector(".pc-btn-edit")?.addEventListener("click",     ()  => modalEditar(p));
+    card.querySelector(".pc-btn-turmas")?.addEventListener("click",   async () => modalTurmas(p));
+    card.querySelector(".pc-btn-materias")?.addEventListener("click", async () => modalMaterias(p));
+    card.querySelector(".pc-btn-del")?.addEventListener("click",      ()  => modalExcluir(p));
   });
 }
 
@@ -141,6 +212,20 @@ function buildCard(p) {
       <div class="prof-card-badge">
         <span class="badge badge-professor">Professor</span>
       </div>
+      ${(p._materias?.length || p._turmas?.length) ? `
+      <div class="prof-card-resumo">
+        ${p._materias?.length ? `
+          <div class="prof-resumo-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;opacity:.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>${esc(p._materias.join(", "))}</span>
+          </div>` : ""}
+        ${p._turmas?.length ? `
+          <div class="prof-resumo-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;opacity:.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>${esc(p._turmas.join(", "))}</span>
+          </div>` : ""}
+      </div>` : `
+      <div class="prof-card-resumo prof-resumo-vazio">Sem matéria ou turma</div>`}
       <div class="prof-card-actions">
         <button class="pc-btn pc-btn-edit" title="Editar dados">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -149,6 +234,10 @@ function buildCard(p) {
         <button class="pc-btn pc-btn-turmas" title="Atribuir turmas">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           Turmas
+        </button>
+        <button class="pc-btn pc-btn-materias" title="Matérias do professor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Matérias
         </button>
         <button class="pc-btn pc-btn-del" title="Excluir professor">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -200,13 +289,33 @@ function modalNovoUsuario() {
         btn.disabled = false; btn.textContent = "Criar professor"; return;
       }
 
+      // Verifica limite de professores
+      const { data: instData } = await supabaseAdmin
+        .from("instituicoes").select("limite_professores").eq("id", _instId).single();
+      const limite = instData?.limite_professores;
+      if (limite) {
+        const { count } = await supabaseAdmin
+          .from("profiles").select("id", { count: "exact", head: true })
+          .eq("instituicao_id", _instId).eq("role", "professor");
+        if (count >= limite) {
+          showToast(`Limite de ${limite} professor${limite !== 1 ? "es" : ""} atingido.`, "error");
+          btn.disabled = false; btn.textContent = "Criar professor"; return;
+        }
+      }
+
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email, password: senha, email_confirm: true,
         user_metadata: { nome, role: "professor" },
       });
 
-      if (error) {
-        showToast("Erro: " + error.message, "error");
+      if (error || !data?.user) {
+        const msg = error?.message || "Usuário não criado";
+        const msgPt = msg.includes("already been registered") || msg.includes("already registered")
+          ? "Este email já está cadastrado no sistema."
+          : msg.includes("invalid") ? "Email inválido."
+          : msg.includes("password") ? "Senha muito fraca. Use ao menos 6 caracteres."
+          : "Erro: " + msg;
+        showToast(msgPt, "error");
         btn.disabled = false; btn.textContent = "Criar professor"; return;
       }
 
@@ -218,6 +327,10 @@ function modalNovoUsuario() {
       showToast("Professor criado!", "success");
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });
+
+      // Abre fluxo de matérias e turmas imediatamente
+      const novoPerfil = { id: data.user.id, nome, email, role: "professor" };
+      setTimeout(() => modalMaterias(novoPerfil, () => modalTurmas(novoPerfil)), 300);
     });
   });
 }
@@ -436,6 +549,91 @@ function modalExcluir(p) {
       showToast("Professor excluído.", "success");
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });
+    });
+  });
+}
+
+// ─── Modal: Matérias do professor ─────────────────────────────────────────────
+async function modalMaterias(p, onSave = null) {
+  const profNome = p.nome || p.email;
+
+  const [{ data: materias }, { data: vinculos }] = await Promise.all([
+    supabase.from("materias").select("id, nome").eq("instituicao_id", _instId).order("nome"),
+    supabase.from("professor_materias").select("materia_id").eq("professor_id", p.id),
+  ]);
+
+  const lista     = materias || [];
+  const vinculSet = new Set((vinculos || []).map(v => v.materia_id));
+
+  const SVG_BOOK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+  const SVG_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  const items = lista.length === 0
+    ? `<p style="padding:16px;color:var(--text-3);font-size:.84rem;text-align:center">
+        Nenhuma matéria cadastrada. <a href="materias.html" style="color:var(--acc)">Cadastrar →</a>
+       </p>`
+    : lista.map(m => {
+        const sel = vinculSet.has(m.id);
+        return `
+          <div class="tc-item${sel ? " selected" : ""}" data-id="${m.id}">
+            <input type="checkbox" value="${m.id}"${sel ? " checked" : ""} />
+            <div class="tc-item-icon">${SVG_BOOK}</div>
+            <div class="tc-item-body">
+              <div class="tc-item-name">${esc(m.nome)}</div>
+            </div>
+            <div class="tc-item-check">${SVG_CHECK}</div>
+          </div>`;
+      }).join("");
+
+  openModal(`
+    <div class="tc-modal-head">
+      <div class="tc-modal-icon">${SVG_BOOK}</div>
+      <div>
+        <div class="modal-title" style="margin-bottom:1px">Matérias do professor</div>
+        <p style="font-size:.76rem;color:var(--text-3);margin:0">${esc(profNome)}</p>
+      </div>
+    </div>
+    <div class="tc-item-grid" id="mat-grid">${items}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mat-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="mat-save">${onSave ? "Salvar e continuar →" : "Salvar"}</button>
+    </div>
+  `, () => {
+    document.querySelectorAll(".tc-item").forEach(item => {
+      item.addEventListener("click", () => {
+        item.classList.toggle("selected");
+        const cb = item.querySelector("input[type='checkbox']");
+        if (cb) cb.checked = !cb.checked;
+      });
+    });
+
+    document.getElementById("mat-cancel").addEventListener("click", closeModal);
+
+    document.getElementById("mat-save").addEventListener("click", async () => {
+      const btn = document.getElementById("mat-save");
+      btn.disabled = true; btn.textContent = "Salvando…";
+
+      const selecionados = [...document.querySelectorAll("#mat-grid input:checked")].map(cb => cb.value);
+
+      // Remove vínculos antigos e recria
+      await supabase.from("professor_materias").delete().eq("professor_id", p.id);
+
+      if (selecionados.length > 0) {
+        const inserts = selecionados.map(matId => ({
+          professor_id: p.id,
+          materia_id:   matId,
+        }));
+        const { error } = await supabase.from("professor_materias").insert(inserts);
+        if (error) {
+          showToast("Erro: " + error.message, "error");
+          btn.disabled = false; btn.textContent = onSave ? "Salvar e continuar →" : "Salvar";
+          return;
+        }
+      }
+
+      showToast("Matérias salvas!", "success");
+      closeModal();
+      if (onSave) setTimeout(() => onSave(), 200);
     });
   });
 }

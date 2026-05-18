@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Matérias — Chamada QR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    #page-root { padding: 28px 24px 48px !important; }
+    @media (min-width: 769px) { #page-root { padding: 36px 40px 64px !important; } }
+
+    .mat-header { margin-bottom: 24px; }
+    .mat-eyebrow { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--acc); margin-bottom: 5px; }
+    .mat-title   { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.65rem; font-weight: 800; color: var(--text); letter-spacing: -.03em; }
+    .mat-sub     { font-size: .82rem; color: var(--text-3); margin-top: 4px; }
+
+    /* Form nova matéria */
+    .mat-new-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; margin-bottom: 28px;
+    }
+    .mat-new-card h3 { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 14px; }
+    .mat-new-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .mat-new-row input {
+      flex: 1; min-width: 180px; padding: 10px 13px;
+      border: 1px solid var(--border); border-radius: 9px;
+      font-size: .875rem; font-family: inherit; color: var(--text);
+      background: var(--surface-2); outline: none;
+      transition: border-color .13s, box-shadow .13s;
+    }
+    .mat-new-row input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-sub); background: white; }
+    .mat-btn-add {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; background: var(--acc); color: white;
+      border: none; border-radius: 9px; font-size: .84rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      box-shadow: 0 2px 8px var(--acc-glow); transition: all .13s;
+    }
+    .mat-btn-add:hover { background: var(--acc-2); transform: translateY(-1px); }
+
+    /* Lista de matérias */
+    .mat-list { display: flex; flex-direction: column; gap: 10px; }
+    .mat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      animation: matUp .3s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes matUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    .mat-card-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; cursor: pointer;
+      transition: background .12s;
+    }
+    .mat-card-head:hover { background: var(--surface-2); }
+
+    .mat-icon {
+      width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+      background: var(--acc-sub); color: var(--acc);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-weight: 800; font-size: .95rem;
+    }
+    .mat-nome { font-weight: 700; font-size: .9rem; color: var(--text); flex: 1; }
+    .mat-profs-count {
+      font-size: .68rem; font-weight: 600; color: var(--text-3);
+      background: var(--surface-2); border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 20px; flex-shrink: 0;
+    }
+    .mat-chevron { color: var(--text-3); transition: transform .2s; flex-shrink: 0; }
+    .mat-card.open .mat-chevron { transform: rotate(90deg); }
+
+    .mat-btn-del {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: none; border: 1px solid var(--border);
+      color: var(--text-3); cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .13s;
+    }
+    .mat-btn-del:hover { background: var(--red-sub); color: var(--red); border-color: #fca5a5; }
+
+    /* Painel de professores */
+    .mat-profs-panel { display: none; border-top: 1px solid var(--border); background: var(--surface-2); padding: 14px 16px; }
+    .mat-card.open .mat-profs-panel { display: block; }
+
+    .mat-profs-title {
+      font-size: .6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px;
+    }
+    .mat-prof-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .mat-prof-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+    .mat-prof-avatar {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      background: var(--surface-3); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700;
+    }
+    .mat-prof-nome { flex: 1; font-size: .84rem; font-weight: 500; color: var(--text); }
+    .mat-prof-del {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: none; border: none; color: var(--text-3);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: color .13s;
+    }
+    .mat-prof-del:hover { color: var(--red); }
+
+    .mat-add-prof {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .mat-add-prof select {
+      flex: 1; min-width: 160px; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: .82rem; font-family: inherit; color: var(--text);
+      background: var(--surface); outline: none;
+      transition: border-color .13s;
+    }
+    .mat-add-prof select:focus { border-color: var(--acc); }
+    .mat-btn-vincular {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 14px; background: var(--acc); color: white;
+      border: none; border-radius: 8px; font-size: .78rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all .13s;
+      white-space: nowrap;
+    }
+    .mat-btn-vincular:hover { background: var(--acc-2); }
+
+    .mat-empty {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 48px 20px; color: var(--text-3); gap: 10px; text-align: center;
+      background: var(--surface); border: 1px dashed var(--border-2); border-radius: 14px;
+    }
+    .mat-empty p { font-size: .875rem; color: var(--text-2); }
+  </style>
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menu">
+    <span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span>
+  </button>
+  <div class="mobile-topbar-brand">
+    <div class="mobile-topbar-logo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+        <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+      </svg>
+    </div>
+    <span class="mobile-topbar-title">Chamada QR</span>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/>
+          <rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/>
+        </svg>
+      </div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-title">Chamada QR</span>
+        <span class="sidebar-subtitle">Sistema de Presença</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="inst-dashboard.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        Painel
+      </a>
+      <a href="turmas.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        Turmas
+      </a>
+      <a href="cadastro.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+        Alunos
+      </a>
+      <a href="professores.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        Professores
+      </a>
+      <a href="materias.html" class="sidebar-link active" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+        Matérias
+      </a>
+      <a href="horarios.html" class="sidebar-link" data-role="instituicao professor">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        Horários
+      </a>
+      <a href="cracha.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/><path d="M9 18h6"/></svg></div>
+        Crachá
+      </a>
+      <a href="suporte.html" class="sidebar-link" data-role="instituicao">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        Suporte
+      </a>
+      <a href="chamada.html" class="sidebar-link" data-role="professor">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg></div>
+        Chamada
+      </a>
+      <a href="relatorio-dia.html" class="sidebar-link" data-role="instituicao professor">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        Relatório
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-logout-btn" id="logout-btn">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+        Sair
+      </button>
+    </div>
+  </aside>
+
+  <script>(function(){var r=localStorage.getItem('qr_role');if(!r)return;document.querySelectorAll('[data-role]').forEach(function(e){if(!e.dataset.role.split(' ').includes(r))e.style.display='none';});})();</script>
+
+  <div class="main-content">
+    <div id="page-root" style="flex:1;display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="/src/materias.js"></script>
+<script type="module">
+import { supabase } from '/src/supabase.js';
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  localStorage.removeItem('qr_role');
+  window.location.href = '/login.html';
+});
+</script>
+<script>
+(function(){
+  var btn=document.getElementById('hamburger-btn'),sidebar=document.querySelector('.sidebar'),overlay=document.getElementById('sidebar-overlay');
+  if(!btn)return;
+  var sy=0;
+  function open(){sy=window.scrollY;sidebar.classList.add('open');overlay.classList.add('visible');document.body.classList.add('sidebar-open');document.body.style.top='-'+sy+'px';}
+  function close(){sidebar.classList.remove('open');overlay.classList.remove('visible');document.body.classList.remove('sidebar-open');document.body.style.top='';window.scrollTo(0,sy);}
+  btn.addEventListener('click',function(){sidebar.classList.contains('open')?close():open();});
+  overlay.addEventListener('click',close);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+  sidebar.querySelectorAll('.sidebar-link').forEach(function(l){l.addEventListener('click',close);});
+})();
+</script>
+</body>
+</html>
