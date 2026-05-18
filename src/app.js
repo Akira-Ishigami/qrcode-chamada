@@ -64,7 +64,12 @@ async function init() {
   if (profile.instituicao_id) {
     await carregarTurmasDeInst(profile.instituicao_id);
     carregarHistoricoHoje(profile.instituicao_id);
-    if (_isProfessor) carregarHorarioAtual(_userId);
+    if (_isProfessor) {
+      // Esconde o grupo TURMA — seleção é automática pelo horário
+      const selGroup = selTurma?.closest(".sel-group");
+      if (selGroup) selGroup.style.display = "none";
+      carregarHorarioAtual(_userId);
+    }
   } else {
     // fallback: admin sem instituição vinculada
     await carregarInstituicoes();
