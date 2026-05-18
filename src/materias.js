@@ -31,7 +31,6 @@ async function init() {
 
   _instId = profile.instituicao_id;
 
-  // Carrega professores da instituição
   const { data: profs } = await supabaseAdmin
     .from("profiles")
     .select("id, nome, email")
@@ -47,31 +46,95 @@ async function init() {
 // ── Render principal ──────────────────────────────────────────────────────────
 async function renderPage() {
   root.innerHTML = `
-    <div class="mat-header">
-      <div class="mat-eyebrow">Configuração</div>
-      <div class="mat-title">Matérias</div>
-      <div class="mat-sub">Crie as disciplinas e vincule os professores responsáveis</div>
+    <div class="mat-topbar">
+      <div>
+        <div class="mat-eyebrow">Configuração</div>
+        <div class="mat-title">Matérias</div>
+      </div>
+      <button class="mat-btn-nova" id="btn-nova-mat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova matéria
+      </button>
     </div>
+    <div id="mat-list" class="mat-list"></div>
+  `;
 
-    <div class="mat-new-card">
-      <h3>Nova matéria</h3>
-      <div class="mat-new-row">
-        <input type="text" id="input-nova-mat" placeholder="Ex: Matemática, Português, Ciências…" maxlength="80" />
-        <button class="mat-btn-add" id="btn-criar-mat">
+  document.getElementById("btn-nova-mat").addEventListener("click", abrirModalNova);
+  await renderMaterias();
+}
+
+// ── Modal nova matéria ────────────────────────────────────────────────────────
+function abrirModalNova() {
+  const ov = document.createElement("div");
+  ov.className = "mat-modal-ov";
+  ov.innerHTML = `
+    <div class="mat-modal">
+      <div class="mat-modal-head">
+        <div class="mat-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div>
+          <div class="mat-modal-title">Nova matéria</div>
+          <div class="mat-modal-sub">Digite o nome da disciplina</div>
+        </div>
+        <button class="mat-modal-x" id="modal-x">✕</button>
+      </div>
+      <div class="mat-modal-body">
+        <label class="mat-label">Nome</label>
+        <input id="modal-input" class="mat-input" type="text" placeholder="Ex: Matemática, Português, Ciências…" maxlength="80" autofocus />
+        <div id="modal-err" class="mat-modal-err"></div>
+      </div>
+      <div class="mat-modal-foot">
+        <button class="mat-btn-ghost" id="modal-cancel">Cancelar</button>
+        <button class="mat-btn-criar" id="modal-criar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Criar matéria
         </button>
       </div>
-      <div id="mat-feedback" style="font-size:.78rem;color:var(--red);margin-top:8px;min-height:16px"></div>
-    </div>
+    </div>`;
 
-    <div id="mat-list" class="mat-list"></div>
-  `;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add("open"));
 
-  document.getElementById("btn-criar-mat").addEventListener("click", criarMateria);
-  document.getElementById("input-nova-mat").addEventListener("keydown", e => { if (e.key === "Enter") criarMateria(); });
+  const fechar = () => {
+    ov.classList.remove("open");
+    setTimeout(() => ov.remove(), 200);
+  };
 
-  await renderMaterias();
+  ov.querySelector("#modal-x").addEventListener("click", fechar);
+  ov.querySelector("#modal-cancel").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+
+  const input = ov.querySelector("#modal-input");
+  const err   = ov.querySelector("#modal-err");
+  const btn   = ov.querySelector("#modal-criar");
+
+  const criar = async () => {
+    const nome = input.value.trim();
+    err.textContent = "";
+    if (!nome) { err.textContent = "Digite o nome da matéria."; return; }
+
+    btn.disabled = true; btn.textContent = "Criando…";
+
+    const { error } = await supabaseAdmin
+      .from("materias").insert({ nome, instituicao_id: _instId });
+
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Criar matéria`;
+
+    if (error) {
+      err.textContent = error.code === "23505" ? "Já existe uma matéria com esse nome." : "Erro: " + error.message;
+      return;
+    }
+
+    fechar();
+    showToast(`"${nome}" criada!`, "success");
+    await renderMaterias();
+  };
+
+  btn.addEventListener("click", criar);
+  input.addEventListener("keydown", e => { if (e.key === "Enter") criar(); });
+  setTimeout(() => input.focus(), 80);
 }
 
 // ── Lista de matérias ─────────────────────────────────────────────────────────
@@ -80,24 +143,17 @@ async function renderMaterias() {
   if (!lista) return;
 
   const { data: materias } = await supabaseAdmin
-    .from("materias")
-    .select("id, nome")
-    .eq("instituicao_id", _instId)
-    .order("nome");
+    .from("materias").select("id, nome").eq("instituicao_id", _instId).order("nome");
 
   if (!materias?.length) {
     lista.innerHTML = `
       <div class="mat-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:.25">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-        <p>Nenhuma matéria cadastrada ainda.<br>Crie a primeira acima.</p>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="44" height="44"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <p>Nenhuma matéria cadastrada ainda.<br>Clique em <strong>Nova matéria</strong> para começar.</p>
       </div>`;
     return;
   }
 
-  // Busca vínculos professor-matéria
   const matIds = materias.map(m => m.id);
   const { data: vinculos } = await supabaseAdmin
     .from("professor_materias")
@@ -105,43 +161,49 @@ async function renderMaterias() {
     .in("materia_id", matIds);
 
   const vinculosPorMateria = {};
-  (vinculos ?? []).forEach(v => {
-    (vinculosPorMateria[v.materia_id] ??= []).push(v);
-  });
+  (vinculos ?? []).forEach(v => { (vinculosPorMateria[v.materia_id] ??= []).push(v); });
 
   lista.innerHTML = "";
 
   materias.forEach((mat, idx) => {
-    const profs = vinculosPorMateria[mat.id] ?? [];
-    const ini   = mat.nome[0].toUpperCase();
-
-    const card = document.createElement("div");
-    card.className = "mat-card";
-    card.style.animationDelay = `${idx * .05}s`;
-    card.dataset.id = mat.id;
-
-    // Professores disponíveis para vincular (exclui já vinculados)
+    const profs       = vinculosPorMateria[mat.id] ?? [];
     const vinculadosIds = new Set(profs.map(v => v.professor_id));
     const disponiveis   = _professores.filter(p => !vinculadosIds.has(p.id));
 
+    const card = document.createElement("div");
+    card.className = "mat-card";
+    card.style.animationDelay = `${idx * .04}s`;
+    card.dataset.id = mat.id;
+
+    const profChips = profs.length
+      ? profs.map(v => {
+          const p   = v.profiles;
+          const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
+          return `<span class="mat-chip-prof" title="${esc(p?.nome || p?.email || "")}">${esc(ini)}</span>`;
+        }).join("")
+      : `<span class="mat-chip-none">Sem professores</span>`;
+
     card.innerHTML = `
       <div class="mat-card-head">
-        <div class="mat-icon">${esc(ini)}</div>
-        <div class="mat-nome">${esc(mat.nome)}</div>
-        <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
-        <div class="mat-chevron">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+        <div class="mat-icon">${esc(mat.nome[0].toUpperCase())}</div>
+        <div class="mat-card-info">
+          <div class="mat-nome">${esc(mat.nome)}</div>
+          <div class="mat-chips">${profChips}</div>
         </div>
-        <button class="mat-btn-del" data-del="${mat.id}" title="Excluir matéria">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
+        <div class="mat-card-actions">
+          <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
+          <svg class="mat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+          <button class="mat-btn-del" title="Excluir matéria">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="mat-profs-panel">
         <div class="mat-profs-title">Professores vinculados</div>
         <div class="mat-prof-list" id="profs-${mat.id}">
           ${profs.length === 0
-            ? `<div style="font-size:.8rem;color:var(--text-3);padding:4px 0">Nenhum professor vinculado ainda.</div>`
+            ? `<div class="mat-prof-vazio">Nenhum professor vinculado.</div>`
             : profs.map(v => {
                 const p   = v.profiles;
                 const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
@@ -155,10 +217,9 @@ async function renderMaterias() {
                   </div>`;
               }).join("")}
         </div>
-
         ${disponiveis.length > 0 ? `
           <div class="mat-add-prof">
-            <select id="sel-prof-${mat.id}">
+            <select id="sel-prof-${mat.id}" class="mat-sel-prof">
               <option value="">Selecione o professor…</option>
               ${disponiveis.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join("")}
             </select>
@@ -166,26 +227,17 @@ async function renderMaterias() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Vincular
             </button>
-          </div>` : `
-          <div style="font-size:.75rem;color:var(--text-3);margin-top:6px">
-            Todos os professores já estão vinculados.
-          </div>`}
+          </div>` : `<div class="mat-all-linked">Todos os professores já vinculados.</div>`}
       </div>
     `;
 
-    // Toggle expandir
     card.querySelector(".mat-card-head").addEventListener("click", e => {
       if (e.target.closest(".mat-btn-del")) return;
       card.classList.toggle("open");
     });
 
-    // Excluir matéria
-    card.querySelector(".mat-btn-del").addEventListener("click", () => excluirMateria(mat.id, mat.nome));
-
-    // Vincular professor
+    card.querySelector(".mat-btn-del").addEventListener("click", () => confirmarExcluir(mat.id, mat.nome));
     card.querySelector(`[data-vincular]`)?.addEventListener("click", () => vincularProfessor(mat.id));
-
-    // Desvincular professores
     card.querySelectorAll("[data-unlink-pm]").forEach(btn => {
       btn.addEventListener("click", () => desvincularProfessor(btn.dataset.unlinkPm, btn.dataset.unlinkProf));
     });
@@ -194,82 +246,87 @@ async function renderMaterias() {
   });
 }
 
-// ── Criar matéria ─────────────────────────────────────────────────────────────
-async function criarMateria() {
-  const input    = document.getElementById("input-nova-mat");
-  const feedback = document.getElementById("mat-feedback");
-  const nome     = input.value.trim();
+// ── Confirmar exclusão (modal inline) ────────────────────────────────────────
+function confirmarExcluir(id, nome) {
+  const ov = document.createElement("div");
+  ov.className = "mat-modal-ov";
+  ov.innerHTML = `
+    <div class="mat-modal" style="max-width:400px">
+      <div class="mat-modal-head">
+        <div class="mat-modal-icon" style="background:#fef2f2;color:#dc2626">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </div>
+        <div>
+          <div class="mat-modal-title">Excluir matéria</div>
+          <div class="mat-modal-sub">Esta ação não pode ser desfeita</div>
+        </div>
+        <button class="mat-modal-x" id="del-x">✕</button>
+      </div>
+      <div class="mat-modal-body">
+        <p style="font-size:.875rem;color:var(--text-2);line-height:1.6">
+          Tem certeza que deseja excluir <strong>${esc(nome)}</strong>?<br>
+          Os vínculos com professores e entradas na grade de horários também serão removidos.
+        </p>
+      </div>
+      <div class="mat-modal-foot">
+        <button class="mat-btn-ghost" id="del-cancel">Cancelar</button>
+        <button class="mat-btn-del-confirm" id="del-confirm">Excluir</button>
+      </div>
+    </div>`;
 
-  feedback.textContent = "";
-  if (!nome) { feedback.textContent = "Digite o nome da matéria."; return; }
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add("open"));
 
-  const btn = document.getElementById("btn-criar-mat");
-  btn.disabled = true;
+  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 200); };
+  ov.querySelector("#del-x").addEventListener("click", fechar);
+  ov.querySelector("#del-cancel").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
 
-  const { error } = await supabaseAdmin
-    .from("materias")
-    .insert({ nome, instituicao_id: _instId });
-
-  btn.disabled = false;
-
-  if (error) {
-    if (error.code === "23505") {
-      feedback.textContent = "Já existe uma matéria com esse nome.";
-    } else {
-      feedback.textContent = "Erro: " + error.message;
-    }
-    return;
-  }
-
-  input.value = "";
-  showToast(`"${nome}" criada!`, "success");
-  await renderMaterias();
+  ov.querySelector("#del-confirm").addEventListener("click", async () => {
+    const btn = ov.querySelector("#del-confirm");
+    btn.disabled = true; btn.textContent = "Excluindo…";
+    await excluirMateria(id, nome);
+    fechar();
+  });
 }
 
-// ── Excluir matéria ───────────────────────────────────────────────────────────
 async function excluirMateria(id, nome) {
-  if (!confirm(`Excluir "${nome}"? Isso também remove os vínculos com professores e horários.`)) return;
-
+  // Cascade manual: remove vínculos e horários antes
+  await supabaseAdmin.from("professor_materias").delete().eq("materia_id", id);
+  await supabaseAdmin.from("horarios").delete().eq("materia_id", id);
   const { error } = await supabaseAdmin.from("materias").delete().eq("id", id);
-  if (error) { showToast("Erro: " + error.message, "error"); return; }
 
+  if (error) { showToast("Erro: " + error.message, "error"); return; }
   showToast(`"${nome}" excluída.`, "success");
   await renderMaterias();
 }
 
 // ── Vincular professor ────────────────────────────────────────────────────────
 async function vincularProfessor(materiaId) {
-  const sel     = document.getElementById(`sel-prof-${materiaId}`);
-  const profId  = sel?.value;
+  const sel    = document.getElementById(`sel-prof-${materiaId}`);
+  const profId = sel?.value;
   if (!profId) { showToast("Selecione um professor.", "error"); return; }
 
   const { error } = await supabaseAdmin
-    .from("professor_materias")
-    .insert({ professor_id: profId, materia_id: materiaId });
+    .from("professor_materias").insert({ professor_id: profId, materia_id: materiaId });
 
   if (error) { showToast("Erro: " + error.message, "error"); return; }
 
   showToast("Professor vinculado!", "success");
   await renderMaterias();
-  // Reabre o card
-  const card = document.querySelector(`.mat-card[data-id="${materiaId}"]`);
-  card?.classList.add("open");
+  document.querySelector(`.mat-card[data-id="${materiaId}"]`)?.classList.add("open");
 }
 
 // ── Desvincular professor ─────────────────────────────────────────────────────
 async function desvincularProfessor(materiaId, profId) {
   const { error } = await supabaseAdmin
-    .from("professor_materias")
-    .delete()
-    .eq("materia_id", materiaId)
-    .eq("professor_id", profId);
+    .from("professor_materias").delete().eq("materia_id", materiaId).eq("professor_id", profId);
 
   if (error) { showToast("Erro: " + error.message, "error"); return; }
 
   showToast("Professor desvinculado.", "success");
   await renderMaterias();
-  const card = document.querySelector(`.mat-card[data-id="${materiaId}"]`);
-  card?.classList.add("open");
+  document.querySelector(`.mat-card[data-id="${materiaId}"]`)?.classList.add("open");
 }
 
 init();
