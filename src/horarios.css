@@ -313,6 +313,9 @@
   pointer-events: none;
 }
 .cal-cell:hover { background: #f0f7ff !important; }
+.prof-readonly .cal-cell { cursor: default; }
+.prof-readonly .cal-cell:hover { background: transparent !important; }
+.prof-readonly .cal-cell:hover::after { display: none; }
 .cal-cell:hover::after {
   content: '+';
   position: absolute; inset: 0;

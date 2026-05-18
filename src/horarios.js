@@ -259,6 +259,7 @@ function renderGrid() {
   });
 
   grid.innerHTML = html;
+  if (_isProfessor) grid.classList.add("prof-readonly");
 
   // Bind células (só instituição pode editar)
   if (_turmaId && !_isProfessor) {
@@ -361,6 +362,7 @@ async function excluirHorario(id) {
 
 // ── Modal adicionar horário ───────────────────────────────────────────────────
 function abrirModal(dia, horaInicio) {
+  if (_isProfessor) return; // professor não pode adicionar
   const modal = document.createElement("div");
   modal.className = "hor-modal-bg";
   modal.id = "hor-modal";
