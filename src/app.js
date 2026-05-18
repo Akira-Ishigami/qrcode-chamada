@@ -1,4 +1,5 @@
-import { supabase } from "./supabase.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin }  from "./supabaseAdmin.js";
 import { abrirModalGerenciar, iniciarModalGerenciar } from "./gerenciar.js";
 import * as XLSX from "xlsx";
 
@@ -63,6 +64,7 @@ async function init() {
   if (profile.instituicao_id) {
     await carregarTurmasDeInst(profile.instituicao_id);
     carregarHistoricoHoje(profile.instituicao_id);
+    if (_isProfessor) carregarHorarioAtual(_userId);
   } else {
     // fallback: admin sem instituição vinculada
     await carregarInstituicoes();
@@ -115,6 +117,52 @@ async function carregarTurmasDeInst(instId) {
     selTurma.appendChild(opt);
   });
   selTurma.disabled = false;
+}
+
+async function carregarHorarioAtual(profId) {
+  const agora      = new Date();
+  const diaSemana  = agora.getDay(); // 0=Dom
+  const hh         = String(agora.getHours()).padStart(2, "0");
+  const mm         = String(agora.getMinutes()).padStart(2, "0");
+  const horaAtual  = `${hh}:${mm}`;
+
+  const { data } = await supabaseAdmin
+    .from("horarios")
+    .select("hora_inicio, hora_fim, turma_id, materias(nome), turmas(nome)")
+    .eq("professor_id", profId)
+    .eq("dia_semana", diaSemana);
+
+  const slots = data ?? [];
+  const ativa  = slots.find(h => h.hora_inicio <= horaAtual && horaAtual < h.hora_fim);
+
+  const el = document.getElementById("aula-atual");
+  if (!el) return;
+
+  if (ativa) {
+    const matNome   = ativa.materias?.nome  ?? "Aula";
+    const turmaNome = ativa.turmas?.nome    ?? "";
+    el.innerHTML = `
+      <div class="aula-banner agora">
+        <div class="aula-banner-dot"></div>
+        <div class="aula-banner-info">
+          <span class="aula-banner-mat">${matNome}</span>
+          ${turmaNome ? `<span class="aula-banner-turma">${turmaNome}</span>` : ""}
+        </div>
+        <span class="aula-banner-chip">Agora</span>
+      </div>`;
+    el.style.display = "";
+    if (ativa.turma_id && selTurma) {
+      selTurma.value = ativa.turma_id;
+      btnIniciar.disabled = selTurma.value !== ativa.turma_id;
+    }
+  } else {
+    el.innerHTML = `
+      <div class="aula-banner livre">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Horário livre</span>
+      </div>`;
+    el.style.display = "";
+  }
 }
 
 selInst.addEventListener("change", async () => {

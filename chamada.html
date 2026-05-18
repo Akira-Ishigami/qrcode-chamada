@@ -137,6 +137,38 @@
       }
       #sel-area .selector-card { max-width: 420px; width: 100%; }
 
+      /* ── Banner horário atual ─────────────────────────────────── */
+      .aula-banner {
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 14px; border-radius: 11px;
+        font-size: .82rem; font-weight: 600;
+      }
+      .aula-banner.agora {
+        background: #f0fdf4; border: 1px solid #86efac; color: #14532d;
+      }
+      .aula-banner.livre {
+        background: var(--surface-2); border: 1px solid var(--border);
+        color: var(--text-3);
+      }
+      .aula-banner-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #16a34a; flex-shrink: 0;
+        box-shadow: 0 0 0 3px rgba(22,163,74,.2);
+        animation: liveGlow2 2s ease-in-out infinite;
+      }
+      @keyframes liveGlow2 {
+        0%,100% { box-shadow: 0 0 0 3px rgba(22,163,74,.2); }
+        50%      { box-shadow: 0 0 0 5px rgba(22,163,74,.08); }
+      }
+      .aula-banner-info { flex: 1; min-width: 0; }
+      .aula-banner-mat  { font-weight: 800; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .aula-banner-turma { font-size: .72rem; font-weight: 500; opacity: .7; display: block; margin-top: 1px; }
+      .aula-banner-chip {
+        font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+        padding: 3px 9px; border-radius: 20px;
+        background: #16a34a; color: #fff; flex-shrink: 0;
+      }
+
       /* ── Botão flutuante "Histórico" (mobile) ─────────────────── */
       #hist-fab {
         position: fixed;
@@ -296,6 +328,8 @@
           </div>
           <h2 class="selector-title">Iniciar Chamada</h2>
           <p class="selector-sub">Selecione a turma para começar</p>
+
+          <div id="aula-atual" style="display:none;margin-bottom:16px"></div>
 
           <div class="selector-fields">
             <div class="sel-group">
