@@ -162,6 +162,11 @@ async function carregarHorarioAtual(profId) {
         <span>Horário livre</span>
       </div>`;
     el.style.display = "";
+    // Bloqueia seletor quando não há aula agendada
+    if (selTurma)  selTurma.disabled   = true;
+    if (btnIniciar) btnIniciar.disabled = true;
+    const selGroup = selTurma?.closest(".sel-group");
+    if (selGroup) selGroup.style.display = "none";
   }
 }
 
