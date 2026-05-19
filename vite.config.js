@@ -29,6 +29,7 @@ export default defineConfig(({ command }) => ({
         "inst-dashboard.html",
         "suporte.html",
         "cracha.html",
+        "materias.html",
       ],
     },
   },
