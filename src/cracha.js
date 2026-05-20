@@ -194,8 +194,8 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillStyle = "#1e293b";
   // Logo box — canto direito, sem borda
   const LOGO_GAP = 10;
-  const LOGO_H = HEADER - LOGO_GAP * 2;
-  const LOGO_W = LOGO_H; // quadrado
+  const LOGO_H = HEADER - LOGO_GAP; // base alinha com topo da foto
+  const LOGO_W = LOGO_H;            // quadrado
   if (logoImg) {
     const bw = LOGO_W, bh = LOGO_H, bx = ox + CW - bw - LOGO_GAP, by = oy + LOGO_GAP;
     ctx.fillStyle = "#ffffff";
