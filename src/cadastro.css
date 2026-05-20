@@ -6,15 +6,15 @@
 
 .panel-heading-icon {
   width: 36px; height: 36px;
-  background: #e0f2fe;
-  border-radius: 9px;
+  background: var(--acc-sub);
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; color: var(--acc);
 }
 
 .panel-heading h2 {
   font-size: 1rem; font-weight: 800; color: var(--text);
-  display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 7px; letter-spacing: -0.015em;
 }
 
 /* ─── Campos ─────────────────────────────────────────────────────── */
@@ -95,8 +95,8 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 
 .alunos-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 16px 14px;
-  background: var(--surface); border-bottom: 1.5px solid var(--border);
+  padding: 16px 20px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
   gap: 12px; flex-wrap: wrap;
 }
 
@@ -105,27 +105,42 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 /* ─── Badge contador ─────────────────────────────────────────────── */
 .count-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 24px; height: 24px; padding: 0 7px;
-  background: #e0f2fe; color: var(--acc);
-  border-radius: 20px; font-size: 0.71rem; font-weight: 800;
-  border: 1.5px solid #7dd3fc;
+  min-width: 22px; height: 22px; padding: 0 7px;
+  background: var(--acc); color: #fff;
+  border-radius: 20px; font-size: 0.68rem; font-weight: 800;
+  vertical-align: middle; margin-left: 2px;
 }
 
-/* ─── Botão baixar todos ─────────────────────────────────────────── */
+/* ─── Botões de ação do header ───────────────────────────────────── */
+.alunos-head-actions {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+/* Botão primário — Novo Aluno */
+.btn-novo-aluno {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; height: 38px;
+  background: var(--acc); color: #fff; border: none;
+  border-radius: 9px; font-size: .84rem; font-weight: 700;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  box-shadow: 0 2px 8px var(--acc-glow);
+  transition: background .14s, transform .12s, box-shadow .14s;
+}
+.btn-novo-aluno:hover { background: var(--acc-2); transform: translateY(-1px); }
+
+/* Botões secundários */
 .btn-dl-all {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 14px;
-  background: var(--surface-2); color: var(--text);
-  border: 1.5px solid var(--border-2); border-radius: 9px;
-  font-size: 0.84rem; font-weight: 700; cursor: pointer; font-family: inherit;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.15s;
-  white-space: nowrap; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px; height: 38px;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border-2); border-radius: 9px;
+  font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: all .14s; white-space: nowrap; flex-shrink: 0;
 }
 .btn-dl-all:hover:not(:disabled) {
-  background: #e0f2fe; border-color: var(--acc); color: var(--acc);
-  transform: translateY(-1px);
+  background: var(--surface-2); border-color: var(--acc); color: var(--acc);
 }
-.btn-dl-all:disabled { background: var(--surface-2); cursor: not-allowed; opacity: 0.4; }
+.btn-dl-all:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn-dl-all.loading { opacity: 0.6; cursor: wait; }
 
 /* ─── Barra de filtro ────────────────────────────────────────────── */
@@ -495,18 +510,17 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
 .aluno-card-btn-qr:hover    { background: #f0fdf4; border-color: #86efac; color: #15803d !important; }
 .aluno-card-btn-cracha:hover { background: #eff6ff; border-color: #93c5fd; color: #2563eb !important; }
 
-/* Botão QR bulk */
+/* Botão QR bulk — mesmos estilos do btn-dl-all */
 .btn-dl-all-qr {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 14px;
-  background: var(--surface-2); color: var(--text);
-  border: 1.5px solid var(--border-2); border-radius: 9px;
-  font-size: 0.84rem; font-weight: 700; cursor: pointer; font-family: inherit;
-  transition: background .18s, border-color .18s, color .18s, transform .15s;
-  white-space: nowrap; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 13px; height: 38px;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border-2); border-radius: 9px;
+  font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: all .14s; white-space: nowrap; flex-shrink: 0;
 }
 .btn-dl-all-qr:hover:not(:disabled) {
-  background: #f0fdf4; border-color: #4ade80; color: #15803d;
+  background: var(--surface-2); border-color: #4ade80; color: #15803d;
   transform: translateY(-1px);
 }
 .btn-dl-all-qr:disabled { opacity: 0.4; cursor: not-allowed; }
