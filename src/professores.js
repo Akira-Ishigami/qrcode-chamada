@@ -255,8 +255,8 @@ function modalNovoUsuario() {
   openModal(`
     <div class="modal-title">Novo Professor</div>
     <div class="modal-info-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      O professor vai usar o <strong>e-mail e a senha</strong> abaixo para entrar no sistema pelo celular e fazer chamadas.
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>O e-mail e a senha abaixo serão o acesso do professor no sistema para fazer chamadas pelo celular.</span>
     </div>
     <div class="modal-field">
       <label>Nome completo</label>
