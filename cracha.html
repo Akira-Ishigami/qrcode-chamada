@@ -329,7 +329,7 @@
       border-color: color-mix(in srgb, var(--thumb-c) 35%, #d0c8bc);
     }
 
-    /* Pattern styles — cores visíveis (55-65% opacity) */
+    /* Pattern styles — cor real visível */
     .cc-pt-limpo {
       background: linear-gradient(135deg, #f9f7f3 50%, #f0ede6 50%);
     }
@@ -338,19 +338,19 @@
       position: absolute; top: 0; left: 0;
       border-style: solid;
       border-width: 46px 52px 0 0;
-      border-color: color-mix(in srgb, var(--thumb-c) 62%, transparent) transparent transparent transparent;
+      border-color: var(--thumb-c) transparent transparent transparent;
     }
     .cc-pt-geometrico::after {
       content: "";
       position: absolute; bottom: 0; right: 0;
       border-style: solid;
       border-width: 0 0 22px 22px;
-      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 38%, transparent) transparent;
+      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 65%, #fff) transparent;
     }
     .cc-pt-pontos {
       background-image: radial-gradient(
         circle,
-        color-mix(in srgb, var(--thumb-c) 65%, transparent) 2px,
+        var(--thumb-c) 2px,
         transparent 2px
       );
       background-size: 10px 10px;
@@ -361,8 +361,8 @@
         135deg,
         transparent,
         transparent 5px,
-        color-mix(in srgb, var(--thumb-c) 55%, transparent) 5px,
-        color-mix(in srgb, var(--thumb-c) 55%, transparent) 8px
+        var(--thumb-c) 5px,
+        var(--thumb-c) 8px
       );
     }
     .cc-pt-ondas::before {
@@ -370,8 +370,8 @@
       position: absolute; inset: 0;
       background: linear-gradient(
         148deg,
-        color-mix(in srgb, var(--thumb-c) 50%, transparent) 0%,
-        color-mix(in srgb, var(--thumb-c) 50%, transparent) 45%,
+        var(--thumb-c) 0%,
+        var(--thumb-c) 45%,
         transparent 45%
       );
     }
