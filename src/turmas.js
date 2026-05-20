@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabaseAdmin.js";
 import { podeAdmin } from "./nav-role.js";
 
 const root = document.getElementById("page-root");
+const esc  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let instAtualId   = null;
