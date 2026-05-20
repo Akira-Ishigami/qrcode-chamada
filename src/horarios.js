@@ -136,9 +136,16 @@ function renderShell() {
 
   const overlayHtml = (!_isProfessor)
     ? `<div class="cal-no-turma" id="cal-overlay">
-        <div class="cal-no-turma-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <strong>Selecione uma turma</strong>
-        <span>Use o seletor acima para visualizar e editar os horários</span>
+        <div class="cal-no-turma-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <strong>Selecione uma turma para ver os horários</strong>
+        <span>Clique no seletor <strong>Turma</strong> acima para escolher qual turma configurar.</span>
+        <div style="margin-top:14px;background:#f8fafc;border:1px solid #e4eaf4;border-radius:10px;padding:12px 16px;text-align:left;max-width:340px;font-size:.78rem;color:#475569;line-height:1.7">
+          <div style="font-weight:700;color:#1e293b;margin-bottom:5px">Como montar a grade:</div>
+          <div>1. Selecione a turma no topo</div>
+          <div>2. Clique em qualquer célula para adicionar aula</div>
+          <div>3. Escolha a matéria — o professor é preenchido automaticamente</div>
+          <div>4. Defina início e fim da aula</div>
+        </div>
       </div>`
     : "";
 

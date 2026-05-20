@@ -254,20 +254,27 @@ function buildCard(p) {
 function modalNovoUsuario() {
   openModal(`
     <div class="modal-title">Novo Professor</div>
-    <div class="modal-field">
-      <label>Nome</label>
-      <input id="m-nome" placeholder="Nome completo" autocomplete="off" />
+    <div class="modal-info-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      O professor vai usar o <strong>e-mail e a senha</strong> abaixo para entrar no sistema pelo celular e fazer chamadas.
     </div>
     <div class="modal-field">
-      <label>Email</label>
-      <input id="m-email" type="email" placeholder="email@exemplo.com" autocomplete="off" />
+      <label>Nome completo</label>
+      <input id="m-nome" placeholder="Ex: Carlos Eduardo Silva" autocomplete="off" />
+      <small class="modal-field-hint">Como o nome vai aparecer nos relatórios</small>
     </div>
     <div class="modal-field">
-      <label>Senha</label>
+      <label>E-mail de acesso</label>
+      <input id="m-email" type="email" placeholder="Ex: carlos@escola.com.br" autocomplete="off" />
+      <small class="modal-field-hint">O professor vai usar este e-mail para fazer login</small>
+    </div>
+    <div class="modal-field">
+      <label>Senha de acesso</label>
       <div class="modal-field-pw">
         <input id="m-senha" type="password" placeholder="Mínimo 6 caracteres" />
         <button class="pw-toggle" id="m-pw-toggle" type="button">${SVG_EYE}</button>
       </div>
+      <small class="modal-field-hint">Crie uma senha e passe para o professor — ele pode trocar depois</small>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="m-cancel">Cancelar</button>

@@ -186,6 +186,16 @@
   font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 18px;
   letter-spacing: -.015em;
 }
+.modal-info-box {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px;
+  padding: 10px 13px; margin-bottom: 16px;
+  font-size: .78rem; color: #1e40af; line-height: 1.5;
+}
+.modal-field-hint {
+  display: block; font-size: .68rem; color: var(--text-3);
+  margin-top: 4px; line-height: 1.4;
+}
 .modal-field { margin-bottom: 14px; }
 .modal-field label {
   display: block; font-size: .7rem; font-weight: 700; color: var(--text-2);

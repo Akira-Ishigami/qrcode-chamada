@@ -83,6 +83,50 @@
       50%      { box-shadow: 0 0 0 5px rgba(22,163,74,.08); }
     }
 
+    /* ── Setup checklist ── */
+    .idash-setup-card {
+      background: white; border: 1px solid #e4eaf4; border-radius: 18px;
+      overflow: hidden; margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(37,99,235,.06);
+    }
+    .idash-setup-head {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px 14px; border-bottom: 1px solid #f0f3f9;
+      background: linear-gradient(135deg, #eff6ff, #f8faff); flex-wrap: wrap;
+    }
+    .idash-setup-icon {
+      width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+      background: #2563eb; color: white;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .idash-setup-title { font-family: 'Sora',sans-serif; font-size: .9rem; font-weight: 800; color: #0d1526; }
+    .idash-setup-sub   { font-size: .72rem; color: #64748b; margin-top: 2px; }
+    .idash-setup-prog-wrap {
+      flex: 1; min-width: 80px; height: 6px; background: #e4eaf4;
+      border-radius: 99px; overflow: hidden; margin-left: auto;
+    }
+    .idash-setup-prog-bar { height: 100%; background: #2563eb; border-radius: 99px; transition: width .4s; }
+
+    .idash-setup-steps { display: flex; flex-direction: column; }
+    .idash-setup-step {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 13px 20px; border-bottom: 1px solid #f8fafd;
+      text-decoration: none; transition: background .12s;
+    }
+    .idash-setup-step:last-child { border-bottom: none; }
+    .idash-setup-step.pending:hover { background: #f8faff; }
+    .idash-setup-step.done { opacity: .55; cursor: default; }
+
+    .idash-setup-step-check {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .idash-setup-step.done   .idash-setup-step-check { background: #dcfce7; color: #16a34a; border: 1.5px solid #86efac; }
+    .idash-setup-step.pending .idash-setup-step-check { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+
+    .idash-setup-step-label { font-size: .84rem; font-weight: 700; color: #0d1526; }
+    .idash-setup-step-desc  { font-size: .72rem; color: #64748b; margin-top: 2px; line-height: 1.4; }
+
     /* ── Stats grid ── */
     .idash-stats {
       display: grid; grid-template-columns: repeat(4,1fr);

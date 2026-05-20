@@ -81,6 +81,7 @@ async function render(profile) {
     { data: profs },
     { data: inst },
     { data: chamadas },
+    { data: materias },
   ] = await Promise.all([
     supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", instId),
     supabaseAdmin.from("alunos").select("id").eq("instituicao_id", instId),
@@ -91,6 +92,19 @@ async function render(profile) {
       .eq("data", hoje)
       .eq("turmas.instituicao_id", instId)
       .order("criado_em", { ascending: false }),
+    supabaseAdmin.from("materias").select("id").eq("instituicao_id", instId),
+  ]);
+
+  // Setup check — horários e vínculos dependem dos IDs acima
+  const turmaIds = (turmas ?? []).map(t => t.id);
+  const profIds  = (profs  ?? []).map(p => p.id);
+  const [{ data: horarios }, { data: vinculos }] = await Promise.all([
+    turmaIds.length
+      ? supabaseAdmin.from("horarios").select("id").in("turma_id", turmaIds).limit(1)
+      : { data: [] },
+    profIds.length
+      ? supabaseAdmin.from("professor_materias").select("professor_id").in("professor_id", profIds).limit(1)
+      : { data: [] },
   ]);
 
   const nTurmas  = (turmas  ?? []).length;
@@ -98,7 +112,20 @@ async function render(profile) {
   const nProfs   = (profs   ?? []).length;
   const nCham    = (chamadas ?? []).length;
   const nAbertas = (chamadas ?? []).filter(c => c.aberta).length;
+  const nMaterias = (materias ?? []).length;
   const instNome = inst?.nome ?? profile.nome ?? "Instituição";
+
+  // Setup checklist
+  const setup = [
+    { ok: nTurmas  > 0, label: "Criar turmas",                      desc: "As turmas são as salas ou grupos de alunos (ex: 1A, Turma Manhã)",   href: "turmas.html" },
+    { ok: nAlunos  > 0, label: "Cadastrar alunos",                  desc: "Adicione os alunos com nome, matrícula e turma",                      href: "cadastro.html" },
+    { ok: nProfs   > 0, label: "Cadastrar professores",             desc: "Cada professor terá login para fazer chamada pelo celular",           href: "professores.html" },
+    { ok: nMaterias > 0, label: "Criar matérias",                   desc: "As disciplinas que são ministradas (ex: Matemática, Português)",      href: "materias.html" },
+    { ok: (vinculos ?? []).length > 0, label: "Vincular professor às matérias", desc: "Diga qual professor dá qual disciplina",                  href: "professores.html" },
+    { ok: (horarios ?? []).length > 0, label: "Montar grade de horários",       desc: "Configure os dias e horários de cada aula por turma",     href: "horarios.html" },
+  ];
+  const nSetupOk   = setup.filter(s => s.ok).length;
+  const setupDone  = nSetupOk === setup.length;
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -120,6 +147,38 @@ async function render(profile) {
     </div>
 
     <div class="idash-body">
+
+      ${!setupDone ? `
+      <div class="idash-setup-card">
+        <div class="idash-setup-head">
+          <div class="idash-setup-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div>
+            <div class="idash-setup-title">Configure o sistema antes de começar</div>
+            <div class="idash-setup-sub">${nSetupOk} de ${setup.length} etapas concluídas</div>
+          </div>
+          <div class="idash-setup-prog-wrap">
+            <div class="idash-setup-prog-bar" style="width:${Math.round(nSetupOk/setup.length*100)}%"></div>
+          </div>
+        </div>
+        <div class="idash-setup-steps">
+          ${setup.map((s, i) => `
+            <a href="${s.ok ? "#" : s.href}" class="idash-setup-step ${s.ok ? "done" : "pending"}">
+              <div class="idash-setup-step-check">
+                ${s.ok
+                  ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>`
+                  : `<span style="font-size:.65rem;font-weight:800;color:var(--acc)">${i+1}</span>`}
+              </div>
+              <div class="idash-setup-step-text">
+                <div class="idash-setup-step-label">${s.label}</div>
+                <div class="idash-setup-step-desc">${s.desc}</div>
+              </div>
+              ${!s.ok ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="flex-shrink:0;color:var(--acc);opacity:.5"><polyline points="9 18 15 12 9 6"/></svg>` : ""}
+            </a>`).join("")}
+        </div>
+      </div>` : ""}
+
       <div class="idash-stats">
         ${stat("blue",   svgTurma(), nTurmas, "Turmas",      0)}
         ${stat("green",  svgAluno(), nAlunos, "Alunos",      1)}
