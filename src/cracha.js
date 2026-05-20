@@ -192,10 +192,10 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
 
   // Título — sempre preto, centralizado
   ctx.fillStyle = "#1e293b";
-  // Logo box — top right, sem borda
+  // Logo box — canto direito, sem borda
   const LOGO_W = 170;
   if (logoImg) {
-    const bw = LOGO_W, bh = HEADER - 4, bx = ox + CW - bw - 6, by = oy + 2;
+    const bw = LOGO_W, bh = HEADER - 4, bx = ox + CW - bw - 10, by = oy + 2;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
     const scale = Math.min((bw - 4) / logoImg.width, (bh - 4) / logoImg.height);
@@ -203,7 +203,7 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
 
-  // Texto centralizado na largura total
+  // Texto sempre centralizado na largura total
   ctx.fillStyle = "#1e293b";
   ctx.font = "bold 13px Arial, sans-serif";
   ctx.textAlign = "center";
@@ -311,15 +311,16 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   const totalH = 23 + 18 + 10 + 40 + 10 + 23 + 18; // ~142px
   let cy = oy + HEADER + Math.round((BODY - totalH) / 2);
 
-  // Função label: negrito pequeno na cor da inst.
+  // Label: pequeno, cinza
   const lbl = (t) => {
-    ctx.fillStyle = corTexto;   // segue a cor do texto
-    ctx.font = `bold 9px Arial, sans-serif`;
+    ctx.fillStyle = "#6b7280";
+    ctx.font = `500 9px Arial, sans-serif`;
     ctx.textAlign = "left";
-    ctx.fillText(t + ":", tx, cy);
-    cy += 14;
+    ctx.fillText(t.toUpperCase(), tx, cy);
+    cy += 13;
   };
-  const val = (text, sz = 13, maxW = tw) => {
+  // Valor: maior, cor do texto
+  const val = (text, sz = 14, maxW = tw) => {
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
@@ -327,7 +328,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
     });
-    cy += 4;
+    cy += 5;
   };
   const divider = () => {
     ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
@@ -336,7 +337,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   };
 
   // NOME
-  lbl("Nome"); val(aluno.nome, 15);
+  lbl("Nome"); val(aluno.nome, 16);
   divider();
 
   // TURMA  |  ID ESTADUAL — lado a lado
@@ -344,9 +345,9 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   const turmaV = aluno.turma?.nome || aluno.turma_nome || "—";
   const idEstV = aluno.id_estadual || "—";
 
-  ctx.fillStyle = corTexto; ctx.font = "bold 9px Arial, sans-serif";
-  ctx.fillText("Turma:", tx, cy);
-  ctx.fillText("Id Estadual:", tx + half + 10, cy);
+  ctx.fillStyle = "#6b7280"; ctx.font = "500 9px Arial, sans-serif";
+  ctx.fillText("TURMA", tx, cy);
+  ctx.fillText("ID ESTADUAL", tx + half + 10, cy);
   cy += 14;
 
   ctx.fillStyle = corTexto;
@@ -358,7 +359,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   divider();
 
   // MATRÍCULA
-  lbl("Numero da Matricula"); val(aluno.matricula, 14);
+  lbl("Número da Matrícula"); val(aluno.matricula, 14);
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
