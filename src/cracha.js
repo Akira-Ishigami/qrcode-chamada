@@ -46,7 +46,7 @@ const rgba = (hex, a) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 
-function fitText(ctx, text, maxW, maxSz, minSz, font, fw = "600 ") {
+function fitText(ctx, text, maxW, maxSz, minSz, font, fw = "") {
   if (!text) return { text: "—", size: maxSz };
   let sz = maxSz;
   ctx.font = `${fw}${sz}px ${font}`;
@@ -58,7 +58,7 @@ function fitText(ctx, text, maxW, maxSz, minSz, font, fw = "600 ") {
   return { text: t !== text ? t + "…" : t, size: sz };
 }
 
-function wrapLines(ctx, text, maxW, sz, font, fw = "600 ") {
+function wrapLines(ctx, text, maxW, sz, font, fw = "") {
   ctx.font = `${fw}${sz}px ${font}`;
   if (!text || ctx.measureText(text).width <= maxW) return [text || "—"];
   const words = text.split(" ");
@@ -497,7 +497,7 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const corFundo   = config?.cor_fundo      || "#ffffff";
   const corRodape  = config?.cor_rodape     || "#ffffff";
   const negrito    = config?.negrito        ?? false;
-  const fw         = negrito ? "bold " : "600 ";
+  const fw         = negrito ? "bold " : "";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
