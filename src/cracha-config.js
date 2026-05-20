@@ -56,7 +56,7 @@ async function init() {
   await carregarConfig();
 
   // Eventos
-  ["input-cor1","input-cor2","input-cor-texto","input-cor-decor"].forEach(id => {
+  ["input-cor1","input-cor2","input-cor-texto","input-cor-decor","input-cor-fundo"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", agendarPreview);
   });
 
@@ -109,7 +109,7 @@ async function carregarConfig() {
   if (!instId) return;
   const { data } = await supabaseAdmin
     .from("cracha_config")
-    .select("cor_principal, cor_secundaria, cor_texto, cor_decoracao, logo_url, padrao, fonte")
+    .select("cor_principal, cor_secundaria, cor_texto, cor_decoracao, cor_fundo, logo_url, padrao, fonte")
     .eq("instituicao_id", instId)
     .maybeSingle();
 
@@ -120,6 +120,7 @@ async function carregarConfig() {
       { inputId: "input-cor2",      swatchId: "swatch2",      valId: "val-cor2",      val: data.cor_secundaria || "#1e40af" },
       { inputId: "input-cor-texto", swatchId: "swatch-texto", valId: "val-cor-texto", val: data.cor_texto       || "#111827" },
       { inputId: "input-cor-decor", swatchId: "swatch-decor", valId: "val-cor-decor", val: data.cor_decoracao  || "#2563eb", isDecor: true },
+      { inputId: "input-cor-fundo", swatchId: "swatch-fundo", valId: "val-cor-fundo", val: data.cor_fundo      || "#ffffff" },
     ];
     corFields.forEach(f => {
       const inp = document.getElementById(f.inputId);
@@ -219,6 +220,7 @@ function getConfig() {
     cor_secundaria: document.getElementById("input-cor2").value,
     cor_texto:      document.getElementById("input-cor-texto")?.value   || "#111827",
     cor_decoracao:  document.getElementById("input-cor-decor")?.value   || "#2563eb",
+    cor_fundo:      document.getElementById("input-cor-fundo")?.value   || "#ffffff",
     logo_url: document.getElementById("logo-area").dataset.logo || null,
     padrao:   document.getElementById("input-padrao")?.dataset.value || "limpo",
     fonte:    document.getElementById("input-fonte")?.dataset.value  || "georgia",
@@ -256,6 +258,7 @@ async function salvar() {
       cor_secundaria: cfg.cor_secundaria,
       cor_texto:      cfg.cor_texto,
       cor_decoracao:  cfg.cor_decoracao,
+      cor_fundo:      cfg.cor_fundo,
       logo_url:       cfg.logo_url,
       padrao:         cfg.padrao,
       fonte:          cfg.fonte,

@@ -720,6 +720,15 @@
                   <div class="cs-chip-hex" id="val-cor-decor">#2563eb</div>
                 </div>
               </div>
+              <div class="cs-chip">
+                <div class="cs-chip-swatch" id="swatch-fundo" style="background:#ffffff;border:1px solid #e4eaf4">
+                  <input type="color" id="input-cor-fundo" value="#ffffff" />
+                </div>
+                <div class="cs-chip-body">
+                  <div class="cs-chip-name">Fundo</div>
+                  <div class="cs-chip-hex" id="val-cor-fundo">#ffffff</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -821,6 +830,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   ['cor2',      'swatch2',      'val-cor2'],
   ['cor-texto', 'swatch-texto', 'val-cor-texto'],
   ['cor-decor', 'swatch-decor', 'val-cor-decor'],
+  ['cor-fundo', 'swatch-fundo', 'val-cor-fundo'],
 ].forEach(([id, swId, valId]) => {
   const input  = document.getElementById('input-' + id);
   const swatch = document.getElementById(swId);

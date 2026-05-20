@@ -166,8 +166,8 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
 }
 
 // ── Estrutura base do card ────────────────────────────────────────────────────
-function drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor) {
-  ctx.fillStyle = "#ffffff";
+function drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo) {
+  ctx.fillStyle = corFundo || "#ffffff";
   rr(ctx, ox, oy, CW, CH, CR);
   ctx.fill();
 
@@ -246,11 +246,11 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
 }
 
 // ── FRENTE ────────────────────────────────────────────────────────────────────
-async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor) {
+async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
-  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor);
+  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
@@ -370,11 +370,11 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
-function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor) {
+function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
-  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor);
+  drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
   drawHeader(ctx, ox, oy, cor1, logoImg);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
@@ -473,6 +473,7 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const fonte      = config?.fonte          || "georgia";
   const corTexto   = config?.cor_texto      || "#111827";
   const corDecor   = config?.cor_decoracao  || cor1;
+  const corFundo   = config?.cor_fundo      || "#ffffff";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
@@ -486,12 +487,12 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   ]);
 
   if (lado === "frente") {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
   } else if (lado === "verso") {
-    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
+    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
   } else {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor);
-    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
+    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
   }
 
   return canvas.toDataURL("image/png");
