@@ -132,6 +132,11 @@ function renderShell() {
           <select id="sel-turma" class="hor-turma-select">${turmaOpts}</select>
           <svg class="hor-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
+      </div>
+      <div class="hor-turma-bar-mobile" style="display:none">
+        <select id="sel-turma-mobile" class="hor-mobile-select">
+          ${turmaOpts}
+        </select>
       </div>`;
 
   const overlayHtml = (!_isProfessor)
@@ -171,30 +176,53 @@ function renderShell() {
     </div>
   `;
 
+  const isMobile = () => window.innerWidth <= 640;
+
   if (!_isProfessor) {
-    document.getElementById("sel-turma").addEventListener("change", e => {
+    // Desktop select
+    document.getElementById("sel-turma")?.addEventListener("change", e => {
       const id = e.target.value;
+      const mob = document.getElementById("sel-turma-mobile");
+      if (mob) mob.value = id;
+      if (id) selecionarTurma(id);
+      else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
+    });
+    // Mobile select
+    document.getElementById("sel-turma-mobile")?.addEventListener("change", e => {
+      const id = e.target.value;
+      const desk = document.getElementById("sel-turma");
+      if (desk) desk.value = id;
       if (id) selecionarTurma(id);
       else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
     });
   }
 
-  renderGrid();
+  // Mostra o seletor correto baseado no tamanho da tela
+  const sincronizarLayout = () => {
+    const mobile = isMobile();
+    const barDesktop = document.querySelector(".hor-turma-bar:not(.hor-turma-bar-mobile)");
+    const barMobile  = document.querySelector(".hor-turma-bar-mobile");
+    if (barDesktop) barDesktop.style.display = mobile ? "none" : "";
+    if (barMobile)  barMobile.style.display  = mobile ? "" : "none";
+  };
+  sincronizarLayout();
+  window.addEventListener("resize", sincronizarLayout);
+
+  if (window.innerWidth <= 640) renderAgenda();
+  else renderGrid();
   renderLegend();
   document.addEventListener("click", fecharPopover);
+  window.addEventListener("resize", () => {
+    if (window.innerWidth <= 640) renderAgenda();
+    else renderGrid();
+  }, { once: true });
 }
 
 // ── Seleciona turma ───────────────────────────────────────────────────────────
 async function selecionarTurma(id) {
   _turmaId = id;
-
-  // Remove overlay ao selecionar turma
   document.getElementById("cal-overlay")?.remove();
 
-  // Remove overlay
-  document.getElementById("cal-overlay")?.remove();
-
-  // Carrega horários da turma
   const { data } = await supabaseAdmin
     .from("horarios")
     .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome,email)")
@@ -206,8 +234,8 @@ async function selecionarTurma(id) {
     return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? h.materia_id ?? "—" };
   });
 
-
-  renderGrid();
+  if (window.innerWidth <= 640) renderAgenda();
+  else renderGrid();
   renderLegend();
 }
 
@@ -226,6 +254,70 @@ function renderLegend() {
   leg.innerHTML = usadas.map(h => {
     const c = MAT_COLORS[h.colorIdx];
     return `<span class="cal-legend-item" style="background:${c.bg};border-color:${c.border};color:${c.text}">${esc(h.matNome)}</span>`;
+  }).join("");
+}
+
+// ── Agenda mobile (lista por dia) ────────────────────────────────────────────
+let _agendaDay = new Date().getDay() || 1; // default: hoje (ou seg se domingo)
+
+function renderAgenda() {
+  const scroll = document.querySelector(".cal-scroll");
+  if (!scroll) return;
+
+  const diasFull = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const hoje = new Date().getDay();
+
+  // Dias que têm aula
+  const diasComAula = new Set(_horarios.map(h => h.dia_semana));
+
+  scroll.innerHTML = `
+    <div class="agenda-days-bar">
+      ${SHOW_DIAS.map(d => `
+        <button class="agenda-day-btn${_agendaDay === d ? " active" : ""}${diasComAula.has(d) ? " has-aula" : ""}"
+          data-day="${d}">
+          ${diasFull[d]}
+          ${diasComAula.has(d) ? `<span class="agenda-day-dot"></span>` : ""}
+        </button>`).join("")}
+    </div>
+    <div class="agenda-list" id="agenda-list"></div>`;
+
+  scroll.querySelectorAll(".agenda-day-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      _agendaDay = parseInt(btn.dataset.day);
+      renderAgenda();
+    });
+  });
+
+  renderAgendaDay();
+}
+
+function renderAgendaDay() {
+  const list = document.getElementById("agenda-list");
+  if (!list) return;
+
+  const aulas = _horarios.filter(h => h.dia_semana === _agendaDay)
+    .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+  if (!aulas.length) {
+    list.innerHTML = `
+      <div class="agenda-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Nenhuma aula neste dia</span>
+        ${!_isProfessor ? `<span style="font-size:.72rem;color:#94a3b8">Clique nas células da grade para adicionar</span>` : ""}
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = aulas.map(h => {
+    const c    = MAT_COLORS[h.colorIdx];
+    const prof = h.profiles?.nome || h.profiles?.email || "";
+    return `
+      <div class="agenda-card" style="border-left-color:${c.border}">
+        <div class="agenda-card-time">${h.hora_inicio.slice(0,5)} – ${h.hora_fim.slice(0,5)}</div>
+        <div class="agenda-card-mat" style="color:${c.text}">${esc(h.matNome)}</div>
+        ${prof ? `<div class="agenda-card-prof">${esc(prof)}</div>` : ""}
+        ${h.sala ? `<div class="agenda-card-sala">${esc(h.sala)}</div>` : ""}
+      </div>`;
   }).join("");
 }
 
