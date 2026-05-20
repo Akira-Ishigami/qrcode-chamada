@@ -34,6 +34,12 @@ function rr(ctx, x, y, w, h, r) {
   ctx.roundRect(x, y, w, h, r);
 }
 
+// Helper de cor com opacidade
+const rgba = (hex, a) => {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+
 function fitText(ctx, text, maxW, maxSz, minSz, font) {
   if (!text) return { text: "—", size: maxSz };
   let sz = maxSz;
@@ -80,12 +86,6 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
   ctx.beginPath();
   ctx.rect(ox, bodyY, CW, bodyH);
   ctx.clip();
-
-  // Converte hex para rgba com opacidade
-  const rgba = (hex, a) => {
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${a})`;
-  };
 
   if (padrao === "geometrico") {
     ctx.fillStyle = rgba(cor1, 0.85);
@@ -189,8 +189,8 @@ function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto) {
   ctx.fillRect(ox, oy, CW, HEADER);
   ctx.restore();
 
-  // Título — sempre preto, centralizado
-  ctx.fillStyle = "#1e293b";
+  // Placeholder antes do logo — será sobrescrito abaixo
+  ctx.fillStyle = corTexto || "#1e293b";
   // Logo box — canto direito, sem borda
   const LOGO_GAP = 10;
   const LOGO_H = HEADER - LOGO_GAP; // base alinha com topo da foto
@@ -318,9 +318,8 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   let cy = oy + HEADER + Math.round((BODY - totalH) / 2);
 
   // Label: mesma cor do texto com 65% opacidade
-  const { rgba: rgbaFn } = { rgba: (hex, a) => { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } };
   const lbl = (t) => {
-    ctx.fillStyle = rgbaFn(corTexto, 0.65);
+    ctx.fillStyle = rgba(corTexto, 0.65);
     ctx.font = `500 9px Arial, sans-serif`;
     ctx.textAlign = "left";
     ctx.fillText(t.toUpperCase(), tx, cy);
@@ -352,7 +351,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   const turmaV = aluno.turma?.nome || aluno.turma_nome || "—";
   const idEstV = aluno.id_estadual || "—";
 
-  ctx.fillStyle = "#6b7280"; ctx.font = "500 9px Arial, sans-serif";
+  ctx.fillStyle = rgba(corTexto, 0.65); ctx.font = "500 9px Arial, sans-serif";
   ctx.fillText("TURMA", tx, cy);
   ctx.fillText("ID ESTADUAL", tx + half + 10, cy);
   cy += 14;
@@ -421,9 +420,8 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   const totalHV = 23 + 18 + 10 + 23 + 18 + 10 + 23 + 15; // ~140px
   let cy = oy + HEADER + Math.round((BODY - totalHV) / 2);
 
-  const rgbaV = (hex, a) => { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; };
   const lbl = (t) => {
-    ctx.fillStyle = rgbaV(corTexto, 0.65);
+    ctx.fillStyle = rgba(corTexto, 0.65);
     ctx.font = "500 9px Arial, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(t.toUpperCase(), tx, cy);
@@ -440,7 +438,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
     cy += 5;
   };
   const divider = () => {
-    ctx.strokeStyle = rgbaV(corTexto, 0.15); ctx.lineWidth = 1;
+    ctx.strokeStyle = rgba(corTexto, 0.15); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 2, cy); ctx.stroke();
     cy += 10;
   };
