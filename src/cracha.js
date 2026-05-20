@@ -193,12 +193,12 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   // Título — sempre preto, centralizado
   ctx.fillStyle = "#1e293b";
   // Logo box — top right, sem borda
-  const LOGO_W = 210;
+  const LOGO_W = 170;
   if (logoImg) {
     const bw = LOGO_W, bh = HEADER - 4, bx = ox + CW - bw - 6, by = oy + 2;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
-    const scale = Math.min((bw - 10) / logoImg.width, (bh - 10) / logoImg.height);
+    const scale = Math.min((bw - 4) / logoImg.width, (bh - 4) / logoImg.height);
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
