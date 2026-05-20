@@ -147,8 +147,9 @@ body.sidebar-open { overflow: hidden; }
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   padding-top: var(--topbar-h);
 }
 
@@ -435,13 +436,15 @@ body.sidebar-open { overflow: hidden; }
 .main-content {
   flex: 1;
   width: 100%;
-  min-height: calc(100vh - var(--topbar-h));
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
   background: var(--bg);
   animation: fadeIn 0.2s ease both;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ══════════════════════════════════════════════

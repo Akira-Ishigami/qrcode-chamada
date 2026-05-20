@@ -68,7 +68,7 @@
   background: #fff;
   border-bottom: 1px solid #edf0f7;
   flex-shrink: 0;
-  height: 52px;
+  min-height: 52px;
 }
 
 /* Prefixo "Turma" integrado ao controle */
