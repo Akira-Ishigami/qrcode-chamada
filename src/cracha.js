@@ -422,13 +422,13 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   let cy = oy + HEADER + Math.round((BODY - totalHV) / 2);
 
   const lbl = (t) => {
-    ctx.fillStyle = corTexto;   // segue a cor do texto
-    ctx.font = "bold 9px Arial, sans-serif";
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "500 9px Arial, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(t + ":", tx, cy);
-    cy += 14;
+    ctx.fillText(t.toUpperCase(), tx, cy);
+    cy += 13;
   };
-  const val = (text, sz = 13, maxW = tw) => {
+  const val = (text, sz = 14, maxW = tw) => {
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
