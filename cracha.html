@@ -612,9 +612,23 @@
     .toast.success { background: #16a34a; }
     .toast.error   { background: #dc2626; }
 
+    /* ── Telas intermediárias ─────────────────────────── */
+    @media (max-width: 1200px) {
+      .cs-controls { width: clamp(280px, 28vw, 360px); }
+      .cs-ctrl-head { padding: 22px 20px 18px; }
+      .cs-section { padding: 16px 20px; }
+    }
+    @media (max-width: 1050px) {
+      .cs-controls { width: clamp(260px, 32vw, 320px); }
+      .cs-chips-row.trio { grid-template-columns: 1fr 1fr 1fr; }
+      .cs-fonts { grid-template-columns: repeat(3, 1fr); }
+      .cs-chip-hint { display: none; }
+    }
+
     /* ── Tablet (≤ 860px) ─────────────────────────────── */
     @media (max-width: 860px) {
-      #page-root { flex-direction: column !important; overflow-y: auto !important; height: auto !important; }
+      #page-root { flex-direction: column !important; overflow-y: auto !important; height: auto !important; min-height: 0 !important; }
+      .main-content { overflow-y: auto !important; }
       .cs-studio { flex-direction: column; height: auto; overflow: visible; }
 
       /* Canvas: preview compacto no topo */

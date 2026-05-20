@@ -208,14 +208,10 @@ function renderShell() {
   sincronizarLayout();
   window.addEventListener("resize", sincronizarLayout);
 
-  if (window.innerWidth <= 640) renderAgenda();
-  else renderGrid();
+  // No mobile sem turma selecionada, NÃO mostra agenda ainda
+  renderGrid();
   renderLegend();
   document.addEventListener("click", fecharPopover);
-  window.addEventListener("resize", () => {
-    if (window.innerWidth <= 640) renderAgenda();
-    else renderGrid();
-  }, { once: true });
 }
 
 // ── Seleciona turma ───────────────────────────────────────────────────────────
@@ -234,7 +230,7 @@ async function selecionarTurma(id) {
     return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? h.materia_id ?? "—" };
   });
 
-  if (window.innerWidth <= 640) renderAgenda();
+  if (window.innerWidth <= 640) { renderAgenda(); }
   else renderGrid();
   renderLegend();
 }
