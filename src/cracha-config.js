@@ -77,6 +77,7 @@ async function init() {
     });
   });
   document.getElementById("btn-salvar").addEventListener("click", salvar);
+  document.addEventListener("cracha-preview", agendarPreview);
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
   document.getElementById("btn-remover-logo").addEventListener("click", removerLogo);
 
@@ -109,7 +110,7 @@ async function carregarConfig() {
   if (!instId) return;
   const { data } = await supabaseAdmin
     .from("cracha_config")
-    .select("cor_principal, cor_secundaria, cor_texto, cor_decoracao, cor_fundo, cor_rodape, logo_url, padrao, fonte")
+    .select("cor_principal, cor_secundaria, cor_texto, cor_decoracao, cor_fundo, cor_rodape, logo_url, padrao, fonte, negrito")
     .eq("instituicao_id", instId)
     .maybeSingle();
 
@@ -148,6 +149,10 @@ async function carregarConfig() {
       document.querySelectorAll(".cs-font-opt, .cc-font-opt").forEach(e => {
         e.classList.toggle("selected", e.dataset.font === data.fonte);
       });
+    }
+    if (data.negrito) {
+      const btn = document.getElementById("btn-negrito");
+      if (btn) { btn.classList.add("active"); document.getElementById("input-fonte").dataset.negrito = "1"; }
     }
   }
 }
@@ -224,8 +229,9 @@ function getConfig() {
     cor_fundo:      document.getElementById("input-cor-fundo")?.value   || "#ffffff",
     cor_rodape:     document.getElementById("input-cor-rodape")?.value  || "#ffffff",
     logo_url: document.getElementById("logo-area").dataset.logo || null,
-    padrao:   document.getElementById("input-padrao")?.dataset.value || "limpo",
-    fonte:    document.getElementById("input-fonte")?.dataset.value  || "georgia",
+    padrao:   document.getElementById("input-padrao")?.dataset.value  || "limpo",
+    fonte:    document.getElementById("input-fonte")?.dataset.value   || "georgia",
+    negrito:  document.getElementById("input-fonte")?.dataset.negrito === "1",
   };
 }
 
@@ -262,6 +268,7 @@ async function salvar() {
       cor_decoracao:  cfg.cor_decoracao,
       cor_fundo:      cfg.cor_fundo,
       cor_rodape:     cfg.cor_rodape,
+      negrito:        cfg.negrito ?? false,
       logo_url:       cfg.logo_url,
       padrao:         cfg.padrao,
       fonte:          cfg.fonte,

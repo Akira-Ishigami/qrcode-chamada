@@ -11,10 +11,16 @@ const PHOTO_W = 196;   // largura da área da foto/QR
 
 // ── Fontes disponíveis ────────────────────────────────────────────────────────
 const FONT_MAP = {
-  georgia:  { display: "Georgia, serif",            label: "Georgia, serif" },
-  arial:    { display: "Arial, sans-serif",          label: "Arial, sans-serif" },
-  courier:  { display: "'Courier New', monospace",   label: "Courier New" },
-  times:    { display: "'Times New Roman', serif",   label: "Times New Roman" },
+  georgia:    { display: "Georgia, serif" },
+  montserrat: { display: "'Montserrat', sans-serif" },
+  roboto:     { display: "'Roboto', sans-serif" },
+  oswald:     { display: "'Oswald', sans-serif" },
+  playfair:   { display: "'Playfair Display', serif" },
+  raleway:    { display: "'Raleway', sans-serif" },
+  ptserif:    { display: "'PT Serif', serif" },
+  arial:      { display: "Arial, sans-serif" },
+  times:      { display: "'Times New Roman', serif" },
+  courier:    { display: "'Courier New', monospace" },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -261,7 +267,7 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte, corRodape) {
 }
 
 // ── FRENTE ────────────────────────────────────────────────────────────────────
-async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape) {
+async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
@@ -346,14 +352,14 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
-      ctx.font = `bold ${sz}px ${font}`;
+      ctx.font = `${fw || "bold "}${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
     });
     cy += 5;
   };
   const divider = () => {
-    ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+    ctx.strokeStyle = rgba(corTexto, 0.15); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 2, cy); ctx.stroke();
     cy += 10;
   };
@@ -375,8 +381,8 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   ctx.fillStyle = corTexto;
   const r1 = fitText(ctx, turmaV, half, 12, 9, font);
   const r2 = fitText(ctx, idEstV, half, 12, 9, font);
-  ctx.font = `bold ${r1.size}px ${font}`; ctx.fillText(r1.text, tx, cy);
-  ctx.font = `bold ${r2.size}px ${font}`; ctx.fillText(r2.text, tx + half + 10, cy);
+  ctx.font = `${fw || "bold "}${r1.size}px ${font}`; ctx.fillText(r1.text, tx, cy);
+  ctx.font = `${fw || "bold "}${r2.size}px ${font}`; ctx.fillText(r2.text, tx + half + 10, cy);
   cy += r1.size + 7;
   divider();
 
@@ -385,7 +391,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
-function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape) {
+function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
@@ -447,7 +453,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
     const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
-      ctx.font = `bold ${sz}px ${font}`;
+      ctx.font = `${fw || "bold "}${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
     });
@@ -490,6 +496,8 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const corDecor   = config?.cor_decoracao  || cor1;
   const corFundo   = config?.cor_fundo      || "#ffffff";
   const corRodape  = config?.cor_rodape     || "#ffffff";
+  const negrito    = config?.negrito        ?? false;
+  const fw         = negrito ? "bold " : "";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
@@ -503,12 +511,12 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   ]);
 
   if (lado === "frente") {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw);
   } else if (lado === "verso") {
-    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
+    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw);
   } else {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
-    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw);
+    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape, fw);
   }
 
   return canvas.toDataURL("image/png");

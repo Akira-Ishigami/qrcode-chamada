@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Crachá — Chamada QR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500;700&family=Oswald:wght@400;500;600&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@400;500;600;700&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
   <style>
     :root {
@@ -414,38 +414,71 @@
     }
 
     /* ── Font grid ──────────────────────────────────── */
+    .cs-font-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 11px;
+    }
+    .cs-bold-toggle {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 12px;
+      background: var(--pnl-card);
+      border: 1.5px solid var(--pnl-card-border);
+      border-radius: 20px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      font-size: .72rem; font-weight: 600; color: var(--pnl-sub);
+      transition: all .15s;
+    }
+    .cs-bold-toggle:hover { border-color: #b0a898; color: var(--pnl-text); }
+    .cs-bold-toggle.active {
+      background: var(--ink); color: #f5f2ea; border-color: var(--ink);
+      box-shadow: 0 2px 8px rgba(18,16,11,.2);
+    }
+    .cs-bold-toggle-b { font-weight: 800; font-size: .82rem; }
+
     .cs-fonts {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
     }
     .cs-font-opt {
-      padding: 12px 14px;
-      border: 1.5px solid var(--pnl-card-border);
-      border-radius: 11px;
+      padding: 10px 10px 9px;
+      border: 1px solid var(--pnl-card-border);
+      border-radius: 12px;
       cursor: pointer;
       background: var(--pnl-card);
-      transition: all .15s;
-      display: flex; flex-direction: column; gap: 3px;
+      transition: all .18s cubic-bezier(.22,1,.36,1);
+      display: flex; flex-direction: column; gap: 4px;
+      position: relative; overflow: hidden;
     }
-    .cs-font-opt:hover { border-color: #b0a898; background: #faf8f4; }
+    .cs-font-opt:hover {
+      border-color: #c0b8ae;
+      background: #fdfcf9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.07);
+    }
     .cs-font-opt.selected {
       border-color: var(--ink);
       background: #fff;
-      box-shadow: 0 0 0 3px rgba(26,23,16,.08);
+      box-shadow: 0 0 0 2.5px rgba(26,23,16,.1), 0 4px 12px rgba(0,0,0,.08);
+    }
+    .cs-font-opt.selected::after {
+      content: '✓';
+      position: absolute; top: 5px; right: 7px;
+      font-size: .6rem; color: var(--ink); font-weight: 800;
     }
     .cs-font-name {
       font-family: 'JetBrains Mono', monospace;
-      font-size: .56rem; font-weight: 500;
+      font-size: .5rem; font-weight: 500;
       letter-spacing: .08em;
-      color: var(--pnl-sub);
-      text-transform: uppercase;
+      color: var(--pnl-muted);
+      text-transform: uppercase; line-height: 1;
     }
-    .cs-font-opt.selected .cs-font-name { color: var(--ink); }
+    .cs-font-opt.selected .cs-font-name { color: var(--pnl-sub); }
     .cs-font-sample {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       color: var(--pnl-text);
-      line-height: 1.1;
+      line-height: 1.15;
+      letter-spacing: -.01em;
     }
 
     /* ── Logo drop ──────────────────────────────────── */
@@ -836,11 +869,41 @@
 
           <!-- Fonte -->
           <div class="cs-section">
-            <div class="cs-sec-lbl">Fonte</div>
+            <div class="cs-font-header">
+              <div class="cs-sec-lbl" style="margin-bottom:0">Fonte</div>
+              <button class="cs-bold-toggle" id="btn-negrito" type="button">
+                <span class="cs-bold-toggle-b">B</span>
+                Negrito
+              </button>
+            </div>
             <div class="cs-fonts" id="input-fonte" data-value="georgia">
               <div class="cs-font-opt selected" data-font="georgia">
                 <div class="cs-font-name">Georgia</div>
                 <div class="cs-font-sample" style="font-family:Georgia,serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="montserrat">
+                <div class="cs-font-name">Montserrat</div>
+                <div class="cs-font-sample" style="font-family:'Montserrat',sans-serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="roboto">
+                <div class="cs-font-name">Roboto</div>
+                <div class="cs-font-sample" style="font-family:'Roboto',sans-serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="oswald">
+                <div class="cs-font-name">Oswald</div>
+                <div class="cs-font-sample" style="font-family:'Oswald',sans-serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="playfair">
+                <div class="cs-font-name">Playfair</div>
+                <div class="cs-font-sample" style="font-family:'Playfair Display',serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="raleway">
+                <div class="cs-font-name">Raleway</div>
+                <div class="cs-font-sample" style="font-family:'Raleway',sans-serif">Abc 123</div>
+              </div>
+              <div class="cs-font-opt" data-font="ptserif">
+                <div class="cs-font-name">PT Serif</div>
+                <div class="cs-font-sample" style="font-family:'PT Serif',serif">Abc 123</div>
               </div>
               <div class="cs-font-opt" data-font="arial">
                 <div class="cs-font-name">Arial</div>
@@ -849,10 +912,6 @@
               <div class="cs-font-opt" data-font="times">
                 <div class="cs-font-name">Times</div>
                 <div class="cs-font-sample" style="font-family:'Times New Roman',serif">Abc 123</div>
-              </div>
-              <div class="cs-font-opt" data-font="courier">
-                <div class="cs-font-name">Courier</div>
-                <div class="cs-font-sample" style="font-family:'Courier New',monospace">Abc 123</div>
               </div>
             </div>
           </div>
@@ -918,6 +977,13 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
     if (id === 'cor-decor') document.documentElement.style.setProperty('--thumb-c', input.value);
   });
 });
+// Bold toggle
+document.getElementById('btn-negrito').addEventListener('click', function() {
+  this.classList.toggle('active');
+  document.getElementById('input-fonte').dataset.negrito = this.classList.contains('active') ? '1' : '0';
+  document.dispatchEvent(new Event('cracha-preview'));
+});
+
 // Logo click
 document.getElementById('logo-area').addEventListener('click', (e) => {
   if (!e.target.closest('#btn-remover-logo')) document.getElementById('logo-upload').click();
