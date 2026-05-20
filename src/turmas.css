@@ -229,8 +229,15 @@
   .tc-edit, .tc-del { opacity: 1; }
 }
 
-@media (max-width: 900px) { .turma-card-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 540px) { .turma-card-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .turma-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+@media (max-width: 540px) {
+  .turma-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tc-card { padding-bottom: 16px; }
+  .tc-name { font-size: 1rem; }
+}
+@media (max-width: 380px) {
+  .turma-card-grid { grid-template-columns: 1fr; }
+}
 
 /* ── Turma picker prompt (alunos) ── */
 .turma-picker {

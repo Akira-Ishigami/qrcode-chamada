@@ -1347,10 +1347,29 @@ input::placeholder, textarea::placeholder { color: var(--text-3); font-weight: 4
   .form-modal.open .form-modal-card { transform: scale(1) translateY(0); }
 }
 
-/* Telas muito pequenas */
+/* ── Tablet (769px–1024px) ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root { --sidebar-w: 220px; }
+  .sidebar-title { font-size: .82rem; }
+  .sidebar-link  { font-size: .82rem; }
+}
+
+/* ── Telas pequenas (≤ 480px) ── */
+@media (max-width: 480px) {
+  .mobile-topbar { padding: 0 12px; }
+  .selector-card { padding: 28px 20px; }
+  .selector-title { font-size: 1.2rem; }
+  .btn-iniciar { font-size: .88rem; min-height: 48px; }
+  .sel-group label { font-size: .64rem; }
+  #sel-turma { font-size: .875rem; height: 44px; }
+  .form-modal-card { border-radius: 16px 16px 0 0; }
+}
+
+/* ── Telas muito pequenas (≤ 360px) ── */
 @media (max-width: 360px) {
   .sidebar { width: 88vw; }
   .confirm-btns { flex-direction: column; }
   .stat-card .number { font-size: 1.6rem; }
-  .selector-card { padding: 24px 14px; }
+  .selector-card { padding: 22px 14px; }
+  .mobile-topbar-title { font-size: .8rem; }
 }

@@ -393,7 +393,14 @@
       .idash-title       { font-size: 1.55rem; }
       .idash-stat-num    { font-size: 2.1rem; }
       .idash-body        { padding: 20px 16px 48px; }
-      .idash-header      { padding: 22px 20px; }
+      .idash-header      { padding: 22px 20px; flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+    @media (max-width: 400px) {
+      .idash-stats       { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .idash-stat        { padding: 16px 14px; }
+      .idash-stat-num    { font-size: 1.8rem; }
+      .idash-cham-meta   { font-size: .62rem; }
+      .idash-cham-turma  { font-size: .82rem; }
     }
   </style>
 </head>

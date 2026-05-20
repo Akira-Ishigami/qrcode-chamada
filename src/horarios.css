@@ -444,15 +444,56 @@
 .hor-prof-aviso { font-size:.8rem;color:#64748b;padding:8px 0; }
 .hor-prof-aviso a { color:#2563eb;text-decoration:none;font-weight:600; }
 
-/* ─── MOBILE ────────────────────────────────── */
+/* ─── TABLET ─────────────────────────────────── */
 @media (max-width: 768px) {
   .hor-header    { padding: 12px 16px; }
+  .hor-subtitle  { display: none; }
   .hor-turma-bar { padding: 9px 14px; gap: 8px; }
   .hor-turma-select { min-width: 160px; font-size: .8rem; }
-  .cal-time-col  { width: 40px; }
-  .cal-hour-label { font-size: .52rem; padding: 4px 6px 0 0; height: 56px; }
+  .cal-time-col  { width: 38px; }
+  .cal-hour-label { font-size: .5rem; padding: 4px 5px 0 0; height: 56px; }
   .cal-cell      { height: 56px; }
-  .cal-day-col   { min-width: 64px; }
+  .cal-day-col   { min-width: 60px; }
+  .cal-day-head  { font-size: .58rem; padding: 8px 2px; }
   .hor-modal     { max-width: calc(100% - 24px); border-radius: 16px; }
   .hor-week-badge { display: none; }
+}
+
+/* ─── MOBILE ─────────────────────────────────── */
+@media (max-width: 540px) {
+  .hor-title     { font-size: .95rem; }
+  .hor-header    { padding: 10px 14px 8px; }
+  .hor-turma-bar { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
+  .hor-turma-label { font-size: .6rem; }
+  .hor-turma-select { font-size: .78rem; width: 100%; min-width: 0; }
+  .hor-select-wrap { width: 100%; }
+
+  /* Calendário: scroll horizontal com indicador */
+  .cal-outer  { overflow: hidden; }
+  .cal-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .cal-grid { min-width: 420px; }
+  .cal-time-col  { width: 32px; }
+  .cal-hour-label { font-size: .46rem; padding: 3px 4px 0 0; height: 48px; }
+  .cal-cell      { height: 48px; }
+  .cal-day-col   { min-width: 52px; scroll-snap-align: start; }
+  .cal-day-head  { font-size: .54rem; padding: 7px 2px; letter-spacing: 0; }
+  .cal-block-nome { font-size: .58rem; }
+  .cal-block-sub  { font-size: .5rem; }
+
+  /* Chips de turma */
+  .hor-turma-chip { font-size: .7rem; padding: 3px 10px; }
+
+  /* Modal: bottom sheet no mobile */
+  .hor-modal-bg { align-items: flex-end; }
+  .hor-modal {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
 }

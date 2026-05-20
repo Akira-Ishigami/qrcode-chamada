@@ -321,18 +321,28 @@
 
     @media (max-width: 640px) {
       #page-root { padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important; }
-      .rel-filter-bar { flex-direction: column; align-items: stretch; }
-      .rel-filter-left { flex-direction: column; }
-      .rel-select, .rel-input { width: 100%; min-width: unset; height: 44px; }
+      .rel-filter-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .rel-filter-left { flex-direction: column; gap: 6px; flex-wrap: wrap; }
+      .rel-filter-group { flex-direction: row; align-items: center; gap: 8px; }
+      .rel-filter-label { min-width: 30px; }
+      .rel-select, .rel-input { width: 100%; min-width: unset; height: 44px; flex: 1; }
       .hist-detail-inner { grid-template-columns: 1fr; }
       .hist-detail-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
       .hist-stat-sep { display: none; }
+      .hist-stats-bar { flex-wrap: wrap; gap: 8px; }
+      .hist-stat-pill { flex: 1; min-width: 80px; }
       .rel-tabs { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
       .rel-tabs::-webkit-scrollbar { display: none; }
-      .rel-tab { flex-shrink: 0; font-size: .78rem; padding: 8px 14px; }
+      .rel-tab { flex-shrink: 0; font-size: .78rem; padding: 8px 14px; min-height: 40px; }
       .rel-resumo-grid { grid-template-columns: 1fr; }
       .rel-btn-download { width: 100%; justify-content: center; height: 44px; }
       .rel-btn-clear { height: 44px; }
+      .hist-row-chips { flex-wrap: wrap; gap: 3px; }
+    }
+    @media (max-width: 400px) {
+      #page-root { padding: 14px 12px !important; }
+      .hist-header { margin-bottom: 12px; }
+      .hist-title { font-size: 1.3rem; }
     }
   </style>
 </head>

@@ -297,7 +297,8 @@
     @keyframes spUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
     @media (max-width: 600px) {
-      .sp-stats { flex-direction: row; }
+      #page-root { padding: 18px 16px !important; }
+      .sp-stats { flex-direction: row; flex-wrap: wrap; }
       .sp-stat  { min-width: calc(50% - 5px); }
       .sp-type-pick { grid-template-columns: 1fr; }
 
