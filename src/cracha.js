@@ -192,15 +192,10 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
 
   // Título — sempre preto, centralizado
   ctx.fillStyle = "#1e293b";
-  ctx.font = "bold 13px Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + CW / 2, oy + HEADER / 2);
-  ctx.textBaseline = "alphabetic";
-
-  // Logo box — prominente, top right
+  // Logo box — top right (desenhado antes do texto para texto ficar por cima)
+  const LOGO_W = 158;
   if (logoImg) {
-    const bw = 158, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
+    const bw = LOGO_W, bh = HEADER - 6, bx = ox + CW - bw - 8, by = oy + 3;
     ctx.fillStyle = "#ffffff";
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
@@ -209,6 +204,15 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
+
+  // Texto centralizado apenas na área à esquerda do logo
+  const textAreaW = logoImg ? CW - LOGO_W - 20 : CW;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 12px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("IDENTIFICAÇÃO PESSOAL DO ESTUDANTE", ox + textAreaW / 2, oy + HEADER / 2);
+  ctx.textBaseline = "alphabetic";
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
