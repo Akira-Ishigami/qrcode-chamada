@@ -616,6 +616,51 @@
 }
 .agenda-empty svg { opacity: .25; }
 
+/* Botão add aula na agenda mobile */
+.agenda-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 13px;
+  background: none;
+  border: 1.5px dashed #bfdbfe;
+  border-radius: 12px;
+  font-size: .84rem;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: pointer;
+  font-family: 'Outfit', system-ui, sans-serif;
+  transition: background .15s, border-color .15s;
+  margin-top: 6px;
+}
+.agenda-add-btn:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  border-style: solid;
+}
+
+/* Card clicável (instituição) */
+.agenda-card.inst-edit { cursor: pointer; }
+.agenda-card.inst-edit:active { transform: scale(.985); }
+.agenda-card-edit-hint {
+  font-size: .6rem;
+  color: #94a3b8;
+  margin-top: 4px;
+  letter-spacing: .04em;
+}
+
+/* Popover centralizado no mobile */
+.cal-popover-mobile {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+  min-width: 220px;
+}
+
 /* ─── MOBILE ─────────────────────────────────── */
 @media (max-width: 540px) {
   .hor-title     { font-size: .95rem; }
