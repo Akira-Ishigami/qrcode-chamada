@@ -365,14 +365,6 @@ function abrirModalEditar(t) {
           <label class="tv-label">Nome da turma <span style="color:var(--red)">*</span></label>
           <input class="tv-input" id="me-nome" value="${t.nome}" autocomplete="off" />
         </div>
-        <div>
-          <label class="tv-label">Professor</label>
-          <input class="tv-input" id="me-professor" value="${t.professor || ""}" placeholder="Nome do professor" autocomplete="off" />
-        </div>
-        <div>
-          <label class="tv-label">Horário</label>
-          <input class="tv-input" id="me-horario" value="${t.horario || ""}" placeholder="Ex: Seg/Qua 19h" autocomplete="off" />
-        </div>
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
       <div class="tv-modal-foot">
@@ -396,9 +388,7 @@ function abrirModalEditar(t) {
   document.getElementById("modal-ok").addEventListener("click", async () => {
     const err = document.getElementById("modal-err");
     err.textContent = "";
-    const nome      = document.getElementById("me-nome")?.value.trim();
-    const professor = document.getElementById("me-professor")?.value.trim() || null;
-    const horario   = document.getElementById("me-horario")?.value.trim() || null;
+    const nome = document.getElementById("me-nome")?.value.trim();
 
     if (!nome) { err.textContent = "Informe o nome da turma."; return; }
 
@@ -406,7 +396,7 @@ function abrirModalEditar(t) {
     btn.disabled = true;
     btn.innerHTML = `<svg style="animation:spin .8s linear infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando...`;
 
-    const { error } = await supabase.from("turmas").update({ nome, professor, horario }).eq("id", t.id);
+    const { error } = await supabase.from("turmas").update({ nome }).eq("id", t.id);
     if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_EDIT} Salvar`; return; }
 
     fechar();
