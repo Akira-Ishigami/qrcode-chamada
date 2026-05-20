@@ -95,7 +95,7 @@ async function loadAll() {
   const turmaIds = _turmas.map(t => t.id);
 
   const { data: chamadas } = await supabaseAdmin
-    .from("chamadas").select("id, turma_id, data, aberta, duracao_seg")
+    .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
     .in("turma_id", turmaIds).order("data", { ascending: false });
 
   const allChamadas = chamadas ?? [];
@@ -129,6 +129,7 @@ async function loadAll() {
     return {
       ...c,
       turma:     _turmaMap[c.turma_id],
+      professor: c.profiles?.nome ?? "",
       presentes: totalP,
       atrasados: totalAt,
       ausentes:  totalAlunos - totalP,
@@ -336,7 +337,7 @@ function renderPorChamada(f) {
           <div class="hist-row-avatar">${esc(ini)}</div>
           <div class="hist-row-info">
             <div class="hist-row-turma">${esc(c.turma?.nome || "—")}</div>
-            ${c.turma?.materia ? `<div class="hist-row-materia">${esc(c.turma.materia)}</div>` : ""}
+            ${c.professor ? `<div class="hist-row-materia">${esc(c.professor)}</div>` : ""}
           </div>
           <div class="hist-row-chips">
             <span class="hist-chip green">

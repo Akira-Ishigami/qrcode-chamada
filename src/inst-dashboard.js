@@ -87,7 +87,7 @@ async function render(profile) {
     supabaseAdmin.from("profiles").select("id").eq("instituicao_id", instId).eq("role", "professor"),
     instId ? supabaseAdmin.from("instituicoes").select("nome").eq("id", instId).single() : { data: null },
     supabaseAdmin.from("chamadas")
-      .select("id, aberta, criado_em, duracao_seg, turmas!inner(id, nome, professor, instituicao_id)")
+      .select("id, aberta, criado_em, duracao_seg, professor_id, turmas!inner(id, nome, instituicao_id), profiles(nome)")
       .eq("data", hoje)
       .eq("turmas.instituicao_id", instId)
       .order("criado_em", { ascending: false }),
@@ -159,13 +159,13 @@ async function render(profile) {
             const horaRow = c.criado_em ? new Date(c.criado_em).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }) : "";
             return `
             <div class="idash-cham-row ${c.aberta ? "aberta-row" : ""}" style="animation-delay:${i * .035}s"
-              data-id="${c.id}" data-turma-id="${c.turmas?.id ?? ""}" data-turma="${esc(c.turmas?.nome ?? "")}" data-prof="${esc(c.turmas?.professor ?? "")}" data-hora="${horaRow}">
+              data-id="${c.id}" data-turma-id="${c.turmas?.id ?? ""}" data-turma="${esc(c.turmas?.nome ?? "")}" data-prof="${esc(c.profiles?.nome ?? "")}" data-hora="${horaRow}">
               <div class="idash-cham-stripe"></div>
               <div class="idash-cham-main">
                 <div class="idash-cham-dot ${c.aberta ? "aberta" : "fechada"}"></div>
                 <div class="idash-cham-info">
                   <div class="idash-cham-turma">${esc(c.turmas?.nome ?? "—")}</div>
-                  <div class="idash-cham-meta">${[c.turmas?.professor ? esc(c.turmas.professor) : "", horaRow].filter(Boolean).join(" · ")}</div>
+                  <div class="idash-cham-meta">${[c.profiles?.nome ? esc(c.profiles.nome) : "", horaRow].filter(Boolean).join(" · ")}</div>
                 </div>
               </div>
               <div class="idash-cham-right">
