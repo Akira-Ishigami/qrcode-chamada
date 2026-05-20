@@ -181,9 +181,9 @@ function drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function drawHeader(ctx, ox, oy, cor1, logoImg) {
-  // Fundo branco
-  ctx.fillStyle = "#ffffff";
+function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo) {
+  // Fundo: usa corFundo para o header ser consistente com o card todo
+  ctx.fillStyle = corFundo || "#ffffff";
   ctx.save();
   rr(ctx, ox, oy, CW, CH, CR);
   ctx.clip();
@@ -251,7 +251,7 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
-  drawHeader(ctx, ox, oy, cor1, logoImg);
+  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
   // ── Foto ocupa TODO o quadrado esquerdo (borda a borda do body) ──
@@ -375,7 +375,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
-  drawHeader(ctx, ox, oy, cor1, logoImg);
+  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
   // ── QR Code ocupa TODO o quadrado esquerdo ──
