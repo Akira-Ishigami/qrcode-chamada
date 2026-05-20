@@ -202,9 +202,12 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
     ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fill(); ctx.stroke();
-    const scale = Math.min((bw - 2) / logoImg.width, (bh - 2) / logoImg.height);
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.clip();
+    const scale = Math.max(bw / logoImg.width, bh / logoImg.height);
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
+    ctx.restore();
   }
 
   // Texto sempre centralizado na largura total
