@@ -497,7 +497,7 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const corFundo   = config?.cor_fundo      || "#ffffff";
   const corRodape  = config?.cor_rodape     || "#ffffff";
   const negrito    = config?.negrito        ?? false;
-  const fw         = negrito ? "bold " : "";
+  const fw         = negrito ? "900 " : "";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
