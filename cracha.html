@@ -294,6 +294,11 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: .59rem; color: var(--pnl-muted);
     }
+    .cs-chip-hint {
+      font-size: .56rem; color: var(--pnl-muted);
+      margin-top: 1px; opacity: .7;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .cs-chip-arrow {
       color: var(--pnl-muted); opacity: 0;
       transition: opacity .15s, transform .15s;
@@ -709,7 +714,7 @@
           <div class="cs-section">
             <div class="cs-sec-lbl">Cores</div>
             <div class="cs-chips">
-              <div class="cs-chips-row">
+              <div class="cs-chips-row trio">
                 <div class="cs-chip">
                   <div class="cs-chip-swatch" id="swatch1" style="background:#2563eb">
                     <input type="color" id="input-cor1" value="#2563eb" />
@@ -717,8 +722,8 @@
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Principal</div>
                     <div class="cs-chip-hex" id="val-cor1">#2563eb</div>
+                    <div class="cs-chip-hint">Header e barra</div>
                   </div>
-                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
                 <div class="cs-chip">
                   <div class="cs-chip-swatch" id="swatch2" style="background:#1e40af">
@@ -727,8 +732,18 @@
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Gradiente</div>
                     <div class="cs-chip-hex" id="val-cor2">#1e40af</div>
+                    <div class="cs-chip-hint">Final do degradê</div>
                   </div>
-                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="cs-chip">
+                  <div class="cs-chip-swatch" id="swatch-decor" style="background:#2563eb">
+                    <input type="color" id="input-cor-decor" value="#2563eb" />
+                  </div>
+                  <div class="cs-chip-body">
+                    <div class="cs-chip-name">Decoração</div>
+                    <div class="cs-chip-hex" id="val-cor-decor">#2563eb</div>
+                    <div class="cs-chip-hint">Padrão do fundo</div>
+                  </div>
                 </div>
               </div>
               <div class="cs-chips-row trio">
@@ -739,37 +754,28 @@
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Texto</div>
                     <div class="cs-chip-hex" id="val-cor-texto">#111827</div>
+                    <div class="cs-chip-hint">Nome e campos</div>
                   </div>
                 </div>
                 <div class="cs-chip">
-                  <div class="cs-chip-swatch" id="swatch-decor" style="background:#2563eb">
-                    <input type="color" id="input-cor-decor" value="#2563eb" />
-                  </div>
-                  <div class="cs-chip-body">
-                    <div class="cs-chip-name">Decoração</div>
-                    <div class="cs-chip-hex" id="val-cor-decor">#2563eb</div>
-                  </div>
-                </div>
-                <div class="cs-chip">
-                  <div class="cs-chip-swatch" id="swatch-fundo" style="background:#ffffff;box-shadow:inset 0 0 0 1px #e4eaf4">
+                  <div class="cs-chip-swatch" id="swatch-fundo" style="background:#ffffff">
                     <input type="color" id="input-cor-fundo" value="#ffffff" />
                   </div>
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Fundo</div>
                     <div class="cs-chip-hex" id="val-cor-fundo">#ffffff</div>
+                    <div class="cs-chip-hint">Cor do cartão</div>
                   </div>
                 </div>
-              </div>
-              <div class="cs-chips-row" style="grid-template-columns:1fr">
                 <div class="cs-chip">
                   <div class="cs-chip-swatch" id="swatch-rodape" style="background:#ffffff">
                     <input type="color" id="input-cor-rodape" value="#ffffff" />
                   </div>
                   <div class="cs-chip-body">
-                    <div class="cs-chip-name">Texto do rodapé</div>
+                    <div class="cs-chip-name">Rodapé</div>
                     <div class="cs-chip-hex" id="val-cor-rodape">#ffffff</div>
+                    <div class="cs-chip-hint">Nome da escola</div>
                   </div>
-                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
             </div>
