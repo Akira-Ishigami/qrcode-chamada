@@ -180,7 +180,7 @@ function drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo) {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo) {
+function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto) {
   // Fundo: usa corFundo para o header ser consistente com o card todo
   ctx.fillStyle = corFundo || "#ffffff";
   ctx.save();
@@ -209,8 +209,8 @@ function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo) {
     ctx.restore();
   }
 
-  // Texto centralizado — cor com contraste automático
-  ctx.fillStyle = autoContrast(corFundo || "#ffffff", "#1e293b");
+  // Texto centralizado — usa cor do texto escolhida pelo usuário
+  ctx.fillStyle = corTexto || "#1e293b";
   ctx.font = "bold 13px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -244,32 +244,13 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
   ctx.textBaseline = "alphabetic";
 }
 
-// Calcula luminância e retorna cor de texto com contraste adequado
-function autoContrast(bgHex, userText) {
-  try {
-    const r = parseInt(bgHex.slice(1,3),16)/255;
-    const g = parseInt(bgHex.slice(3,5),16)/255;
-    const b = parseInt(bgHex.slice(5,7),16)/255;
-    const lum = 0.299*r + 0.587*g + 0.114*b;
-    // Se fundo escuro usa texto claro; se fundo claro usa texto do usuário
-    if (lum < 0.35) return "#ffffff";
-    // Se o texto do usuário tem contraste suficiente, mantém
-    const ur = parseInt(userText.slice(1,3),16)/255;
-    const ug = parseInt(userText.slice(3,5),16)/255;
-    const ub = parseInt(userText.slice(5,7),16)/255;
-    const ulum = 0.299*ur + 0.587*ug + 0.114*ub;
-    const contrast = (Math.max(lum,ulum)+0.05)/(Math.min(lum,ulum)+0.05);
-    return contrast >= 3 ? userText : (lum > 0.5 ? "#111827" : "#ffffff");
-  } catch { return userText; }
-}
-
 // ── FRENTE ────────────────────────────────────────────────────────────────────
 async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
-  corTexto = autoContrast(corFundo || "#ffffff", corTexto || "#111827");
+  corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
-  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo);
+  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
   // ── Foto ocupa TODO o quadrado esquerdo (borda a borda do body) ──
@@ -336,10 +317,10 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   const totalH = 23 + 18 + 10 + 40 + 10 + 23 + 18; // ~142px
   let cy = oy + HEADER + Math.round((BODY - totalH) / 2);
 
-  const lblColor = autoContrast(corFundo || "#ffffff", "#6b7280");
-  // Label: pequeno, com contraste automático
+  // Label: mesma cor do texto com 65% opacidade
+  const { rgba: rgbaFn } = { rgba: (hex, a) => { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } };
   const lbl = (t) => {
-    ctx.fillStyle = lblColor;
+    ctx.fillStyle = rgbaFn(corTexto, 0.65);
     ctx.font = `500 9px Arial, sans-serif`;
     ctx.textAlign = "left";
     ctx.fillText(t.toUpperCase(), tx, cy);
@@ -391,10 +372,10 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 // ── VERSO ─────────────────────────────────────────────────────────────────────
 function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
-  corTexto = autoContrast(corFundo || "#ffffff", corTexto || "#111827");
+  corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
-  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo);
+  drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto);
   drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
 
   // ── QR Code ocupa TODO o quadrado esquerdo ──
@@ -440,9 +421,9 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
   const totalHV = 23 + 18 + 10 + 23 + 18 + 10 + 23 + 15; // ~140px
   let cy = oy + HEADER + Math.round((BODY - totalHV) / 2);
 
-  const lblColorV = autoContrast(corFundo || "#ffffff", "#6b7280");
+  const rgbaV = (hex, a) => { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; };
   const lbl = (t) => {
-    ctx.fillStyle = lblColorV;
+    ctx.fillStyle = rgbaV(corTexto, 0.65);
     ctx.font = "500 9px Arial, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(t.toUpperCase(), tx, cy);
@@ -459,7 +440,7 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
     cy += 5;
   };
   const divider = () => {
-    ctx.strokeStyle = autoContrast(corFundo || "#ffffff", "#e5e7eb"); ctx.lineWidth = 1;
+    ctx.strokeStyle = rgbaV(corTexto, 0.15); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(tx, cy); ctx.lineTo(tx + tw - 2, cy); ctx.stroke();
     cy += 10;
   };
