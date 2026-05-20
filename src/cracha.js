@@ -46,20 +46,20 @@ const rgba = (hex, a) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 
-function fitText(ctx, text, maxW, maxSz, minSz, font) {
+function fitText(ctx, text, maxW, maxSz, minSz, font, fw = "600 ") {
   if (!text) return { text: "—", size: maxSz };
   let sz = maxSz;
-  ctx.font = `bold ${sz}px ${font}`;
+  ctx.font = `${fw}${sz}px ${font}`;
   while (ctx.measureText(text).width > maxW && sz > minSz) {
-    sz--; ctx.font = `bold ${sz}px ${font}`;
+    sz--; ctx.font = `${fw}${sz}px ${font}`;
   }
   let t = text;
   while (ctx.measureText(t).width > maxW && t.length > 2) t = t.slice(0, -1);
   return { text: t !== text ? t + "…" : t, size: sz };
 }
 
-function wrapLines(ctx, text, maxW, sz, font) {
-  ctx.font = `bold ${sz}px ${font}`;
+function wrapLines(ctx, text, maxW, sz, font, fw = "600 ") {
+  ctx.font = `${fw}${sz}px ${font}`;
   if (!text || ctx.measureText(text).width <= maxW) return [text || "—"];
   const words = text.split(" ");
   let l1 = "", l2 = "";
@@ -349,10 +349,10 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   };
   // Valor: maior, cor do texto
   const val = (text, sz = 14, maxW = tw) => {
-    const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
+    const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font, fw);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
-      ctx.font = `${fw || "bold "}${sz}px ${font}`;
+      ctx.font = `${fw}${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
     });
@@ -379,10 +379,10 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
   cy += 14;
 
   ctx.fillStyle = corTexto;
-  const r1 = fitText(ctx, turmaV, half, 12, 9, font);
-  const r2 = fitText(ctx, idEstV, half, 12, 9, font);
-  ctx.font = `${fw || "bold "}${r1.size}px ${font}`; ctx.fillText(r1.text, tx, cy);
-  ctx.font = `${fw || "bold "}${r2.size}px ${font}`; ctx.fillText(r2.text, tx + half + 10, cy);
+  const r1 = fitText(ctx, turmaV, half, 12, 9, font, fw);
+  const r2 = fitText(ctx, idEstV, half, 12, 9, font, fw);
+  ctx.font = `${fw}${r1.size}px ${font}`; ctx.fillText(r1.text, tx, cy);
+  ctx.font = `${fw}${r2.size}px ${font}`; ctx.fillText(r2.text, tx + half + 10, cy);
   cy += r1.size + 7;
   divider();
 
@@ -450,10 +450,10 @@ function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, pad
     cy += 13;
   };
   const val = (text, sz = 14, maxW = tw) => {
-    const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font);
+    const lines = wrapLines(ctx, text || "—", maxW - 2, sz, font, fw);
     lines.forEach(line => {
       ctx.fillStyle = corTexto;
-      ctx.font = `${fw || "bold "}${sz}px ${font}`;
+      ctx.font = `${fw}${sz}px ${font}`;
       ctx.fillText(line, tx, cy);
       cy += sz + 3;
     });
@@ -497,7 +497,7 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const corFundo   = config?.cor_fundo      || "#ffffff";
   const corRodape  = config?.cor_rodape     || "#ffffff";
   const negrito    = config?.negrito        ?? false;
-  const fw         = negrito ? "bold " : "";
+  const fw         = negrito ? "bold " : "600 ";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,

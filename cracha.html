@@ -608,9 +608,29 @@
     .toast.error   { background: #dc2626; }
 
     @media (max-width: 860px) {
-      .cs-studio { flex-direction: column; }
-      .cs-canvas { min-height: 320px; flex: none; }
+      .cs-studio { flex-direction: column; overflow-y: auto; }
+      .cs-canvas { min-height: 260px; flex: none; }
+      .cs-canvas-scene { padding: 20px 12px 8px; }
       .cs-controls { width: 100%; border-left: none; border-top: 1px solid var(--pnl-border); }
+      .cs-section { padding: 14px 18px; }
+      .cs-ctrl-head { padding: 20px 18px 16px; }
+      .cs-title { font-size: 2rem; }
+      .cs-chips-row.trio { grid-template-columns: 1fr 1fr 1fr; }
+      .cs-patterns { grid-template-columns: repeat(4, 1fr); }
+      .cs-fonts { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 540px) {
+      .cs-canvas { min-height: 200px; }
+      #preview-canvas-wrap img { border-radius: 8px; }
+      .cs-chips-row { grid-template-columns: 1fr 1fr; }
+      .cs-chips-row.trio { grid-template-columns: 1fr 1fr 1fr; }
+      .cs-chip-swatch { width: 28px; height: 28px; }
+      .cs-patterns { grid-template-columns: repeat(4, 1fr); }
+      .cs-pt-thumb { height: 36px; }
+      .cs-fonts { grid-template-columns: repeat(3, 1fr); }
+      .cs-font-sample { font-size: 1rem; }
+      .cs-ctrl-head { padding: 16px 16px 12px; }
+      .cs-section { padding: 12px 16px; }
     }
   </style>
 </head>
