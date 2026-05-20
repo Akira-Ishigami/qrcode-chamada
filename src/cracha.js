@@ -81,25 +81,28 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
   ctx.rect(ox, bodyY, CW, bodyH);
   ctx.clip();
 
+  // Converte hex para rgba com opacidade
+  const rgba = (hex, a) => {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
   if (padrao === "geometrico") {
-    // Triângulo grande top-left
-    ctx.fillStyle = cor1 + "38";
+    ctx.fillStyle = rgba(cor1, 0.85);
     ctx.beginPath();
     ctx.moveTo(ox, bodyY);
     ctx.lineTo(ox + 200, bodyY);
     ctx.lineTo(ox, bodyY + 160);
     ctx.closePath();
     ctx.fill();
-    // Triângulo menor bottom-right
-    ctx.fillStyle = cor1 + "28";
+    ctx.fillStyle = rgba(cor1, 0.55);
     ctx.beginPath();
     ctx.moveTo(ox + CW, bodyY + bodyH);
     ctx.lineTo(ox + CW - 130, bodyY + bodyH);
     ctx.lineTo(ox + CW, bodyY + bodyH - 100);
     ctx.closePath();
     ctx.fill();
-    // Linha diagonal de acento
-    ctx.strokeStyle = cor1 + "22";
+    ctx.strokeStyle = rgba(cor1, 0.4);
     ctx.lineWidth = 32;
     ctx.beginPath();
     ctx.moveTo(ox, bodyY + bodyH - 30);
@@ -107,26 +110,24 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
     ctx.stroke();
 
   } else if (padrao === "pontos") {
-    ctx.fillStyle = cor1 + "28";
+    ctx.fillStyle = rgba(cor1, 0.75);
     for (let dx = 20; dx < CW; dx += 24) {
       for (let dy = 14; dy < bodyH - 8; dy += 24) {
         ctx.beginPath();
-        ctx.arc(ox + dx, bodyY + dy, 1.4, 0, Math.PI * 2);
+        ctx.arc(ox + dx, bodyY + dy, 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
   } else if (padrao === "diagonal") {
-    ctx.strokeStyle = cor1 + "35";
+    ctx.strokeStyle = rgba(cor1, 0.7);
     ctx.lineWidth = 20;
-    // Faixas diagonais no canto superior direito
     for (let i = 0; i < 6; i++) {
       ctx.beginPath();
       ctx.moveTo(ox + CW - 20 - i * 32, bodyY);
       ctx.lineTo(ox + CW, bodyY + 20 + i * 32);
       ctx.stroke();
     }
-    // Espelho inferior esquerdo
     for (let i = 0; i < 4; i++) {
       ctx.beginPath();
       ctx.moveTo(ox, bodyY + bodyH - i * 32);
@@ -135,8 +136,7 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
     }
 
   } else if (padrao === "ondas") {
-    // Onda principal
-    ctx.fillStyle = cor1 + "30";
+    ctx.fillStyle = rgba(cor1, 0.8);
     ctx.beginPath();
     ctx.moveTo(ox, bodyY + bodyH * 0.55);
     ctx.bezierCurveTo(
@@ -148,8 +148,7 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
     ctx.lineTo(ox, bodyY + bodyH);
     ctx.closePath();
     ctx.fill();
-    // Onda secundária (mais clara)
-    ctx.fillStyle = cor1 + "18";
+    ctx.fillStyle = rgba(cor1, 0.45);
     ctx.beginPath();
     ctx.moveTo(ox, bodyY + bodyH * 0.42);
     ctx.bezierCurveTo(
