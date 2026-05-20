@@ -193,13 +193,16 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   // Título — sempre preto, centralizado
   ctx.fillStyle = "#1e293b";
   // Logo box — canto direito, sem borda
-  const LOGO_W = 120;
   const LOGO_GAP = 10;
+  const LOGO_H = HEADER - LOGO_GAP * 2;
+  const LOGO_W = LOGO_H; // quadrado
   if (logoImg) {
-    const bw = LOGO_W, bh = HEADER - LOGO_GAP * 2, bx = ox + CW - bw - LOGO_GAP, by = oy + LOGO_GAP;
+    const bw = LOGO_W, bh = LOGO_H, bx = ox + CW - bw - LOGO_GAP, by = oy + LOGO_GAP;
     ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
-    const scale = Math.min((bw - 4) / logoImg.width, (bh - 4) / logoImg.height);
+    ctx.strokeStyle = "#d1d5db";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fill(); ctx.stroke();
+    const scale = Math.min((bw - 6) / logoImg.width, (bh - 6) / logoImg.height);
     const lw = logoImg.width * scale, lh = logoImg.height * scale;
     ctx.drawImage(logoImg, bx + (bw - lw) / 2, by + (bh - lh) / 2, lw, lh);
   }
