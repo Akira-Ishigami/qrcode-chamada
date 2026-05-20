@@ -75,6 +75,9 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .prof-resumo-row span { overflow: hidden; text-overflow: ellipsis; }
+.prof-resumo-mat   { font-weight: 600; color: var(--text-2); }
+.prof-resumo-turma { color: var(--acc); font-weight: 600; }
+.prof-resumo-sep   { opacity: .35; font-size: .65rem; }
 .prof-resumo-vazio {
   font-size: .72rem; color: var(--border-2); font-style: italic;
   text-align: center; margin-bottom: 12px;

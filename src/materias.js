@@ -166,9 +166,7 @@ async function renderMaterias() {
   lista.innerHTML = "";
 
   materias.forEach((mat, idx) => {
-    const profs       = vinculosPorMateria[mat.id] ?? [];
-    const vinculadosIds = new Set(profs.map(v => v.professor_id));
-    const disponiveis   = _professores.filter(p => !vinculadosIds.has(p.id));
+    const profs = vinculosPorMateria[mat.id] ?? [];
 
     const card = document.createElement("div");
     card.className = "mat-card";
@@ -184,25 +182,23 @@ async function renderMaterias() {
       : `<span class="mat-chip-none">Sem professores</span>`;
 
     card.innerHTML = `
-      <div class="mat-card-head">
+      <div class="mat-card-top">
         <div class="mat-icon">${esc(mat.nome[0].toUpperCase())}</div>
-        <div class="mat-card-info">
-          <div class="mat-nome">${esc(mat.nome)}</div>
-          <div class="mat-chips">${profChips}</div>
-        </div>
-        <div class="mat-card-actions">
-          <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" style="color:var(--text-3)"><polyline points="9 18 15 12 9 6"/></svg>
-          <button class="mat-btn-del" title="Excluir matéria">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </button>
-        </div>
+        <button class="mat-btn-del" title="Excluir matéria">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+      <div class="mat-nome">${esc(mat.nome)}</div>
+      <div class="mat-chips">${profChips}</div>
+      <div class="mat-card-footer">
+        <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:var(--text-3);opacity:.4"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     `;
 
-    card.querySelector(".mat-card-head").addEventListener("click", e => {
+    card.addEventListener("click", e => {
       if (e.target.closest(".mat-btn-del")) return;
-      abrirModalMateria(mat, profs, disponiveis);
+      abrirModalMateria(mat, profs);
     });
 
     card.querySelector(".mat-btn-del").addEventListener("click", () => confirmarExcluir(mat.id, mat.nome));
@@ -211,8 +207,8 @@ async function renderMaterias() {
   });
 }
 
-// ── Modal de gerenciamento da matéria ─────────────────────────────────────────
-function abrirModalMateria(mat, profsIniciais, disponiveisIniciais) {
+// ── Modal da matéria: ver profs (read-only) + editar nome ─────────────────────
+function abrirModalMateria(mat, profs) {
   const ov = document.createElement("div");
   ov.className = "mat-modal-ov";
   document.body.appendChild(ov);
@@ -220,91 +216,85 @@ function abrirModalMateria(mat, profsIniciais, disponiveisIniciais) {
 
   const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 200); };
 
-  const renderConteudo = (profs, disponiveis) => {
-    const profRows = profs.length === 0
-      ? `<div class="mat-prof-vazio">Nenhum professor vinculado ainda.</div>`
-      : profs.map(v => {
-          const p   = v.profiles;
-          const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
-          return `
-            <div class="mat-prof-row">
-              <div class="mat-prof-avatar">${esc(ini)}</div>
-              <div class="mat-prof-nome">${esc(p?.nome || p?.email || "—")}</div>
-              <button class="mat-prof-del" data-unlink-pm="${v.materia_id}" data-unlink-prof="${v.professor_id}" title="Desvincular">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>`;
-        }).join("");
+  const profRows = profs.length === 0
+    ? `<div class="mat-prof-vazio">Nenhum professor vinculado. Gerencie em <strong>Professores</strong>.</div>`
+    : profs.map(v => {
+        const p   = v.profiles;
+        const ini = (p?.nome || "?").split(" ").slice(0,2).map(n => n[0]).join("");
+        return `
+          <div class="mat-prof-row">
+            <div class="mat-prof-avatar">${esc(ini)}</div>
+            <div class="mat-prof-nome">${esc(p?.nome || p?.email || "—")}</div>
+          </div>`;
+      }).join("");
 
-    const addRow = disponiveis.length > 0 ? `
-      <div class="mat-add-prof" style="margin-top:12px">
-        <select id="modal-sel-prof" class="mat-sel-prof">
-          <option value="">Selecione o professor…</option>
-          ${disponiveis.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join("")}
-        </select>
-        <button class="mat-btn-vincular" id="modal-btn-vincular">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Vincular
-        </button>
-      </div>` : `<div class="mat-all-linked" style="margin-top:10px">Todos os professores já vinculados.</div>`;
-
-    ov.innerHTML = `
-      <div class="mat-modal">
-        <div class="mat-modal-head">
-          <div class="mat-modal-icon">${esc(mat.nome[0].toUpperCase())}</div>
-          <div>
-            <div class="mat-modal-title">${esc(mat.nome)}</div>
-            <div class="mat-modal-sub">Professores vinculados</div>
-          </div>
-          <button class="mat-modal-x" id="mgr-x">✕</button>
+  ov.innerHTML = `
+    <div class="mat-modal">
+      <div class="mat-modal-head">
+        <div class="mat-modal-icon">${esc(mat.nome[0].toUpperCase())}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mat-modal-title" id="mgr-nome-display">${esc(mat.nome)}</div>
+          <div class="mat-modal-sub">${profs.length} professor${profs.length !== 1 ? "es" : ""} vinculado${profs.length !== 1 ? "s" : ""}</div>
         </div>
-        <div class="mat-modal-body" style="gap:0">
-          <div class="mat-profs-title">Professores</div>
-          <div class="mat-prof-list">${profRows}</div>
-          ${addRow}
+        <button class="mat-btn-ghost" id="mgr-editar-nome" style="padding:6px 12px;font-size:.75rem">Editar nome</button>
+        <button class="mat-modal-x" id="mgr-x">✕</button>
+      </div>
+
+      <div id="mgr-edit-area" style="display:none;padding:14px 20px 0;border-bottom:1px solid var(--border)">
+        <label class="mat-label">Novo nome</label>
+        <div style="display:flex;gap:8px;margin-top:5px">
+          <input id="mgr-input-nome" class="mat-input" type="text" value="${esc(mat.nome)}" maxlength="80" />
+          <button class="mat-btn-criar" id="mgr-salvar-nome" style="white-space:nowrap">Salvar</button>
         </div>
-        <div class="mat-modal-foot" style="justify-content:flex-start">
-          <button class="mat-btn-ghost" id="mgr-fechar">Fechar</button>
-        </div>
-      </div>`;
+        <div id="mgr-nome-err" class="mat-modal-err"></div>
+      </div>
 
-    ov.querySelector("#mgr-x").addEventListener("click", fechar);
-    ov.querySelector("#mgr-fechar").addEventListener("click", fechar);
-    ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+      <div class="mat-modal-body" style="gap:0">
+        <div class="mat-profs-title">Professores vinculados</div>
+        <div class="mat-prof-list">${profRows}</div>
+      </div>
+      <div class="mat-modal-foot" style="justify-content:flex-start">
+        <button class="mat-btn-ghost" id="mgr-fechar">Fechar</button>
+      </div>
+    </div>`;
 
-    ov.querySelectorAll("[data-unlink-pm]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        await desvincularProfessor(btn.dataset.unlinkPm, btn.dataset.unlinkProf);
-        // Re-fetch e re-renderiza modal
-        const { data: vinculos } = await supabaseAdmin
-          .from("professor_materias").select("materia_id, professor_id, profiles(id, nome, email)")
-          .eq("materia_id", mat.id);
-        const novosProfs = vinculos ?? [];
-        const vinculadosIds = new Set(novosProfs.map(v => v.professor_id));
-        const novosDisp = _professores.filter(p => !vinculadosIds.has(p.id));
-        renderConteudo(novosProfs, novosDisp);
-      });
-    });
+  ov.querySelector("#mgr-x").addEventListener("click", fechar);
+  ov.querySelector("#mgr-fechar").addEventListener("click", fechar);
+  ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
 
-    const btnVin = ov.querySelector("#modal-btn-vincular");
-    if (btnVin) {
-      btnVin.addEventListener("click", async () => {
-        const sel = ov.querySelector("#modal-sel-prof");
-        const profId = sel?.value;
-        if (!profId) { showToast("Selecione um professor.", "error"); return; }
-        await vincularProfessor(mat.id, profId);
-        const { data: vinculos } = await supabaseAdmin
-          .from("professor_materias").select("materia_id, professor_id, profiles(id, nome, email)")
-          .eq("materia_id", mat.id);
-        const novosProfs = vinculos ?? [];
-        const vinculadosIds = new Set(novosProfs.map(v => v.professor_id));
-        const novosDisp = _professores.filter(p => !vinculadosIds.has(p.id));
-        renderConteudo(novosProfs, novosDisp);
-      });
-    }
+  // Toggle editar nome
+  ov.querySelector("#mgr-editar-nome").addEventListener("click", () => {
+    const area = ov.querySelector("#mgr-edit-area");
+    const visible = area.style.display !== "none";
+    area.style.display = visible ? "none" : "";
+    if (!visible) setTimeout(() => ov.querySelector("#mgr-input-nome")?.focus(), 60);
+  });
+
+  // Salvar nome
+  const salvarNome = async () => {
+    const novoNome = ov.querySelector("#mgr-input-nome").value.trim();
+    const err = ov.querySelector("#mgr-nome-err");
+    err.textContent = "";
+    if (!novoNome) { err.textContent = "Digite o nome."; return; }
+    if (novoNome === mat.nome) { ov.querySelector("#mgr-edit-area").style.display = "none"; return; }
+
+    const btn = ov.querySelector("#mgr-salvar-nome");
+    btn.disabled = true; btn.textContent = "Salvando…";
+
+    const { error } = await supabaseAdmin.from("materias").update({ nome: novoNome }).eq("id", mat.id);
+
+    btn.disabled = false; btn.textContent = "Salvar";
+    if (error) { err.textContent = "Erro: " + error.message; return; }
+
+    ov.querySelector("#mgr-nome-display").textContent = novoNome;
+    ov.querySelector("#mgr-edit-area").style.display = "none";
+    mat.nome = novoNome;
+    showToast("Nome atualizado!", "success");
+    await renderMaterias();
   };
 
-  renderConteudo(profsIniciais, disponiveisIniciais);
+  ov.querySelector("#mgr-salvar-nome").addEventListener("click", salvarNome);
+  ov.querySelector("#mgr-input-nome").addEventListener("keydown", e => { if (e.key === "Enter") salvarNome(); });
 }
 
 // ── Confirmar exclusão (modal inline) ────────────────────────────────────────

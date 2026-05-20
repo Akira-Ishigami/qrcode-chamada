@@ -105,38 +105,41 @@ async function renderPage(profile) {
 
   const profIds = profilesCache.map(p => p.id);
 
-  // Carrega matérias e turmas de todos os profs em paralelo
-  const [{ data: pmData }, { data: turmasData }] = await Promise.all([
+  // Carrega matérias vinculadas e pares matéria+turma dos horários
+  const [{ data: pmData }, { data: horData }] = await Promise.all([
     profIds.length
       ? supabase.from("professor_materias")
           .select("professor_id, materias(nome)")
           .in("professor_id", profIds)
       : { data: [] },
     profIds.length
-      ? supabase.from("turmas")
-          .select("id, nome, professor_id")
-          .eq("instituicao_id", _instId)
-          .not("professor_id", "is", null)
+      ? supabaseAdmin.from("horarios")
+          .select("professor_id, materias(nome), turmas(nome)")
+          .in("professor_id", profIds)
       : { data: [] },
   ]);
 
-  // Mapeia professor_id → [matéria nomes]
+  // Matérias vinculadas (sem turma ainda)
   const materiasPorProf = {};
   (pmData ?? []).forEach(pm => {
-    (materiasPorProf[pm.professor_id] ??= []).push(pm.materias?.nome);
+    (materiasPorProf[pm.professor_id] ??= new Set()).add(pm.materias?.nome);
   });
 
-  // Mapeia professor_id → [turma nomes]
-  const turmasPorProf = {};
-  (turmasData ?? []).forEach(t => {
-    if (t.professor_id) (turmasPorProf[t.professor_id] ??= []).push(t.nome);
+  // Pares únicos matéria+turma via horários
+  const paresPorProf = {};
+  (horData ?? []).forEach(h => {
+    const mat   = h.materias?.nome;
+    const turma = h.turmas?.nome;
+    if (!mat || !turma) return;
+    const key = `${mat}||${turma}`;
+    (paresPorProf[h.professor_id] ??= new Map()).set(key, { mat, turma });
   });
 
   // Enriquece os perfis
   profilesCache = profilesCache.map(p => ({
     ...p,
-    _materias: (materiasPorProf[p.id] ?? []).filter(Boolean),
-    _turmas:   (turmasPorProf[p.id]   ?? []).filter(Boolean),
+    _materias: [...(materiasPorProf[p.id] ?? [])].filter(Boolean),
+    _pares:    [...(paresPorProf[p.id]?.values() ?? [])],
   }));
 
   const atual   = profilesCache.length;
@@ -212,20 +215,20 @@ function buildCard(p) {
       <div class="prof-card-badge">
         <span class="badge badge-professor">Professor</span>
       </div>
-      ${(p._materias?.length || p._turmas?.length) ? `
       <div class="prof-card-resumo">
-        ${p._materias?.length ? `
+        ${p._pares?.length ? p._pares.map(par => `
           <div class="prof-resumo-row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;opacity:.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            <span>${esc(p._materias.join(", "))}</span>
-          </div>` : ""}
-        ${p._turmas?.length ? `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" style="flex-shrink:0;opacity:.45"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span class="prof-resumo-mat">${esc(par.mat)}</span>
+            <span class="prof-resumo-sep">·</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" style="flex-shrink:0;opacity:.45"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="prof-resumo-turma">${esc(par.turma)}</span>
+          </div>`).join("") : p._materias?.length ? p._materias.map(m => `
           <div class="prof-resumo-row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;opacity:.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span>${esc(p._turmas.join(", "))}</span>
-          </div>` : ""}
-      </div>` : `
-      <div class="prof-card-resumo prof-resumo-vazio">Sem matéria ou turma</div>`}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" style="flex-shrink:0;opacity:.45"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span class="prof-resumo-mat">${esc(m)}</span>
+          </div>`).join("") : `<span class="prof-resumo-vazio">Sem matéria ou turma</span>`}
+      </div>
       <div class="prof-card-actions">
         <button class="pc-btn pc-btn-edit" title="Editar dados">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>

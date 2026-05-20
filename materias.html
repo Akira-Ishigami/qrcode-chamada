@@ -27,48 +27,49 @@
     }
     .mat-btn-nova:hover { background: var(--acc-2); transform: translateY(-1px); box-shadow: 0 4px 14px var(--acc-glow); }
 
-    /* ── Lista ── */
-    .mat-list { display: flex; flex-direction: column; gap: 8px; }
+    /* ── Grid de cards ── */
+    .mat-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
     @keyframes matUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
     .mat-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; overflow: hidden;
+      border-radius: 16px; padding: 16px;
+      cursor: pointer; display: flex; flex-direction: column; gap: 8px;
       animation: matUp .3s cubic-bezier(.22,1,.36,1) both;
-      transition: box-shadow .15s;
+      transition: box-shadow .15s, transform .15s;
     }
-    .mat-card:hover { box-shadow: 0 2px 12px rgba(13,21,38,.07); }
+    .mat-card:hover { box-shadow: 0 4px 16px rgba(13,21,38,.09); transform: translateY(-2px); }
 
-    .mat-card-head {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 16px; cursor: pointer; transition: background .12s;
+    .mat-card-top {
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .mat-card-head:hover { background: var(--surface-2); }
-
     .mat-icon {
-      width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+      width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
       background: var(--acc-sub); color: var(--acc);
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem;
+      font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.1rem;
     }
-    .mat-card-info { flex: 1; min-width: 0; }
-    .mat-nome  { font-weight: 700; font-size: .9rem; color: var(--text); }
-    .mat-chips { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+    .mat-nome { font-weight: 700; font-size: .9rem; color: var(--text); }
+    .mat-chips { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1; }
     .mat-chip-prof {
-      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-      background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border);
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: var(--acc-sub); color: var(--acc); border: 1px solid var(--border);
       display: inline-flex; align-items: center; justify-content: center;
       font-size: .62rem; font-weight: 700;
     }
     .mat-chip-none { font-size: .7rem; color: var(--text-3); }
 
-    .mat-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .mat-card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border);
+    }
     .mat-profs-count {
       font-size: .68rem; font-weight: 600; color: var(--text-3);
-      background: var(--surface-2); border: 1px solid var(--border);
-      padding: 3px 10px; border-radius: 20px;
     }
-    .mat-chevron { color: var(--text-3); }
     .mat-btn-del {
       width: 30px; height: 30px; border-radius: 8px;
       background: none; border: 1px solid var(--border);
@@ -78,12 +79,10 @@
     }
     .mat-btn-del:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
 
-    /* ── Painel professores ── */
-    .mat-profs-panel { display: none; border-top: 1px solid var(--border); background: var(--surface-2); padding: 16px; }
-    .mat-card.open .mat-profs-panel { display: block; }
+    /* ── Modal: lista de profs (read-only) ── */
     .mat-profs-title { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px; }
-    .mat-prof-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-    .mat-prof-vazio { font-size: .8rem; color: var(--text-3); padding: 4px 0; }
+    .mat-prof-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+    .mat-prof-vazio { font-size: .8rem; color: var(--text-3); padding: 4px 0; line-height: 1.5; }
     .mat-prof-row {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
@@ -95,28 +94,6 @@
       font-size: .7rem; font-weight: 700;
     }
     .mat-prof-nome { flex: 1; font-size: .84rem; font-weight: 500; color: var(--text); }
-    .mat-prof-del {
-      width: 26px; height: 26px; border-radius: 6px; background: none; border: none;
-      color: var(--text-3); cursor: pointer;
-      display: flex; align-items: center; justify-content: center; transition: color .13s;
-    }
-    .mat-prof-del:hover { color: #dc2626; }
-    .mat-add-prof { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
-    .mat-sel-prof {
-      flex: 1; min-width: 160px; padding: 8px 10px;
-      border: 1px solid var(--border); border-radius: 8px;
-      font-size: .82rem; font-family: inherit; color: var(--text);
-      background: var(--surface); outline: none; transition: border-color .13s;
-    }
-    .mat-sel-prof:focus { border-color: var(--acc); }
-    .mat-btn-vincular {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 8px 14px; background: var(--acc); color: white;
-      border: none; border-radius: 8px; font-size: .78rem; font-weight: 700;
-      cursor: pointer; font-family: inherit; transition: all .13s; white-space: nowrap;
-    }
-    .mat-btn-vincular:hover { background: var(--acc-2); }
-    .mat-all-linked { font-size: .75rem; color: var(--text-3); margin-top: 4px; }
 
     /* ── Empty ── */
     .mat-empty {
