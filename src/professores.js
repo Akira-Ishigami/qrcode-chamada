@@ -551,8 +551,12 @@ function modalExcluir(p) {
       const btn = document.getElementById("x-confirm");
       btn.disabled = true; btn.textContent = "Excluindo…";
 
-      const { supabaseAdmin } = await import("./supabaseAdmin.js").catch(() => ({ supabaseAdmin: null }));
-      if (!supabaseAdmin) { showToast("Service key não configurada", "error"); btn.disabled = false; btn.textContent = "Excluir"; return; }
+      // Cascade manual: remove vínculos antes de deletar o usuário
+      await Promise.all([
+        supabaseAdmin.from("professor_materias").delete().eq("professor_id", p.id),
+        supabaseAdmin.from("horarios").update({ professor_id: null }).eq("professor_id", p.id),
+        supabaseAdmin.from("chamadas").update({ professor_id: null }).eq("professor_id", p.id),
+      ]);
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(p.id);
       if (error) { showToast("Erro: " + error.message, "error"); btn.disabled = false; btn.textContent = "Excluir"; return; }
