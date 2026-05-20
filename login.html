@@ -664,8 +664,17 @@
           </div>
           <div class="field">
             <label for="password">Senha</label>
-            <div class="input-wrap">
-              <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+            <div class="input-wrap" style="position:relative">
+              <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" style="padding-right:44px" />
+              <button type="button" id="pw-toggle" title="Mostrar senha"
+                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;padding:4px;display:flex;align-items:center;justify-content:center;z-index:2">
+                <svg id="pw-eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg id="pw-eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
               <div class="input-scanner"></div>
             </div>
           </div>
@@ -809,6 +818,17 @@ const errorEl   = document.getElementById('error-msg');
 const submitBtn = document.getElementById('submit-btn');
 const btnText   = document.getElementById('btn-text');
 const spinner   = document.getElementById('spinner');
+
+// Toggle mostrar/ocultar senha
+document.getElementById('pw-toggle').addEventListener('click', () => {
+  const input   = document.getElementById('password');
+  const eyeShow = document.getElementById('pw-eye-show');
+  const eyeHide = document.getElementById('pw-eye-hide');
+  const visible = input.type === 'text';
+  input.type        = visible ? 'password' : 'text';
+  eyeShow.style.display = visible ? '' : 'none';
+  eyeHide.style.display = visible ? 'none' : '';
+});
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
