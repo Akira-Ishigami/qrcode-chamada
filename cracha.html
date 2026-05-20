@@ -240,53 +240,66 @@
     .cs-sec-lbl span { font-weight: 400; color: #cfc9be; }
 
     /* ── Color chips ────────────────────────────────── */
-    .cs-chips { display: flex; flex-direction: column; gap: 7px; }
-    .cs-chips-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .cs-chips { display: flex; flex-direction: column; gap: 6px; }
+    .cs-chips-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .cs-chips-row.trio { grid-template-columns: 1fr 1fr 1fr; }
 
     .cs-chip {
-      display: flex; align-items: center; gap: 11px;
+      display: flex; align-items: center; gap: 12px;
       background: var(--pnl-card);
-      border: 1.5px solid var(--pnl-card-border);
-      border-radius: 12px;
-      padding: 10px 12px;
+      border: 1px solid var(--pnl-card-border);
+      border-radius: 14px;
+      padding: 10px 13px 10px 10px;
       cursor: pointer;
-      transition: border-color .15s, box-shadow .15s, transform .15s;
-      position: relative; overflow: hidden;
+      transition: all .18s cubic-bezier(.22,1,.36,1);
+      position: relative;
+    }
+    .cs-chip::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,.6) 0%, transparent 60%);
+      pointer-events: none;
     }
     .cs-chip:hover {
-      border-color: #b8b0a0;
-      box-shadow: 0 4px 14px rgba(0,0,0,.1);
-      transform: translateY(-1px);
+      border-color: #ccc4b8;
+      box-shadow: 0 6px 20px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06);
+      transform: translateY(-2px);
     }
+    .cs-chip:active { transform: translateY(0); }
+
+    /* Swatch circular */
     .cs-chip-swatch {
-      width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+      width: 40px; height: 40px;
+      border-radius: 50%; flex-shrink: 0;
       position: relative; overflow: hidden;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+      box-shadow: 0 0 0 3px var(--pnl-bg), 0 0 0 4.5px rgba(0,0,0,.12);
+      transition: box-shadow .18s;
     }
-    .cs-chips-row.trio .cs-chip-swatch { width: 30px; height: 30px; border-radius: 7px; }
+    .cs-chip:hover .cs-chip-swatch {
+      box-shadow: 0 0 0 3px var(--pnl-bg), 0 0 0 5px rgba(0,0,0,.22);
+    }
+    .cs-chips-row.trio .cs-chip-swatch { width: 32px; height: 32px; }
     .cs-chip-swatch input[type="color"] {
       position: absolute; inset: -20px;
       width: calc(100% + 40px); height: calc(100% + 40px);
       border: none; padding: 0; cursor: pointer; opacity: 0;
     }
-    .cs-chip-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+
+    .cs-chip-body { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
     .cs-chip-name {
-      font-size: .72rem; font-weight: 700;
+      font-size: .73rem; font-weight: 700; letter-spacing: -.01em;
       color: var(--pnl-text); line-height: 1.2;
     }
     .cs-chip-hex {
       font-family: 'JetBrains Mono', monospace;
-      font-size: .6rem; color: var(--pnl-muted); margin-top: 2px;
+      font-size: .59rem; color: var(--pnl-muted);
     }
-    .cs-chip-edit {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .52rem; color: var(--pnl-muted);
-      text-transform: uppercase; letter-spacing: .06em;
-      opacity: 0; transition: opacity .14s;
+    .cs-chip-arrow {
+      color: var(--pnl-muted); opacity: 0;
+      transition: opacity .15s, transform .15s;
       flex-shrink: 0;
     }
-    .cs-chip:hover .cs-chip-edit { opacity: 1; }
+    .cs-chip:hover .cs-chip-arrow { opacity: 1; transform: translateX(2px); }
 
     /* ── Pattern grid ───────────────────────────────── */
     .cs-patterns {
@@ -705,7 +718,7 @@
                     <div class="cs-chip-name">Principal</div>
                     <div class="cs-chip-hex" id="val-cor1">#2563eb</div>
                   </div>
-                  <span class="cs-chip-edit">editar</span>
+                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
                 <div class="cs-chip">
                   <div class="cs-chip-swatch" id="swatch2" style="background:#1e40af">
@@ -715,7 +728,7 @@
                     <div class="cs-chip-name">Gradiente</div>
                     <div class="cs-chip-hex" id="val-cor2">#1e40af</div>
                   </div>
-                  <span class="cs-chip-edit">editar</span>
+                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
               <div class="cs-chips-row trio">
@@ -749,14 +762,14 @@
               </div>
               <div class="cs-chips-row" style="grid-template-columns:1fr">
                 <div class="cs-chip">
-                  <div class="cs-chip-swatch" id="swatch-rodape" style="background:#ffffff;box-shadow:inset 0 0 0 1px #e4eaf4">
+                  <div class="cs-chip-swatch" id="swatch-rodape" style="background:#ffffff">
                     <input type="color" id="input-cor-rodape" value="#ffffff" />
                   </div>
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Texto do rodapé</div>
                     <div class="cs-chip-hex" id="val-cor-rodape">#ffffff</div>
                   </div>
-                  <span class="cs-chip-edit">editar</span>
+                  <svg class="cs-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
             </div>
