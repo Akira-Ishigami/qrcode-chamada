@@ -219,7 +219,7 @@ function drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto) {
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
-function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
+function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte, corRodape) {
   const fy = oy + CH - FOOTER;
   // Gradiente horizontal
   const g = ctx.createLinearGradient(ox, 0, ox + CW, 0);
@@ -233,7 +233,7 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
 
   // Nome da instituição em destaque
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = corRodape || "#ffffff";
   ctx.font = `bold 16px ${font}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -245,13 +245,13 @@ function drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte) {
 }
 
 // ── FRENTE ────────────────────────────────────────────────────────────────────
-async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
+async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
   drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto);
-  drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
+  drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte, corRodape);
 
   // ── Foto ocupa TODO o quadrado esquerdo (borda a borda do body) ──
   const photoX = ox;
@@ -369,13 +369,13 @@ async function drawFrente(ctx, ox, oy, aluno, cor1, cor2, instNome, fotoImg, log
 }
 
 // ── VERSO ─────────────────────────────────────────────────────────────────────
-function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo) {
+function drawVerso(ctx, ox, oy, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape) {
   const font = FONT_MAP[fonte]?.display || "Georgia, serif";
   corTexto = corTexto || "#111827";
 
   drawCardBase(ctx, ox, oy, cor1, cor2, padrao, corDecor, corFundo);
   drawHeader(ctx, ox, oy, cor1, logoImg, corFundo, corTexto);
-  drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte);
+  drawFooter(ctx, ox, oy, cor1, cor2, instNome, fonte, corRodape);
 
   // ── QR Code ocupa TODO o quadrado esquerdo ──
   const qrAreaX = ox;
@@ -473,6 +473,7 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   const corTexto   = config?.cor_texto      || "#111827";
   const corDecor   = config?.cor_decoracao  || cor1;
   const corFundo   = config?.cor_fundo      || "#ffffff";
+  const corRodape  = config?.cor_rodape     || "#ffffff";
 
   const qrDataUrl = await QRCode.toDataURL(aluno.matricula || aluno.id || "—", {
     width: 220, margin: 1,
@@ -486,12 +487,12 @@ export async function gerarCracha(aluno, config, instNome, lado = "ambos") {
   ]);
 
   if (lado === "frente") {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
   } else if (lado === "verso") {
-    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
+    drawVerso(ctx, PAD, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
   } else {
-    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
-    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo);
+    await drawFrente(ctx, PAD, PAD, aluno, cor1, cor2, instNome, fotoImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
+    drawVerso(ctx, PAD + CW + GAP, PAD, aluno, cor1, cor2, instNome, qrImg, logoImg, padrao, fonte, corTexto, corDecor, corFundo, corRodape);
   }
 
   return canvas.toDataURL("image/png");

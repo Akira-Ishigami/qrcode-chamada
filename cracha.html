@@ -240,48 +240,53 @@
     .cs-sec-lbl span { font-weight: 400; color: #cfc9be; }
 
     /* ── Color chips ────────────────────────────────── */
-    .cs-chips { display: flex; flex-direction: column; gap: 6px; }
-    .cs-chips-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .cs-chips { display: flex; flex-direction: column; gap: 7px; }
+    .cs-chips-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .cs-chips-row.trio { grid-template-columns: 1fr 1fr 1fr; }
+
     .cs-chip {
-      display: flex; align-items: stretch;
+      display: flex; align-items: center; gap: 11px;
       background: var(--pnl-card);
       border: 1.5px solid var(--pnl-card-border);
-      border-radius: 10px;
-      overflow: hidden;
+      border-radius: 12px;
+      padding: 10px 12px;
       cursor: pointer;
       transition: border-color .15s, box-shadow .15s, transform .15s;
+      position: relative; overflow: hidden;
     }
     .cs-chip:hover {
-      border-color: #c8c0b0;
-      box-shadow: 0 3px 12px rgba(0,0,0,.08);
+      border-color: #b8b0a0;
+      box-shadow: 0 4px 14px rgba(0,0,0,.1);
       transform: translateY(-1px);
     }
     .cs-chip-swatch {
-      width: 44px; flex-shrink: 0;
-      border-radius: 0;
+      width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
       position: relative; overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
     }
-    .cs-chips-row.trio .cs-chip-swatch { width: 36px; }
+    .cs-chips-row.trio .cs-chip-swatch { width: 30px; height: 30px; border-radius: 7px; }
     .cs-chip-swatch input[type="color"] {
       position: absolute; inset: -20px;
       width: calc(100% + 40px); height: calc(100% + 40px);
       border: none; padding: 0; cursor: pointer; opacity: 0;
     }
-    .cs-chip-body {
-      padding: 9px 10px;
-      display: flex; flex-direction: column; justify-content: center;
-      min-width: 0;
-    }
+    .cs-chip-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
     .cs-chip-name {
-      font-size: .68rem; font-weight: 700;
-      color: var(--pnl-text);
-      line-height: 1.2; margin-bottom: 2px;
+      font-size: .72rem; font-weight: 700;
+      color: var(--pnl-text); line-height: 1.2;
     }
     .cs-chip-hex {
       font-family: 'JetBrains Mono', monospace;
-      font-size: .57rem; color: var(--pnl-sub);
+      font-size: .6rem; color: var(--pnl-muted); margin-top: 2px;
     }
+    .cs-chip-edit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .52rem; color: var(--pnl-muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      opacity: 0; transition: opacity .14s;
+      flex-shrink: 0;
+    }
+    .cs-chip:hover .cs-chip-edit { opacity: 1; }
 
     /* ── Pattern grid ───────────────────────────────── */
     .cs-patterns {
@@ -700,6 +705,7 @@
                     <div class="cs-chip-name">Principal</div>
                     <div class="cs-chip-hex" id="val-cor1">#2563eb</div>
                   </div>
+                  <span class="cs-chip-edit">editar</span>
                 </div>
                 <div class="cs-chip">
                   <div class="cs-chip-swatch" id="swatch2" style="background:#1e40af">
@@ -709,6 +715,7 @@
                     <div class="cs-chip-name">Gradiente</div>
                     <div class="cs-chip-hex" id="val-cor2">#1e40af</div>
                   </div>
+                  <span class="cs-chip-edit">editar</span>
                 </div>
               </div>
               <div class="cs-chips-row trio">
@@ -731,13 +738,25 @@
                   </div>
                 </div>
                 <div class="cs-chip">
-                  <div class="cs-chip-swatch" id="swatch-fundo" style="background:#ffffff;outline:1px solid #e4eaf4;outline-offset:-1px">
+                  <div class="cs-chip-swatch" id="swatch-fundo" style="background:#ffffff;box-shadow:inset 0 0 0 1px #e4eaf4">
                     <input type="color" id="input-cor-fundo" value="#ffffff" />
                   </div>
                   <div class="cs-chip-body">
                     <div class="cs-chip-name">Fundo</div>
                     <div class="cs-chip-hex" id="val-cor-fundo">#ffffff</div>
                   </div>
+                </div>
+              </div>
+              <div class="cs-chips-row" style="grid-template-columns:1fr">
+                <div class="cs-chip">
+                  <div class="cs-chip-swatch" id="swatch-rodape" style="background:#ffffff;box-shadow:inset 0 0 0 1px #e4eaf4">
+                    <input type="color" id="input-cor-rodape" value="#ffffff" />
+                  </div>
+                  <div class="cs-chip-body">
+                    <div class="cs-chip-name">Texto do rodapé</div>
+                    <div class="cs-chip-hex" id="val-cor-rodape">#ffffff</div>
+                  </div>
+                  <span class="cs-chip-edit">editar</span>
                 </div>
               </div>
             </div>
@@ -841,7 +860,8 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   ['cor2',      'swatch2',      'val-cor2'],
   ['cor-texto', 'swatch-texto', 'val-cor-texto'],
   ['cor-decor', 'swatch-decor', 'val-cor-decor'],
-  ['cor-fundo', 'swatch-fundo', 'val-cor-fundo'],
+  ['cor-fundo',   'swatch-fundo',   'val-cor-fundo'],
+  ['cor-rodape',  'swatch-rodape',  'val-cor-rodape'],
 ].forEach(([id, swId, valId]) => {
   const input  = document.getElementById('input-' + id);
   const swatch = document.getElementById(swId);
