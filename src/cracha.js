@@ -194,8 +194,9 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
   ctx.fillStyle = "#1e293b";
   // Logo box — canto direito, sem borda
   const LOGO_W = 120;
+  const LOGO_GAP = 10;
   if (logoImg) {
-    const bw = LOGO_W, bh = HEADER - 4, bx = ox + CW - bw - 4, by = oy + 2;
+    const bw = LOGO_W, bh = HEADER - LOGO_GAP * 2, bx = ox + CW - bw - LOGO_GAP, by = oy + LOGO_GAP;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
     const scale = Math.min((bw - 4) / logoImg.width, (bh - 4) / logoImg.height);
