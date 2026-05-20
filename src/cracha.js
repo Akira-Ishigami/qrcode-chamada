@@ -207,7 +207,7 @@ function drawHeader(ctx, ox, oy, cor1, logoImg) {
 
   // Texto centralizado apenas na área à esquerda do logo
   const textAreaW = logoImg ? CW - LOGO_W - 20 : CW;
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#1e293b";
   ctx.font = "bold 12px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
