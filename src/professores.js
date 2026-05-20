@@ -1,5 +1,6 @@
-import { supabase } from "./supabase.js";
-import { podeAdmin } from "./nav-role.js";
+import { supabase }      from "./supabase.js";
+import { supabaseAdmin }  from "./supabaseAdmin.js";
+import { podeAdmin }      from "./nav-role.js";
 
 const root = document.getElementById("page-root");
 
