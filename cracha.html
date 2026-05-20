@@ -309,7 +309,7 @@
     /* ── Pattern grid ───────────────────────────────── */
     .cs-patterns {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 7px;
     }
     .cs-pattern-opt {
@@ -352,50 +352,64 @@
       border-color: color-mix(in srgb, var(--thumb-c) 35%, #d0c8bc);
     }
 
-    /* Pattern styles — cor real visível */
-    .cc-pt-limpo {
-      background: linear-gradient(135deg, #f9f7f3 50%, #f0ede6 50%);
+    /* Pattern thumbnails */
+    .cc-pt-limpo { background: #f8f6f2; }
+    .cc-pt-limpo::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(255,255,255,.6) 0%, transparent 60%);
     }
+
     .cc-pt-geometrico::before {
-      content: "";
-      position: absolute; top: 0; left: 0;
-      border-style: solid;
-      border-width: 46px 52px 0 0;
+      content: ''; position: absolute; top: 0; left: 0;
+      border-style: solid; border-width: 46px 60px 0 0;
       border-color: var(--thumb-c) transparent transparent transparent;
     }
     .cc-pt-geometrico::after {
-      content: "";
-      position: absolute; bottom: 0; right: 0;
-      border-style: solid;
-      border-width: 0 0 22px 22px;
-      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 65%, #fff) transparent;
+      content: ''; position: absolute; bottom: 0; right: 0;
+      border-style: solid; border-width: 0 0 26px 26px;
+      border-color: transparent transparent color-mix(in srgb, var(--thumb-c) 70%, #fff) transparent;
     }
+
     .cc-pt-pontos {
-      background-image: radial-gradient(
-        circle,
-        var(--thumb-c) 2px,
-        transparent 2px
-      );
-      background-size: 10px 10px;
-      background-position: 4px 4px;
+      background-image: radial-gradient(circle, var(--thumb-c) 2.5px, transparent 2.5px);
+      background-size: 11px 11px; background-position: 4px 5px;
     }
+
     .cc-pt-diagonal {
       background: repeating-linear-gradient(
-        135deg,
-        transparent,
-        transparent 5px,
-        var(--thumb-c) 5px,
-        var(--thumb-c) 8px
+        135deg, transparent, transparent 4px,
+        var(--thumb-c) 4px, var(--thumb-c) 9px
       );
     }
+
     .cc-pt-ondas::before {
-      content: "";
-      position: absolute; inset: 0;
-      background: linear-gradient(
-        148deg,
-        var(--thumb-c) 0%,
-        var(--thumb-c) 45%,
-        transparent 45%
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(152deg, var(--thumb-c) 0%, var(--thumb-c) 42%, transparent 42%);
+    }
+    .cc-pt-ondas::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(152deg, transparent 50%, color-mix(in srgb, var(--thumb-c) 40%, transparent) 50%);
+    }
+
+    .cc-pt-listras {
+      background: repeating-linear-gradient(
+        0deg, var(--thumb-c), var(--thumb-c) 7px, transparent 7px, transparent 14px
+      );
+    }
+
+    .cc-pt-grade {
+      background-image:
+        linear-gradient(var(--thumb-c) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, var(--thumb-c) 1.5px, transparent 1.5px);
+      background-size: 12px 12px;
+    }
+
+    .cc-pt-chevron {
+      background: repeating-linear-gradient(
+        45deg, var(--thumb-c), var(--thumb-c) 5px, transparent 5px, transparent 10px
+      ),
+      repeating-linear-gradient(
+        -45deg, var(--thumb-c), var(--thumb-c) 5px, transparent 5px, transparent 10px
       );
     }
 
@@ -804,6 +818,18 @@
               <div class="cs-pattern-opt" data-pattern="ondas">
                 <div class="cs-pt-thumb cc-pt-ondas"></div>
                 <span>Ondas</span>
+              </div>
+              <div class="cs-pattern-opt" data-pattern="listras">
+                <div class="cs-pt-thumb cc-pt-listras"></div>
+                <span>Listras</span>
+              </div>
+              <div class="cs-pattern-opt" data-pattern="grade">
+                <div class="cs-pt-thumb cc-pt-grade"></div>
+                <span>Grade</span>
+              </div>
+              <div class="cs-pattern-opt" data-pattern="chevron">
+                <div class="cs-pt-thumb cc-pt-chevron"></div>
+                <span>Chevron</span>
               </div>
             </div>
           </div>

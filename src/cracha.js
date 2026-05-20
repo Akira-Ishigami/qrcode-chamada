@@ -139,27 +139,43 @@ function drawPadrao(ctx, ox, oy, corDecor, padrao) {
     ctx.fillStyle = rgba(cor1, 0.8);
     ctx.beginPath();
     ctx.moveTo(ox, bodyY + bodyH * 0.55);
-    ctx.bezierCurveTo(
-      ox + CW * 0.28, bodyY + bodyH * 0.32,
-      ox + CW * 0.65, bodyY + bodyH * 0.78,
-      ox + CW,         bodyY + bodyH * 0.5
-    );
-    ctx.lineTo(ox + CW, bodyY + bodyH);
-    ctx.lineTo(ox, bodyY + bodyH);
-    ctx.closePath();
-    ctx.fill();
+    ctx.bezierCurveTo(ox+CW*.28, bodyY+bodyH*.32, ox+CW*.65, bodyY+bodyH*.78, ox+CW, bodyY+bodyH*.5);
+    ctx.lineTo(ox+CW, bodyY+bodyH); ctx.lineTo(ox, bodyY+bodyH); ctx.closePath(); ctx.fill();
     ctx.fillStyle = rgba(cor1, 0.45);
     ctx.beginPath();
     ctx.moveTo(ox, bodyY + bodyH * 0.42);
-    ctx.bezierCurveTo(
-      ox + CW * 0.35, bodyY + bodyH * 0.22,
-      ox + CW * 0.72, bodyY + bodyH * 0.62,
-      ox + CW,         bodyY + bodyH * 0.36
-    );
-    ctx.lineTo(ox + CW, bodyY + bodyH);
-    ctx.lineTo(ox, bodyY + bodyH);
-    ctx.closePath();
-    ctx.fill();
+    ctx.bezierCurveTo(ox+CW*.35, bodyY+bodyH*.22, ox+CW*.72, bodyY+bodyH*.62, ox+CW, bodyY+bodyH*.36);
+    ctx.lineTo(ox+CW, bodyY+bodyH); ctx.lineTo(ox, bodyY+bodyH); ctx.closePath(); ctx.fill();
+
+  } else if (padrao === "listras") {
+    ctx.fillStyle = rgba(cor1, 0.7);
+    const sh = 22;
+    for (let y = bodyY; y < bodyY + bodyH; y += sh * 2)
+      ctx.fillRect(ox, y, CW, sh);
+
+  } else if (padrao === "grade") {
+    ctx.strokeStyle = rgba(cor1, 0.45);
+    ctx.lineWidth = 1.5;
+    const step = 32;
+    for (let x = ox; x <= ox + CW; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, bodyY); ctx.lineTo(x, bodyY + bodyH); ctx.stroke();
+    }
+    for (let y = bodyY; y <= bodyY + bodyH; y += step) {
+      ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox + CW, y); ctx.stroke();
+    }
+
+  } else if (padrao === "chevron") {
+    ctx.strokeStyle = rgba(cor1, 0.65);
+    ctx.lineWidth = 14;
+    ctx.lineJoin = "round";
+    const ch = 48;
+    for (let y = bodyY - ch; y < bodyY + bodyH + ch; y += ch) {
+      ctx.beginPath();
+      ctx.moveTo(ox, y + ch * 0.5);
+      ctx.lineTo(ox + CW * 0.5, y);
+      ctx.lineTo(ox + CW, y + ch * 0.5);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
