@@ -50,11 +50,25 @@ import { supabaseAdmin } from "./supabaseAdmin.js";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 
-let _userId  = null;
-let _instId  = null;
-let _role    = null;
-let _notifs  = [];
-let _channel = null;
+let _userId   = null;
+let _instId   = null;
+let _role     = null;
+let _notifs   = [];
+let _channel  = null;
+let _audioCtx = null;
+
+// ── Desbloquear AudioContext no primeiro toque (obrigatório no iOS/Android) ───
+function _getAudioCtx() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === "suspended") _audioCtx.resume();
+  return _audioCtx;
+}
+
+["click", "touchstart", "keydown"].forEach(ev =>
+  document.addEventListener(ev, () => _getAudioCtx(), { once: false, passive: true })
+);
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function initNotificacoes() {
@@ -198,25 +212,32 @@ function iniciarRealtime() {
 // ── Som de notificação — dois tons "iim" estilo WhatsApp ─────────────────────
 function playNotifSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _getAudioCtx();
 
-    function tom(freq, t0, dur, vol) {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, t0);
-      gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-      osc.start(t0);
-      osc.stop(t0 + dur);
+    const play = () => {
+      function tom(freq, t0, dur, vol) {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        osc.start(t0);
+        osc.stop(t0 + dur);
+      }
+      // "iim": tom grave curto → tom agudo mais longo
+      tom(830,  ctx.currentTime,        0.14, 0.14);
+      tom(1220, ctx.currentTime + 0.09, 0.22, 0.11);
+    };
+
+    if (ctx.state === "suspended") {
+      ctx.resume().then(play);
+    } else {
+      play();
     }
-
-    // "iim": tom grave curto, depois tom agudo mais longo
-    tom(830, ctx.currentTime,        0.14, 0.14);
-    tom(1220, ctx.currentTime + 0.09, 0.22, 0.11);
   } catch (e) {
     // AudioContext pode falhar sem interação prévia — silencioso
   }
