@@ -127,6 +127,12 @@
 .cal-event-pill.tipo-reuniao { background: #dbeafe; color: #1e40af; border-left-color: var(--cal-reuniao); }
 .cal-event-pill.tipo-recesso { background: #ede9fe; color: #5b21b6; border-left-color: var(--cal-recesso); }
 .cal-event-pill.tipo-evento  { background: #d1fae5; color: #065f46; border-left-color: var(--cal-evento); }
+/* Feriado nacional (BrasilAPI) — tom mais sutil, borda tracejada */
+.cal-event-pill.tipo-feriado.nacional {
+  background: transparent; color: #b91c1c;
+  border: 1px dashed #fca5a5; border-left: 2px solid var(--cal-feriado);
+  opacity: .8;
+}
 .cal-event-more {
   font-size: .58rem; color: var(--acc); font-weight: 700;
   padding: 1px 3px; letter-spacing: .02em;

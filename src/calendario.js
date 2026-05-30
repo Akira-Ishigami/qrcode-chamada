@@ -35,6 +35,30 @@ const TIPO_EMOJI = {
 
 const root = document.getElementById("page-root");
 
+// ── Feriados nacionais (BrasilAPI) ────────────────────────────────────────────
+const _feriadosCache = {};   // { ano: [...] }
+
+async function carregarFeriadosNacionais(ano) {
+  if (_feriadosCache[ano]) return _feriadosCache[ano];
+  try {
+    const res  = await fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`);
+    if (!res.ok) throw new Error("status " + res.status);
+    const data = await res.json();
+    _feriadosCache[ano] = (data ?? []).map(f => ({
+      id:          `nacional-${f.date}`,
+      titulo:      f.name ?? f.localName ?? f.nome ?? "Feriado Nacional",
+      tipo:        "feriado",
+      data_inicio: f.date,
+      data_fim:    null,
+      _nacional:   true,
+    }));
+  } catch (e) {
+    console.warn("BrasilAPI feriados:", e);
+    _feriadosCache[ano] = [];
+  }
+  return _feriadosCache[ano];
+}
+
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
@@ -62,7 +86,7 @@ async function init() {
     _userId  = session.user.id;
     _isProfessor = profile.role === "professor";
 
-    await carregarEventos();
+    await Promise.all([carregarEventos(), carregarFeriadosNacionais(_anoAtual)]);
     renderPage();
     iniciarRealtimeCalendario();
   } catch (e) {
@@ -90,6 +114,15 @@ function iniciarRealtimeCalendario() {
       }
     )
     .subscribe();
+}
+
+// ── Todos os eventos visíveis = instituição + feriados nacionais ──────────────
+function eventosVisiveis() {
+  const nacionais = _feriadosCache[_anoAtual] ?? [];
+  // Feriados nacionais não duplicam se a instituição já criou um feriado na mesma data
+  const datasInst = new Set(_eventos.map(e => e.data_inicio));
+  const extras = nacionais.filter(f => !datasInst.has(f.data_inicio));
+  return [..._eventos, ...extras].sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
 }
 
 // ── Carregar eventos ──────────────────────────────────────────────────────────
@@ -142,7 +175,7 @@ function renderPage() {
     </div>
     <div class="cal-grid" id="cal-grid"></div>
 
-    <div class="cal-section-title">Próximos Eventos</div>
+    <div class="cal-section-title" id="cal-section-title">Eventos de ${MESES[_mesAtual]}</div>
     <div id="cal-upcoming" class="cal-upcoming-list"></div>
   `;
 
@@ -167,7 +200,7 @@ function renderGrade() {
   const diasMesAnt  = new Date(_anoAtual, _mesAtual, 0).getDate();
 
   const eventosPorDia = {};
-  _eventos.forEach(ev => {
+  eventosVisiveis().forEach(ev => {
     const di = new Date(ev.data_inicio + "T00:00:00");
     const df = ev.data_fim ? new Date(ev.data_fim + "T00:00:00") : di;
     let cur = new Date(di);
@@ -199,7 +232,8 @@ function renderGrade() {
 
     const pillsHtml = evs.slice(0, maxShow).map(ev => {
       const emoji = TIPO_EMOJI[ev.tipo] ?? "📅";
-      return `<div class="cal-event-pill tipo-${esc(ev.tipo)}">${emoji} ${esc(ev.titulo)}</div>`;
+      const extra = ev._nacional ? " nacional" : "";
+      return `<div class="cal-event-pill tipo-${esc(ev.tipo)}${extra}">${emoji} ${esc(ev.titulo)}</div>`;
     }).join("");
 
     const moreHtml = evs.length > maxShow
@@ -246,9 +280,11 @@ function renderUpcoming() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  const proximos = _eventos
-    .filter(ev => new Date(ev.data_inicio + "T00:00:00") >= hoje)
-    .slice(0, 8);
+  const proximos = eventosVisiveis()
+    .filter(ev => {
+      const d = new Date(ev.data_inicio + "T00:00:00");
+      return d.getFullYear() === _anoAtual && d.getMonth() === _mesAtual;
+    });
 
   if (proximos.length === 0) {
     container.innerHTML = `
@@ -256,7 +292,7 @@ function renderUpcoming() {
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".3">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
         </svg>
-        <p>Nenhum evento próximo cadastrado.</p>
+        <p>Nenhum evento em ${MESES[_mesAtual]}.</p>
       </div>`;
     return;
   }
@@ -276,7 +312,7 @@ function renderUpcoming() {
       ? `${horario}${ev.descricao ? " · " + ev.descricao : ""}`
       : (ev.descricao ?? tipoLabel);
 
-    const editBtns = !_isProfessor ? `
+    const editBtns = (!_isProfessor && !ev._nacional) ? `
       <div style="display:flex;gap:5px;">
         <button class="cal-icon-btn" data-edit="${esc(ev.id)}" title="Editar">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -285,10 +321,10 @@ function renderUpcoming() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         </button>
       </div>
-    ` : "";
+    ` : (ev._nacional ? `<span style="font-size:.6rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;opacity:.7">Nacional</span>` : "");
 
     return `
-      <div class="cal-upcoming-item tipo-${esc(ev.tipo)}${_isProfessor ? " clickable-item" : ""}" data-idx="${idx}">
+      <div class="cal-upcoming-item tipo-${esc(ev.tipo)}${(_isProfessor || ev._nacional) ? " clickable-item" : ""}" data-idx="${idx}">
         <div class="cal-date-box">
           <div class="cal-date-day">${dia}</div>
           <div class="cal-date-mon">${mon}</div>
@@ -601,7 +637,9 @@ async function navegarMes(delta) {
   if (_mesAtual > 11) { _mesAtual = 0; _anoAtual++; }
   if (_mesAtual < 0)  { _mesAtual = 11; _anoAtual--; }
   document.getElementById("cal-month-label").textContent = `${MESES[_mesAtual]} ${_anoAtual}`;
-  await carregarEventos();
+  const t = document.getElementById("cal-section-title");
+  if (t) t.textContent = `Eventos de ${MESES[_mesAtual]}`;
+  await Promise.all([carregarEventos(), carregarFeriadosNacionais(_anoAtual)]);
   renderGrade();
   renderUpcoming();
 }
