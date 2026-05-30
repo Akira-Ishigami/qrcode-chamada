@@ -815,7 +815,7 @@ if (session) {
     .from('profiles').select('role, nome').eq('id', session.user.id).single();
   if (profile?.role) localStorage.setItem('qr_role', profile.role);
   const destino =
-    profile?.role === 'professor' ? '/chamada.html' :
+    profile?.role === 'professor' ? '/calendario.html' :
     profile?.role === 'admin'    ? '/dashboard.html' :
     '/inst-dashboard.html';
   showWelcome(profile, destino);
@@ -864,7 +864,7 @@ form.addEventListener('submit', async (e) => {
       .from('profiles').select('role, nome').eq('id', s.user.id).single();
     if (profile?.role) localStorage.setItem('qr_role', profile.role);
     const destino =
-      profile?.role === 'professor' ? '/chamada.html' :
+      profile?.role === 'professor' ? '/calendario.html' :
       profile?.role === 'admin'    ? '/dashboard.html' :
       '/inst-dashboard.html';
     showWelcome(profile, destino);

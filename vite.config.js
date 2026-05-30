@@ -30,6 +30,7 @@ export default defineConfig(({ command }) => ({
         "suporte.html",
         "cracha.html",
         "materias.html",
+        "calendario.html",
       ],
     },
   },
