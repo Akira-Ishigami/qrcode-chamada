@@ -143,7 +143,7 @@ async function renderMaterias() {
   if (!lista) return;
 
   const { data: materias } = await supabaseAdmin
-    .from("materias").select("id, nome").eq("instituicao_id", _instId).order("nome");
+    .from("materias").select("id, nome, aulas_semestre, limite_faltas").eq("instituicao_id", _instId).order("nome");
 
   if (!materias?.length) {
     lista.innerHTML = `
@@ -192,7 +192,12 @@ async function renderMaterias() {
       <div class="mat-chips">${profChips}</div>
       <div class="mat-card-footer">
         <span class="mat-profs-count">${profs.length} prof${profs.length !== 1 ? "s" : ""}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:var(--text-3);opacity:.4"><polyline points="9 18 15 12 9 6"/></svg>
+        <span class="mat-faltas-badge" title="Aulas e limite de faltas no semestre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          ${mat.limite_faltas != null
+            ? `${mat.limite_faltas} falta${mat.limite_faltas !== 1 ? "s" : ""}${mat.aulas_semestre != null ? ` / ${mat.aulas_semestre} aulas` : ""}`
+            : (mat.aulas_semestre != null ? `${mat.aulas_semestre} aulas` : "sem limite")}
+        </span>
       </div>
     `;
 
@@ -249,9 +254,33 @@ function abrirModalMateria(mat, profs) {
         <div id="mgr-nome-err" class="mat-modal-err"></div>
       </div>
 
-      <div class="mat-modal-body" style="gap:0">
-        <div class="mat-profs-title">Professores vinculados</div>
-        <div class="mat-prof-list">${profRows}</div>
+      <div class="mat-modal-body" style="gap:14px">
+        <div class="mat-faltas-box">
+          <div class="mat-faltas-title-row">
+            <div class="mat-faltas-label">Frequência do semestre</div>
+            <div class="mat-faltas-hint">Defina o total de aulas e quantas faltas o aluno pode ter no semestre. Vazio = não definido.</div>
+          </div>
+          <div class="mat-faltas-fields">
+            <div class="mat-faltas-field">
+              <label>Aulas no semestre</label>
+              <input id="mgr-aulas" class="mat-input" type="number" min="0" max="999"
+                value="${mat.aulas_semestre ?? ""}" placeholder="—" style="text-align:center" />
+            </div>
+            <div class="mat-faltas-field">
+              <label>Faltas permitidas</label>
+              <input id="mgr-faltas" class="mat-input" type="number" min="0" max="999"
+                value="${mat.limite_faltas ?? ""}" placeholder="—" style="text-align:center" />
+            </div>
+            <button class="mat-btn-criar" id="mgr-salvar-faltas" style="white-space:nowrap;align-self:flex-end;height:38px">Salvar</button>
+          </div>
+          <div id="mgr-faltas-resumo" class="mat-faltas-resumo"></div>
+        </div>
+        <div id="mgr-faltas-err" class="mat-modal-err"></div>
+
+        <div>
+          <div class="mat-profs-title">Professores vinculados</div>
+          <div class="mat-prof-list">${profRows}</div>
+        </div>
       </div>
       <div class="mat-modal-foot" style="justify-content:flex-start">
         <button class="mat-btn-ghost" id="mgr-fechar">Fechar</button>
@@ -269,6 +298,63 @@ function abrirModalMateria(mat, profs) {
     area.style.display = visible ? "none" : "";
     if (!visible) setTimeout(() => ov.querySelector("#mgr-input-nome")?.focus(), 60);
   });
+
+  // Parse de campo numérico opcional (vazio = null)
+  const parseOpt = (raw) => {
+    raw = raw.trim();
+    if (raw === "") return { ok: true, val: null };
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) return { ok: false };
+    return { ok: true, val: n };
+  };
+
+  // Mostra resumo (presença mínima) conforme os campos
+  const atualizarResumo = () => {
+    const resumo = ov.querySelector("#mgr-faltas-resumo");
+    const a = parseOpt(ov.querySelector("#mgr-aulas").value);
+    const f = parseOpt(ov.querySelector("#mgr-faltas").value);
+    if (a.ok && f.ok && a.val != null && f.val != null && a.val > 0) {
+      const presPct = Math.round((a.val - Math.min(f.val, a.val)) / a.val * 100);
+      resumo.textContent = `Presença mínima exigida: ${presPct}% (${a.val - Math.min(f.val, a.val)} de ${a.val} aulas).`;
+      resumo.style.display = "";
+    } else {
+      resumo.style.display = "none";
+    }
+  };
+
+  // Salvar aulas + limite de faltas
+  const salvarFaltas = async () => {
+    const err = ov.querySelector("#mgr-faltas-err");
+    err.textContent = "";
+    const a = parseOpt(ov.querySelector("#mgr-aulas").value);
+    const f = parseOpt(ov.querySelector("#mgr-faltas").value);
+    if (!a.ok || !f.ok) { err.textContent = "Informe números válidos (0 ou mais)."; return; }
+    if (a.val != null && f.val != null && f.val > a.val) {
+      err.textContent = "As faltas permitidas não podem ser maiores que o total de aulas.";
+      return;
+    }
+
+    const btn = ov.querySelector("#mgr-salvar-faltas");
+    btn.disabled = true; btn.textContent = "Salvando…";
+
+    const { error } = await supabaseAdmin
+      .from("materias").update({ aulas_semestre: a.val, limite_faltas: f.val }).eq("id", mat.id);
+
+    btn.disabled = false; btn.textContent = "Salvar";
+    if (error) { err.textContent = "Erro: " + error.message; return; }
+
+    mat.aulas_semestre = a.val;
+    mat.limite_faltas  = f.val;
+    showToast("Frequência atualizada!", "success");
+    await renderMaterias();
+  };
+
+  ov.querySelector("#mgr-salvar-faltas").addEventListener("click", salvarFaltas);
+  ov.querySelector("#mgr-aulas").addEventListener("input", atualizarResumo);
+  ov.querySelector("#mgr-faltas").addEventListener("input", atualizarResumo);
+  ov.querySelector("#mgr-aulas").addEventListener("keydown", e => { if (e.key === "Enter") salvarFaltas(); });
+  ov.querySelector("#mgr-faltas").addEventListener("keydown", e => { if (e.key === "Enter") salvarFaltas(); });
+  atualizarResumo();
 
   // Salvar nome
   const salvarNome = async () => {

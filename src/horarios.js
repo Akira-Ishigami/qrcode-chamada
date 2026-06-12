@@ -90,9 +90,9 @@ async function carregarDados(profile) {
     const lista = hors ?? [];
     // Monta _horarios com colorIdx e turma info
     _horarios = lista.map(h => {
-      const mat = _materias.find(m => m.id === h.materia_id);
-      return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? "—", turmaNome: h.turmas?.nome ?? "—" };
+      return { ...h, colorIdx: 0, matNome: h.materias?.nome ?? "—", turmaNome: h.turmas?.nome ?? "—" };
     });
+    recolorHorarios();
     // Turmas únicas que o professor aparece
     const turmaMap = {};
     lista.forEach(h => { if (h.turma_id && h.turmas) turmaMap[h.turma_id] = { id: h.turma_id, nome: h.turmas.nome }; });
@@ -227,30 +227,43 @@ async function selecionarTurma(id) {
     .order("dia_semana").order("hora_inicio");
 
   _horarios = (data ?? []).map(h => {
-    const mat = _materias.find(m => m.id === h.materia_id);
-    return { ...h, colorIdx: mat?.colorIdx ?? 0, matNome: h.materias?.nome ?? h.materia_id ?? "—" };
+    return { ...h, colorIdx: 0, matNome: h.materias?.nome ?? h.materia_id ?? "—" };
   });
+  recolorHorarios();
 
   if (window.innerWidth <= 640) { renderAgenda(); }
   else renderGrid();
   renderLegend();
 }
 
-// ── Legenda de matérias ───────────────────────────────────────────────────────
+// Cada aula recebe uma cor própria, distribuída pela ordem (dia → hora).
+function recolorHorarios() {
+  _horarios
+    .slice()
+    .sort((a, b) => (a.dia_semana - b.dia_semana) || String(a.hora_inicio).localeCompare(String(b.hora_inicio)))
+    .forEach((h, i) => { h.colorIdx = i % MAT_COLORS.length; });
+}
+
+// ── Legenda — uma entrada por aula (dia + hora + matéria) ──────────────────────
 function renderLegend() {
   const leg = document.getElementById("cal-legend");
   if (!leg) return;
 
-  const usadas = [...new Map(_horarios.map(h => [h.materia_id, h])).values()];
-
-  if (!usadas.length) {
+  if (!_horarios.length) {
     leg.innerHTML = `<span class="cal-legend-empty">Nenhuma aula cadastrada ainda — clique nas células para adicionar</span>`;
     return;
   }
 
-  leg.innerHTML = usadas.map(h => {
+  const ordenadas = [..._horarios].sort(
+    (a, b) => (a.dia_semana - b.dia_semana) || String(a.hora_inicio).localeCompare(String(b.hora_inicio))
+  );
+
+  leg.innerHTML = ordenadas.map(h => {
     const c = MAT_COLORS[h.colorIdx];
-    return `<span class="cal-legend-item" style="background:${c.bg};border-color:${c.border};color:${c.text}">${esc(h.matNome)}</span>`;
+    return `<span class="cal-legend-item" style="background:${c.bg};border-color:${c.border};color:${c.text}">
+      <span style="opacity:.7;font-weight:800">${DIAS_SHORT[h.dia_semana]} ${h.hora_inicio.slice(0,5)}</span>
+      ${esc(h.matNome)}
+    </span>`;
   }).join("");
 }
 
@@ -346,7 +359,14 @@ function renderGrid() {
   if (!grid) return;
 
   const hours = Array.from({ length: CAL_END - CAL_START }, (_, i) => CAL_START + i);
-  const hoje  = new Date().getDay(); // 0=Dom
+  const agora = new Date();
+  const hoje  = agora.getDay(); // 0=Dom
+
+  // Posição da linha de "agora"
+  const nowFloat = agora.getHours() + agora.getMinutes() / 60;
+  const showNow  = nowFloat >= CAL_START && nowFloat < CAL_END;
+  const nowTop   = (nowFloat - CAL_START) * CELL_H;
+  const nowLabel = `${String(agora.getHours()).padStart(2,"0")}:${String(agora.getMinutes()).padStart(2,"0")}`;
 
   // Coluna de horas
   let html = `
@@ -372,6 +392,7 @@ function renderGrid() {
             <div class="cal-cell" data-dia="${dia}" data-hora="${h}"></div>
           `).join("")}
           ${hors.map(h => renderBlock(h)).join("")}
+          ${isHoje && showNow ? `<div class="cal-now-line" style="top:${nowTop}px"><span class="cal-now-dot" data-time="${nowLabel}"></span></div>` : ""}
         </div>
       </div>`;
   });
@@ -654,12 +675,12 @@ function abrirModal(dia, horaInicio) {
       return;
     }
 
-    const matFull = _materias.find(m => m.id === novo.materia_id);
     _horarios.push({
       ...novo,
-      colorIdx: matFull?.colorIdx ?? 0,
+      colorIdx: 0,
       matNome:  novo.materias?.nome ?? mat?.nome ?? "—",
     });
+    recolorHorarios();
 
     fechar();
     if (window.innerWidth <= 640) renderAgenda();

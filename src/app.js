@@ -175,6 +175,25 @@ async function carregarHorarioAtual(profId) {
   }
 }
 
+// Retorna o id do horário (slot) que está acontecendo AGORA para a turma,
+// ou null se não houver aula agendada neste exato momento.
+async function horarioAtualDaTurma(turmaId) {
+  const agora     = new Date();
+  const diaSemana = agora.getDay(); // 0=Dom
+  const hh        = String(agora.getHours()).padStart(2, "0");
+  const mm        = String(agora.getMinutes()).padStart(2, "0");
+  const horaAtual = `${hh}:${mm}`;
+
+  const { data } = await supabase
+    .from("horarios")
+    .select("id, hora_inicio, hora_fim")
+    .eq("turma_id", turmaId)
+    .eq("dia_semana", diaSemana);
+
+  const slot = (data ?? []).find(h => h.hora_inicio <= horaAtual && horaAtual < h.hora_fim);
+  return slot?.id ?? null;
+}
+
 selInst.addEventListener("change", async () => {
   const instId = selInst.value;
   selTurma.innerHTML  = '<option value="">Selecione...</option>';
@@ -208,21 +227,38 @@ btnIniciar.addEventListener("click", async () => {
   chamadaData = new Date().toISOString().split("T")[0];
   turmaNome   = turma?.nome ?? "Turma";
 
-  // Verifica chamada ABERTA hoje
-  let { data: chamadaExistente } = await supabase
+  // Identifica o horário (slot) atual da turma — a chamada é amarrada a ele.
+  const horarioId = await horarioAtualDaTurma(turmaId);
+
+  // Verifica chamada de hoje DESTE horário (aberta ou encerrada)
+  let consulta = supabase
     .from("chamadas")
-    .select("id")
+    .select("id, aberta")
     .eq("turma_id", turmaId)
-    .eq("data", chamadaData)
-    .eq("aberta", true)
+    .eq("data", chamadaData);
+  consulta = horarioId
+    ? consulta.eq("horario_id", horarioId)
+    : consulta.is("horario_id", null);
+
+  let { data: chamadaExistente } = await consulta
+    .order("criado_em", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  // Mesmo horário já encerrado hoje → reabre para atrasados
+  if (chamadaExistente && !chamadaExistente.aberta) {
+    btnIniciar.disabled    = false;
+    btnIniciar.textContent = "Iniciar Chamada";
+    await reabrirChamada(chamadaExistente.id, turmaId, turmaNome);
+    return;
+  }
 
   if (chamadaExistente) {
     chamadaId = chamadaExistente.id;
   } else {
     const { data: novaChamada, error } = await supabase
       .from("chamadas")
-      .insert({ turma_id: turmaId, data: chamadaData, professor_id: _userId || null })
+      .insert({ turma_id: turmaId, data: chamadaData, professor_id: _userId || null, horario_id: horarioId })
       .select("id").single();
 
     if (error) {

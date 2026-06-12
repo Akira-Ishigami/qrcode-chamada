@@ -12,6 +12,7 @@ let _alunos   = []; // {id, nome, matricula, turma_id}
 let _profile  = null;
 let _instNome = "";
 let _tab      = "chamadas"; // "chamadas" | "alunos" | "resumo"
+let _relChannel = null;
 
 const root = document.getElementById("page-root");
 
@@ -72,7 +73,9 @@ async function init() {
     _turmas = data ?? [];
   }
 
-  if (!_turmas.length) {
+  // Professor pode não estar vinculado a nenhuma turma (turmas sem professor_id),
+  // mas ainda ter chamadas próprias — loadAll descobre as turmas pelas chamadas.
+  if (!_turmas.length && profile.role !== "professor") {
     root.innerHTML = `
       <div class="hist-header"><div class="hist-eyebrow">Relatório</div><div class="hist-title">Histórico de Chamadas</div></div>
       <div class="hist-empty">
@@ -88,22 +91,82 @@ async function init() {
 
   await loadAll();
   renderShell();
+  iniciarRealtime();
+}
+
+// ── Realtime: atualiza o relatório a cada alteração de chamada/presença ────────
+function iniciarRealtime() {
+  if (_relChannel) supabase.removeChannel(_relChannel);
+
+  let timer;
+  const agendarRefresh = () => {
+    clearTimeout(timer);
+    timer = setTimeout(refreshDados, 400); // debounce p/ agrupar mudanças em rajada
+  };
+
+  _relChannel = supabase
+    .channel("relatorio-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "chamadas"  }, agendarRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "presencas" }, agendarRefresh)
+    .subscribe();
+}
+
+// Recarrega dados e re-renderiza preservando filtros e aba ativa
+async function refreshDados() {
+  await loadAll();
+
+  const totalCham = _chamadas.length;
+  const totalPres = _chamadas.reduce((s, c) => s + c.presentes, 0);
+  const totalAlun = _chamadas.reduce((s, c) => s + c.total, 0);
+  const mediaFreq = pct(totalPres, totalAlun);
+
+  const elC = document.getElementById("stat-cham");
+  const elP = document.getElementById("stat-pres");
+  const elF = document.getElementById("stat-freq");
+  if (elC) elC.textContent = totalCham;
+  if (elP) elP.textContent = totalPres;
+  if (elF) { elF.textContent = `${mediaFreq}%`; elF.className = `hist-stat-num ${clrPct(mediaFreq)}`; }
+
+  if (document.getElementById("rel-content")) renderContent();
 }
 
 // ── Carrega todos os dados ────────────────────────────────────────────────────
 async function loadAll() {
-  const turmaIds = _turmas.map(t => t.id);
+  let allChamadas;
+  let turmaIds;
 
-  const { data: chamadas } = await supabaseAdmin
-    .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
-    .in("turma_id", turmaIds).order("data", { ascending: false });
+  if (_profile?.role === "professor") {
+    // Professor: parte das chamadas que ELE abriu (independe do vínculo da turma)
+    const { data } = await supabaseAdmin
+      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
+      .eq("professor_id", _profile.id).order("data", { ascending: false });
+    allChamadas = data ?? [];
+    turmaIds = [...new Set(allChamadas.map(c => c.turma_id))];
 
-  const allChamadas = chamadas ?? [];
-  const chamadaIds  = allChamadas.map(c => c.id);
+    // Garante que as turmas dessas chamadas estejam no mapa (nome + dropdown)
+    const faltando = turmaIds.filter(id => id && !_turmaMap[id]);
+    if (faltando.length) {
+      const { data: extra } = await supabaseAdmin.from("turmas")
+        .select("id, nome, materia, professor, instituicao_id, instituicoes(nome)")
+        .in("id", faltando);
+      (extra ?? []).forEach(t => {
+        if (!_turmaMap[t.id]) { _turmas.push(t); _turmaMap[t.id] = t; }
+      });
+    }
+  } else {
+    // Instituição: todas as chamadas das turmas da instituição
+    turmaIds = _turmas.map(t => t.id);
+    const { data } = await supabaseAdmin
+      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
+      .in("turma_id", turmaIds).order("data", { ascending: false });
+    allChamadas = data ?? [];
+  }
+
+  const chamadaIds = allChamadas.map(c => c.id);
 
   const [presRes, aluRes] = await Promise.all([
     chamadaIds.length
-      ? supabaseAdmin.from("presencas").select("chamada_id, aluno_id, atrasado").in("chamada_id", chamadaIds)
+      ? supabaseAdmin.from("presencas").select("chamada_id, aluno_id, atrasado, registrado_em").in("chamada_id", chamadaIds)
       : { data: [] },
     supabaseAdmin.from("alunos").select("id, nome, matricula, turma_id").in("turma_id", turmaIds).order("nome"),
   ]);
@@ -157,17 +220,17 @@ function renderShell() {
 
     <div class="hist-stats-bar">
       <div class="hist-stat-pill">
-        <span class="hist-stat-num">${totalCham}</span>
+        <span class="hist-stat-num" id="stat-cham">${totalCham}</span>
         <span class="hist-stat-lbl">chamadas</span>
       </div>
       <div class="hist-stat-sep"></div>
       <div class="hist-stat-pill">
-        <span class="hist-stat-num green">${totalPres}</span>
+        <span class="hist-stat-num green" id="stat-pres">${totalPres}</span>
         <span class="hist-stat-lbl">presenças totais</span>
       </div>
       <div class="hist-stat-sep"></div>
       <div class="hist-stat-pill">
-        <span class="hist-stat-num ${clrPct(mediaFreq)}">${mediaFreq}%</span>
+        <span class="hist-stat-num ${clrPct(mediaFreq)}" id="stat-freq">${mediaFreq}%</span>
         <span class="hist-stat-lbl">frequência média</span>
       </div>
     </div>
@@ -381,18 +444,31 @@ function renderPorChamada(f) {
           const chamadaAtrasIds = new Set(
             _presencas.filter(p => p.chamada_id === c.id && p.atrasado).map(p => p.aluno_id)
           );
+          // Hora em que cada aluno passou o crachá nesta chamada
+          const horaScan = {};
+          _presencas
+            .filter(p => p.chamada_id === c.id)
+            .forEach(p => { horaScan[p.aluno_id] = p.registrado_em; });
+          const fmtHora = (ts) => ts
+            ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+            : "";
+
           const turmaAlunos = _alunos.filter(a => a.turma_id === c.turma_id);
           const presLista   = turmaAlunos.filter(a => chamadaPresIds.has(a.id) && !chamadaAtrasIds.has(a.id));
           const atrasLista  = turmaAlunos.filter(a => chamadaAtrasIds.has(a.id));
           const ausLista    = turmaAlunos.filter(a => !chamadaPresIds.has(a.id));
 
-          const alunoRow = (a, i, tipo) => `
+          const alunoRow = (a, i, tipo) => {
+            const hora = fmtHora(horaScan[a.id]);
+            return `
             <div class="hist-detail-aluno" style="animation-delay:${i*.02}s">
               <span class="hist-detail-num">${i+1}</span>
               <span class="hist-detail-nome">${esc(a.nome)}</span>
               ${a.matricula ? `<span class="hist-detail-mat">${esc(a.matricula)}</span>` : ""}
+              ${hora ? `<span style="font-size:.58rem;font-weight:600;color:#64748b;margin-left:auto">🕐 ${hora}</span>` : ""}
               ${tipo === "atrasado" ? `<span style="font-size:.58rem;font-weight:700;background:#fff7ed;color:#c2410c;border-radius:20px;padding:2px 7px;border:1px solid #fed7aa">Atrasado</span>` : ""}
             </div>`;
+          };
 
           detail.innerHTML = `
             <div class="hist-detail-inner">

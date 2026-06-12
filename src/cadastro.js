@@ -189,7 +189,7 @@ async function carregarAlunos() {
   let alunosQuery = supabaseAdmin
     .from("alunos")
     .select(`
-      id, nome, matricula, foto_url, telefone, data_nascimento, id_estadual, endereco,
+      id, nome, matricula, foto_url, telefone, data_nascimento, id_estadual, endereco, user_id,
       turma:turmas(id, nome, horario),
       inst:instituicoes(id, nome)
     `)
@@ -503,6 +503,30 @@ function abrirModalEditar(aluno) {
           <span class="fld-err" id="ed-err-turma"></span>
         </div>
 
+        <!-- Acesso do aluno (login) -->
+        <div style="margin-top:16px;padding:13px 14px;border:1px solid var(--border);border-radius:11px;background:#f8fafc">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span style="font-size:.82rem;font-weight:800;color:#0f172a">Acesso do aluno</span>
+            <span id="ed-acesso-status" style="margin-left:auto;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px"></span>
+          </div>
+          <div style="font-size:.68rem;color:var(--text-3);line-height:1.5;margin-bottom:9px">
+            E-mail e senha que o aluno usará para entrar no portal e ver faltas, horários e crachá.
+          </div>
+          <div class="fld">
+            <label>E-mail</label>
+            <input type="email" id="ed-aluno-email" autocomplete="off" placeholder="email@exemplo.com" />
+          </div>
+          <div class="fld" style="margin-top:8px">
+            <label id="ed-senha-label">Senha</label>
+            <input type="text" id="ed-aluno-senha" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
+          </div>
+          <button class="fmb-cancel" id="ed-salvar-acesso" style="margin-top:10px;color:#2563eb;border-color:#bfdbfe;width:100%;justify-content:center">
+            Salvar acesso
+          </button>
+          <span id="ed-acesso-fb" style="font-size:.72rem;font-weight:600;min-height:14px;display:block;margin-top:6px"></span>
+        </div>
+
         <div class="fld" style="margin-top:10px">
           <span id="ed-feedback" style="font-size:.78rem;color:var(--red);font-weight:600;min-height:16px;display:block"></span>
         </div>
@@ -578,6 +602,82 @@ function abrirModalEditar(aluno) {
   }
 
   carregarTurmasEd();
+
+  // ── acesso do aluno (login) ──
+  let _alunoUserId = aluno.user_id || null;
+  const acStatus = overlay.querySelector("#ed-acesso-status");
+  const acEmail  = overlay.querySelector("#ed-aluno-email");
+  const acSenha  = overlay.querySelector("#ed-aluno-senha");
+  const acLabel  = overlay.querySelector("#ed-senha-label");
+  const acFb     = overlay.querySelector("#ed-acesso-fb");
+
+  const pintarStatus = () => {
+    if (_alunoUserId) {
+      acStatus.textContent = "Ativo";
+      acStatus.style.cssText = "margin-left:auto;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px;background:#dcfce7;color:#15803d";
+      acLabel.innerHTML = `Nova senha <span style="font-weight:400;color:var(--text-3)">(deixe em branco para manter)</span>`;
+      acSenha.placeholder = "Deixe em branco para manter";
+    } else {
+      acStatus.textContent = "Não configurado";
+      acStatus.style.cssText = "margin-left:auto;font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px;background:#f1f5f9;color:#64748b";
+    }
+  };
+  pintarStatus();
+
+  // Prefill do e-mail se já existe acesso
+  if (_alunoUserId) {
+    supabaseAdmin.from("profiles").select("email").eq("id", _alunoUserId).maybeSingle()
+      .then(({ data }) => { if (data?.email) acEmail.value = data.email; });
+  }
+
+  overlay.querySelector("#ed-salvar-acesso").addEventListener("click", async () => {
+    acFb.textContent = ""; acFb.style.color = "var(--red)";
+    const email = acEmail.value.trim().toLowerCase();
+    const senha = acSenha.value;
+    const instId = _adminInstId || aluno.inst?.id || null;
+
+    if (!email) { acFb.textContent = "Informe o e-mail do aluno."; return; }
+    if (!_alunoUserId && senha.length < 6) { acFb.textContent = "Crie uma senha de ao menos 6 caracteres."; return; }
+    if (senha && senha.length < 6)         { acFb.textContent = "A senha deve ter ao menos 6 caracteres."; return; }
+
+    const btn = overlay.querySelector("#ed-salvar-acesso");
+    btn.disabled = true; const txt = btn.textContent; btn.textContent = "Salvando…";
+
+    try {
+      if (_alunoUserId) {
+        // Atualiza conta existente
+        const updates = { email };
+        if (senha) updates.password = senha;
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(_alunoUserId, updates);
+        if (error) throw error;
+        await supabaseAdmin.from("profiles").update({ email, nome: aluno.nome }).eq("id", _alunoUserId);
+      } else {
+        // Cria conta nova
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+          email, password: senha, email_confirm: true,
+          user_metadata: { nome: aluno.nome, role: "aluno" },
+        });
+        if (error) throw error;
+        _alunoUserId = data.user.id;
+        await supabaseAdmin.from("profiles")
+          .update({ nome: aluno.nome, email, role: "aluno", instituicao_id: instId }).eq("id", _alunoUserId);
+        await supabaseAdmin.from("alunos").update({ user_id: _alunoUserId }).eq("id", aluno.id);
+        aluno.user_id = _alunoUserId;
+      }
+      acSenha.value = "";
+      pintarStatus();
+      acFb.style.color = "#15803d";
+      acFb.textContent = "Acesso salvo com sucesso!";
+      showToast("Acesso do aluno salvo!", "success");
+    } catch (e) {
+      const msg = String(e.message || e);
+      acFb.textContent = msg.includes("already been registered") || msg.includes("duplicate")
+        ? "Este e-mail já está em uso por outra conta."
+        : "Erro: " + msg;
+    } finally {
+      btn.disabled = false; btn.textContent = txt;
+    }
+  });
 
   // ── salvar ──
   overlay.querySelector("#ed-salvar").addEventListener("click", async () => {

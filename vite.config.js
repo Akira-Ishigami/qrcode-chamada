@@ -31,6 +31,7 @@ export default defineConfig(({ command }) => ({
         "cracha.html",
         "materias.html",
         "calendario.html",
+        "aluno.html",
       ],
     },
   },

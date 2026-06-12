@@ -866,6 +866,7 @@ form.addEventListener('submit', async (e) => {
     const destino =
       profile?.role === 'professor' ? '/calendario.html' :
       profile?.role === 'admin'    ? '/dashboard.html' :
+      profile?.role === 'aluno'    ? '/aluno.html' :
       '/inst-dashboard.html';
     showWelcome(profile, destino);
   }

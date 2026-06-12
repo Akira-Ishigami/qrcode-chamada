@@ -169,7 +169,7 @@ async function renderTurmas(instId, instNome) {
   setSkeleton(3);
 
   const { data, error } = await supabase
-    .from("turmas").select("id, nome, professor, horario")
+    .from("turmas").select("id, nome, professor, horario, hora_inicio, hora_fim")
     .eq("instituicao_id", instId).order("nome");
 
   if (error) {
@@ -279,6 +279,17 @@ function abrirModal(tipo) {
         ` : `
           <label class="tv-label">Nome da turma <span style="color:var(--red)">*</span></label>
           <input class="tv-input" id="mt-nome" placeholder="Ex: Turma A, 1º Ano Noturno" autocomplete="off" />
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <div style="flex:1">
+              <label class="tv-label">Início</label>
+              <input class="tv-input" id="mt-inicio" type="time" />
+            </div>
+            <div style="flex:1">
+              <label class="tv-label">Fim</label>
+              <input class="tv-input" id="mt-fim" type="time" />
+            </div>
+          </div>
+          <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma (opcional)</small>
         `}
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
@@ -321,8 +332,11 @@ function abrirModal(tipo) {
       renderTurmas(data.id, nome);
     } else {
       const nome = document.getElementById("mt-nome")?.value.trim();
+      const hi   = document.getElementById("mt-inicio")?.value || null;
+      const hf   = document.getElementById("mt-fim")?.value || null;
       if (!nome) { err.textContent = "Informe o nome da turma."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
-      const { error } = await supabaseAdmin.from("turmas").insert({ nome, instituicao_id: instAtualId });
+      if (hi && hf && hf <= hi) { err.textContent = "O fim deve ser depois do início."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
+      const { error } = await supabaseAdmin.from("turmas").insert({ nome, instituicao_id: instAtualId, hora_inicio: hi, hora_fim: hf });
       if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
       fechar();
       showToast(`Turma "${nome}" adicionada!`, "success");
@@ -366,6 +380,17 @@ function abrirModalEditar(t) {
           <label class="tv-label">Nome da turma <span style="color:var(--red)">*</span></label>
           <input class="tv-input" id="me-nome" value="${t.nome}" autocomplete="off" />
         </div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <div style="flex:1">
+            <label class="tv-label">Início</label>
+            <input class="tv-input" id="me-inicio" type="time" value="${t.hora_inicio ? t.hora_inicio.slice(0,5) : ""}" />
+          </div>
+          <div style="flex:1">
+            <label class="tv-label">Fim</label>
+            <input class="tv-input" id="me-fim" type="time" value="${t.hora_fim ? t.hora_fim.slice(0,5) : ""}" />
+          </div>
+        </div>
+        <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma (opcional)</small>
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
       <div class="tv-modal-foot">
@@ -390,14 +415,17 @@ function abrirModalEditar(t) {
     const err = document.getElementById("modal-err");
     err.textContent = "";
     const nome = document.getElementById("me-nome")?.value.trim();
+    const hi   = document.getElementById("me-inicio")?.value || null;
+    const hf   = document.getElementById("me-fim")?.value || null;
 
     if (!nome) { err.textContent = "Informe o nome da turma."; return; }
+    if (hi && hf && hf <= hi) { err.textContent = "O fim deve ser depois do início."; return; }
 
     const btn = document.getElementById("modal-ok");
     btn.disabled = true;
     btn.innerHTML = `<svg style="animation:spin .8s linear infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando...`;
 
-    const { error } = await supabase.from("turmas").update({ nome }).eq("id", t.id);
+    const { error } = await supabase.from("turmas").update({ nome, hora_inicio: hi, hora_fim: hf }).eq("id", t.id);
     if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_EDIT} Salvar`; return; }
 
     fechar();
