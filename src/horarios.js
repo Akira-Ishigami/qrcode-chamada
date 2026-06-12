@@ -641,7 +641,7 @@ function abrirModal(dia, horaInicio) {
   // Salvar
   document.getElementById("m-salvar").addEventListener("click", async () => {
     const matId  = document.getElementById("m-materia").value;
-    const profId = document.getElementById("m-professor-val")?.value || null;
+    let   profId = document.getElementById("m-professor-val")?.value || null;
     const inicio = document.getElementById("m-inicio").value;
     const fim    = document.getElementById("m-fim").value;
     const sala   = document.getElementById("m-sala").value.trim();
@@ -654,6 +654,20 @@ function abrirModal(dia, horaInicio) {
 
     const btn = document.getElementById("m-salvar");
     btn.disabled = true; btn.textContent = "Salvando…";
+
+    // Garante o professor: se não veio do modal (ex.: _pms desatualizado),
+    // resolve pelo vínculo da matéria com dados frescos.
+    if (!profId) {
+      const { data: vinc } = await supabaseAdmin
+        .from("professor_materias").select("professor_id").eq("materia_id", matId);
+      if (vinc?.length === 1) {
+        profId = vinc[0].professor_id;
+      } else if (vinc?.length > 1) {
+        fb.textContent = "Esta matéria tem vários professores — selecione um.";
+        btn.disabled = false; btn.textContent = "Adicionar aula";
+        return;
+      }
+    }
 
     // Busca nome da matéria para coluna texto (compatibilidade)
     const mat = _materias.find(m => m.id === matId);

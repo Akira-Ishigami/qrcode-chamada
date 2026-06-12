@@ -184,7 +184,7 @@ async function horarioAtualDaTurma(turmaId) {
   const mm        = String(agora.getMinutes()).padStart(2, "0");
   const horaAtual = `${hh}:${mm}`;
 
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from("horarios")
     .select("id, hora_inicio, hora_fim")
     .eq("turma_id", turmaId)
@@ -192,6 +192,71 @@ async function horarioAtualDaTurma(turmaId) {
 
   const slot = (data ?? []).find(h => h.hora_inicio <= horaAtual && horaAtual < h.hora_fim);
   return slot?.id ?? null;
+}
+
+// Escolhe a aula (horário) da chamada. Retorna {horarioId, materia} ou "CANCEL".
+const esc = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const _DIAS_CURTO = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+async function escolherHorarioChamada(turmaId) {
+  const { data } = await supabaseAdmin
+    .from("horarios")
+    .select("id, dia_semana, hora_inicio, hora_fim, materias(nome)")
+    .eq("turma_id", turmaId)
+    .order("dia_semana").order("hora_inicio");
+
+  const horarios = data ?? [];
+  if (horarios.length === 0) return { horarioId: null, materia: null };
+
+  // Se há uma aula acontecendo AGORA, seleciona automaticamente (sem perguntar)
+  const atualId = await horarioAtualDaTurma(turmaId);
+  if (atualId) {
+    const h = horarios.find(x => x.id === atualId);
+    return { horarioId: atualId, materia: h?.materias?.nome ?? null };
+  }
+
+  // Só uma aula cadastrada → usa direto
+  if (horarios.length === 1) return { horarioId: horarios[0].id, materia: horarios[0].materias?.nome ?? null };
+
+  // Nenhuma aula no horário atual e várias cadastradas → professor escolhe
+  return await new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.className = "modal-overlay open";
+    ov.style.cssText = "position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(7,9,18,.6);backdrop-filter:blur(5px)";
+    ov.innerHTML = `
+      <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;overflow:hidden;box-shadow:0 24px 56px rgba(0,0,0,.25)">
+        <div style="padding:18px 20px 12px;border-bottom:1px solid #f1f5f9">
+          <h3 style="font-size:1rem;font-weight:800;color:#0f172a;letter-spacing:-.02em">Qual aula?</h3>
+          <p style="font-size:.8rem;color:#64748b;margin-top:3px">Esta turma tem mais de uma matéria. Selecione a aula desta chamada.</p>
+        </div>
+        <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto">
+          ${horarios.map(h => {
+            const agora = h.id === atualId;
+            return `
+              <button data-id="${h.id}" data-mat="${esc(h.materias?.nome ?? "")}" class="aula-opt" style="
+                display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;
+                padding:13px 14px;border-radius:11px;border:1.5px solid ${agora ? "#86efac" : "#e2e8f0"};
+                background:${agora ? "#f0fdf4" : "#fff"};cursor:pointer;font-family:inherit;transition:all .12s">
+                <span>
+                  <span style="display:block;font-size:.9rem;font-weight:800;color:#0f172a">${esc(h.materias?.nome ?? "Aula")}</span>
+                  <span style="display:block;font-size:.72rem;color:#64748b;margin-top:2px">${_DIAS_CURTO[h.dia_semana]} · ${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}</span>
+                </span>
+                ${agora ? `<span style="flex-shrink:0;font-size:.6rem;font-weight:800;color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:3px 9px;border-radius:99px">AGORA</span>` : ""}
+              </button>`;
+          }).join("")}
+        </div>
+        <div style="padding:10px 16px 16px">
+          <button id="aula-cancelar" style="width:100%;padding:11px;border-radius:11px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const finalizar = (val) => { ov.remove(); resolve(val); };
+    ov.querySelectorAll(".aula-opt").forEach(b => {
+      b.addEventListener("click", () => finalizar({ horarioId: b.dataset.id, materia: b.dataset.mat || null }));
+    });
+    ov.querySelector("#aula-cancelar").addEventListener("click", () => finalizar("CANCEL"));
+    ov.addEventListener("click", (e) => { if (e.target === ov) finalizar("CANCEL"); });
+  });
 }
 
 selInst.addEventListener("change", async () => {
@@ -227,8 +292,15 @@ btnIniciar.addEventListener("click", async () => {
   chamadaData = new Date().toISOString().split("T")[0];
   turmaNome   = turma?.nome ?? "Turma";
 
-  // Identifica o horário (slot) atual da turma — a chamada é amarrada a ele.
-  const horarioId = await horarioAtualDaTurma(turmaId);
+  // Professor escolhe a aula (matéria/horário) — evita misturar matérias da mesma turma.
+  const escolha = await escolherHorarioChamada(turmaId);
+  if (escolha === "CANCEL") {
+    btnIniciar.disabled    = false;
+    btnIniciar.textContent = "Iniciar Chamada";
+    return;
+  }
+  const horarioId   = escolha.horarioId;
+  const materiaNome = escolha.materia;
 
   // Verifica chamada de hoje DESTE horário (aberta ou encerrada)
   let consulta = supabase
@@ -275,7 +347,7 @@ btnIniciar.addEventListener("click", async () => {
 
   // Mostra topbar com info da chamada
   document.getElementById("topbar-titulo").textContent  = turma?.nome       ?? "—";
-  document.getElementById("topbar-sub").textContent     = turma?.professor   ? `· ${turma.professor}` : "";
+  document.getElementById("topbar-sub").textContent     = materiaNome ? `· ${materiaNome}` : (turma?.professor ? `· ${turma.professor}` : "");
   document.getElementById("topbar-horario").textContent = turma?.horario     ?? "";
   if (contentTopbar) contentTopbar.style.display = "";
   if (statusBadge)   statusBadge.style.display   = "";
