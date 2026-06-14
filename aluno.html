@@ -181,9 +181,10 @@
     .cal-now-dot::after { content: attr(data-time); position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: .54rem; font-weight: 800; color: #ef4444; background: #fff; padding: 1px 4px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 3px rgba(239,68,68,.18); }
 
     /* Professores — grid editorial de cards */
-    .prof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+    .prof-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
     .prof-card-sq {
       --accent: #2563eb; --accent-bg: #dbeafe; --accent-text: #1e40af;
+      max-width: 260px; width: 100%;
       background: #fff; border: 1px solid #e7ebf2; border-radius: 18px;
       display: flex; flex-direction: column; overflow: hidden; cursor: pointer;
       box-shadow: 0 1px 4px rgba(15,23,42,.04); transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, border-color .22s;
@@ -327,6 +328,9 @@
       .idcard-right { padding: 0 24px 26px; }
       .idcard-left { padding-bottom: 8px; }
       .idcard-name { font-size: 1.3rem; }
+
+      /* Cards de professor ocupam a largura cheia no celular */
+      .prof-card-sq { max-width: none; }
 
       /* No celular, troca o crachá completo pelo cartão de acesso online (QR + nome + turma) */
       .cracha-card-box { display: none; }
