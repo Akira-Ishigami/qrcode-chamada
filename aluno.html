@@ -38,19 +38,69 @@
     /* Cartão de acesso online (mobile) — escondido por padrão, mostrado em telas pequenas */
     .online-card, .online-card-hint { display: none; }
     .online-card {
-      width: 100%; max-width: 360px; background: #fff; border-radius: 18px;
-      border: 1px solid #e7ebf2; box-shadow: 0 16px 40px -20px rgba(15,23,42,.3);
-      padding: 18px; flex-direction: column; gap: 14px;
+      width: 100%; max-width: 360px; display: flex; flex-direction: column;
     }
+
+    /* Faixa superior estilo cartão de acesso / boarding pass */
+    .online-card-band {
+      background: linear-gradient(120deg, #172554 0%, #1e3a8a 45%, #2563eb 100%);
+      padding: 13px 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      position: relative; overflow: hidden;
+    }
+    .online-card-band::after {
+      content: ""; position: absolute; inset: 0; opacity: .35; mix-blend-mode: overlay; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .online-card-chip {
+      display: flex; align-items: center; gap: 7px; color: #fff; font-size: .62rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .16em; position: relative; z-index: 1;
+    }
+    .online-card-chip svg { flex-shrink: 0; animation: chipPulse 2.6s ease-in-out infinite; }
+    @keyframes chipPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+    .online-card-inst {
+      color: rgba(255,255,255,.78); font-size: .64rem; font-weight: 700; letter-spacing: .02em;
+      max-width: 50%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      position: relative; z-index: 1;
+    }
+
+    /* QR com moldura tipo scanner */
+    .online-card-qr-frame { position: relative; padding: 22px 22px 0; }
     .online-card-qr {
       display: flex; align-items: center; justify-content: center;
-      background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 14px; padding: 16px;
+      background: #fff; border-radius: 16px; padding: 14px;
+      box-shadow: inset 0 0 0 1px #eef2f7;
     }
-    .online-card-qr img { width: 100%; max-width: 240px; height: auto; display: block; border-radius: 6px; }
-    .online-card-info { text-align: center; }
-    .online-card-name { font-size: 1rem; font-weight: 800; color: #0f172a; letter-spacing: -.01em; }
+    .online-card-qr img { width: 100%; max-width: 232px; height: auto; display: block; border-radius: 6px; }
+    .qr-corner { position: absolute; width: 22px; height: 22px; pointer-events: none; }
+    .qr-corner.tl { top: 6px; left: 6px; border-top: 3px solid #2563eb; border-left: 3px solid #2563eb; border-radius: 8px 0 0 0; }
+    .qr-corner.tr { top: 6px; right: 6px; border-top: 3px solid #2563eb; border-right: 3px solid #2563eb; border-radius: 0 8px 0 0; }
+    .qr-corner.bl { bottom: 6px; left: 6px; border-bottom: 3px solid #2563eb; border-left: 3px solid #2563eb; border-radius: 0 0 0 8px; }
+    .qr-corner.br { bottom: 6px; right: 6px; border-bottom: 3px solid #2563eb; border-right: 3px solid #2563eb; border-radius: 0 0 8px 0; }
+
+    /* Linha de perfuração estilo ticket */
+    .online-card-perf { position: relative; height: 0; margin: 22px 0 18px; border-top: 2px dashed #dbe3ee; }
+    .online-card-perf::before, .online-card-perf::after {
+      content: ""; position: absolute; top: 50%; transform: translateY(-50%);
+      width: 26px; height: 26px; border-radius: 50%; background: #f8fafc;
+    }
+    .online-card-perf::before { left: -13px; }
+    .online-card-perf::after  { right: -13px; }
+
+    .online-card-info { text-align: center; padding: 0 20px; }
+    .online-card-name { font-size: 1.15rem; font-weight: 800; color: #0f172a; letter-spacing: -.01em; }
     .online-card-turma { font-size: .8rem; font-weight: 600; color: #64748b; margin-top: 3px; }
-    .online-card-hint { font-size: .76rem; color: #94a3b8; text-align: center; max-width: 320px; }
+    .online-card-status {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+      font-size: .6rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #15803d;
+      background: #f0fdf4; border: 1px solid #bbf7d0; padding: 4px 12px; border-radius: 99px;
+    }
+    .online-card-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.22); }
+
+    .online-card-hint {
+      font-size: .74rem; color: #94a3b8; text-align: center; max-width: 320px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .online-card-hint svg { flex-shrink: 0; opacity: .6; }
     .al-dl-btn {
       flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
       padding: 12px 14px; border-radius: 12px; font-family: 'Outfit', sans-serif;
@@ -281,15 +331,17 @@
       /* No celular, troca o crachá completo pelo cartão de acesso online (QR + nome + turma) */
       .cracha-card-box { display: none; }
       .online-card { display: flex; }
-      .online-card-hint { display: block; }
+      .online-card-hint { display: flex; }
 
-      /* Um único cartão: QR no topo, info no meio, downloads embaixo */
+      /* Cartão único estilo "boarding pass" */
       .cracha-wrap {
-        background: #fff; border: 1px solid #e7ebf2; border-radius: 18px;
-        box-shadow: 0 16px 40px -20px rgba(15,23,42,.3); padding: 18px; gap: 16px;
+        position: relative; overflow: hidden; gap: 0; padding: 0;
+        background: #fff; border-radius: 22px;
+        box-shadow: 0 24px 60px -26px rgba(15,23,42,.4), 0 1px 0 rgba(15,23,42,.02);
       }
-      .online-card { background: none; border: none; box-shadow: none; padding: 0; max-width: none; }
-      .cracha-actions { flex-direction: row; max-width: none; }
+      .online-card { max-width: none; }
+      .cracha-actions { flex-direction: row; max-width: none; padding: 0 20px 22px; }
+      .online-card-hint { padding: 0 20px 20px; }
     }
 
     .al-empty { font-size: .84rem; color: #94a3b8; text-align: center; padding: 22px 8px; }

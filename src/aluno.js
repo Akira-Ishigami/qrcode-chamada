@@ -368,12 +368,25 @@ function renderCracha() {
         <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
       </div>
       <div class="online-card" id="online-card">
-        <div class="online-card-qr" id="online-qr">
-          <div class="al-loading" style="padding:20px">Gerando QR…</div>
+        <div class="online-card-band">
+          <div class="online-card-chip">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8.5 8.5a5 5 0 0 1 7 0"/><path d="M5.5 5.5a9 9 0 0 1 13 0"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+            Acesso Digital
+          </div>
+          ${_instNome ? `<div class="online-card-inst">${esc(_instNome)}</div>` : ""}
         </div>
+        <div class="online-card-qr-frame">
+          <span class="qr-corner tl"></span><span class="qr-corner tr"></span>
+          <span class="qr-corner bl"></span><span class="qr-corner br"></span>
+          <div class="online-card-qr" id="online-qr">
+            <div class="al-loading" style="padding:20px">Gerando QR…</div>
+          </div>
+        </div>
+        <div class="online-card-perf"></div>
         <div class="online-card-info">
           <div class="online-card-name">${esc(_aluno.nome)}</div>
-          <div class="online-card-turma">${esc(_aluno.turmas?.nome ?? "—")}${_instNome ? ` · ${esc(_instNome)}` : ""}</div>
+          <div class="online-card-turma">${esc(_aluno.turmas?.nome ?? "—")}</div>
+          <div class="online-card-status">Carteirinha ativa</div>
         </div>
       </div>
       <div class="cracha-actions">
@@ -386,7 +399,10 @@ function renderCracha() {
           Baixar QR
         </button>
       </div>
-      <div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>
+      <div class="online-card-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        Mostre este cartão na entrada caso esqueça o crachá físico.
+      </div>
     </div>`;
 }
 
