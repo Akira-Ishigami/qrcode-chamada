@@ -180,29 +180,6 @@
     .cal-now-dot { position: absolute; left: -3px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; transform: translateY(-50%); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
     .cal-now-dot::after { content: attr(data-time); position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: .54rem; font-weight: 800; color: #ef4444; background: #fff; padding: 1px 4px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 3px rgba(239,68,68,.18); }
 
-    /* Agenda simples por dia — exibida no celular no lugar da grade */
-    .horarios-agenda { display: none; }
-    .ag-day { margin-bottom: 16px; }
-    .ag-day:last-child { margin-bottom: 0; }
-    .ag-day-head {
-      display: flex; align-items: center; gap: 8px; font-size: .7rem; font-weight: 800;
-      text-transform: uppercase; letter-spacing: .1em; color: #64748b; margin-bottom: 8px; padding-left: 2px;
-    }
-    .ag-day-today .ag-day-head { color: #2563eb; }
-    .ag-today-tag { font-size: .6rem; font-weight: 800; color: #2563eb; background: #eaf3ff; padding: 2px 9px; border-radius: 99px; letter-spacing: .05em; }
-    .ag-day-body { display: flex; flex-direction: column; gap: 8px; }
-    .ag-item {
-      display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e7ebf2;
-      border-left: 4px solid; border-radius: 12px; padding: 10px 14px; box-shadow: 0 1px 4px rgba(15,23,42,.04);
-    }
-    .ag-item.now { background: #fef2f2; border-color: #fecaca; border-left-color: #ef4444; }
-    .ag-item-time { display: flex; flex-direction: column; align-items: center; font-size: .74rem; font-weight: 800; color: #0f172a; flex-shrink: 0; min-width: 44px; }
-    .ag-item-time-sep { width: 1px; height: 10px; background: #e2e8f0; margin: 3px 0; }
-    .ag-item-info { min-width: 0; flex: 1; }
-    .ag-item-nome { font-size: .88rem; font-weight: 800; color: #0f172a; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ag-item-sub { font-size: .74rem; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ag-item-now-tag { flex-shrink: 0; font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #ef4444; background: #fee2e2; padding: 3px 9px; border-radius: 99px; }
-
     /* Professores — lista simples de linhas */
     .prof-list { display: flex; flex-direction: column; gap: 10px; }
     .prof-row {
@@ -335,9 +312,13 @@
       .idcard-left { padding-bottom: 8px; }
       .idcard-name { font-size: 1.3rem; }
 
-      /* No celular, troca a grade semanal pela agenda simples por dia */
-      .cal-scroll { display: none; }
-      .horarios-agenda { display: block; }
+      /* Grade semanal mais compacta no celular */
+      .cal-time-col { width: 42px; }
+      .cal-hour-label { font-size: .54rem; padding-right: 5px; }
+      .cal-day-col { min-width: 68px; }
+      .cal-day-head { font-size: .58rem; }
+      .cal-block-nome { font-size: .62rem; }
+      .cal-block-sub, .cal-block-time { font-size: .5rem; }
 
       /* No celular, troca o crachá completo pelo cartão de acesso online (QR + nome + turma) */
       .cracha-card-box { display: none; }

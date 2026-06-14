@@ -298,43 +298,7 @@ function renderHorarios(horarios) {
       </div>`;
   }).join("");
 
-  // Agenda simples (lista por dia) — exibida no celular
-  const diasComAula = SHOW_DIAS.filter(d => horarios.some(h => h.dia_semana === d));
-  const agendaDias = diasComAula.map(d => {
-    const isHoje = d === hoje;
-    const hors = horarios
-      .filter(h => h.dia_semana === d)
-      .sort((a, b) => toFloat(a.hora_inicio) - toFloat(b.hora_inicio));
-
-    const itens = hors.map(h => {
-      const c = corDe[h.id];
-      const emAndamento = isHoje && nowF >= toFloat(h.hora_inicio) && nowF < toFloat(h.hora_fim);
-      const detalhe = [h.profiles?.nome, h.sala ? `Sala ${h.sala}` : null].filter(Boolean).map(esc).join(" · ");
-      return `
-        <div class="ag-item${emAndamento ? " now" : ""}" style="border-left-color:${c.border}">
-          <div class="ag-item-time">
-            <span>${h.hora_inicio.slice(0,5)}</span>
-            <span class="ag-item-time-sep"></span>
-            <span>${h.hora_fim.slice(0,5)}</span>
-          </div>
-          <div class="ag-item-info">
-            <div class="ag-item-nome">${esc(h.materias?.nome ?? "Aula")}</div>
-            ${detalhe ? `<div class="ag-item-sub">${detalhe}</div>` : ""}
-          </div>
-          ${emAndamento ? `<span class="ag-item-now-tag">Agora</span>` : ""}
-        </div>`;
-    }).join("");
-
-    return `
-      <div class="ag-day${isHoje ? " ag-day-today" : ""}">
-        <div class="ag-day-head">${DIAS[d]}${isHoje ? `<span class="ag-today-tag">Hoje</span>` : ""}</div>
-        <div class="ag-day-body">${itens}</div>
-      </div>`;
-  }).join("");
-
-  const agenda = `<div class="horarios-agenda">${agendaDias}</div>`;
-
-  return `<div class="cal-scroll"><div class="cal-grid">${timeCol}${cols}</div></div>${agenda}`;
+  return `<div class="cal-scroll"><div class="cal-grid">${timeCol}${cols}</div></div>`;
 }
 
 function renderProfessores(professores) {
