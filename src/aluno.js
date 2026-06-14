@@ -47,6 +47,20 @@ document.getElementById("al-nav").addEventListener("click", (e) => {
   renderSection(link.dataset.section);
 });
 
+// Re-renderiza o crachá ao cruzar o breakpoint mobile (cartão online <-> crachá completo)
+let _lastCrachaMobile = null;
+let _resizeT = null;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(() => {
+    const ativo = document.querySelector("#al-nav .sidebar-link.active")?.dataset.section;
+    if (ativo !== "cracha") return;
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile === _lastCrachaMobile) return;
+    renderSection("cracha");
+  }, 200);
+});
+
 // ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -189,6 +203,7 @@ function renderSection(name) {
   `;
 
   if (name === "cracha") {
+    _lastCrachaMobile = window.innerWidth <= 640;
     montarCracha();
     document.getElementById("dl-cracha")?.addEventListener("click", baixarCracha);
     document.getElementById("dl-qr")?.addEventListener("click", baixarQR);
