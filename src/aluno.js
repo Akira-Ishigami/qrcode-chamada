@@ -333,22 +333,15 @@ function abrirModalProf(p, idx = 0) {
   bg.className = "al-modal-bg";
   bg.innerHTML = `
     <div class="al-modal-box" style="--accent:${c.border};--accent-bg:${c.bg};--accent-text:${c.text}">
-      <div class="al-modal-header">
-        <button class="al-modal-close" id="al-modal-close">${SVG_X}</button>
-      </div>
+      <button class="al-modal-close" id="al-modal-close">${SVG_X}</button>
       <div class="al-modal-photo">${p.foto ? `<img src="${p.foto}" alt="" />` : `<span>${esc(iniciais(p.nome))}</span>`}</div>
-      <div class="al-modal-body">
-        <div class="al-modal-eyebrow">Professor${p.materias.length !== 1 ? "(a)" : ""}</div>
-        <div class="al-modal-nome">${esc(p.nome)}</div>
-        <div class="al-modal-label">Matérias que leciona</div>
-        <div class="al-modal-mats">
-          ${p.materias.length
-            ? p.materias.map((m, j) => {
-                const mc = GRID_COLORS[(idx + j + 1) % GRID_COLORS.length];
-                return `<span class="al-modal-mat-badge" style="background:${mc.bg};color:${mc.text}">${SVG_BOOK} ${esc(m)}</span>`;
-              }).join("")
-            : `<span class="al-modal-mat-badge vazio">Nenhuma matéria vinculada</span>`}
-        </div>
+      <div class="al-modal-eyebrow">Professor${p.materias.length !== 1 ? "(a)" : ""}</div>
+      <div class="al-modal-nome">${esc(p.nome)}</div>
+      <div class="al-modal-label">Matérias que leciona</div>
+      <div class="al-modal-mats">
+        ${p.materias.length
+          ? p.materias.map(m => `<span class="al-modal-mat-badge">${SVG_BOOK} ${esc(m)}</span>`).join("")
+          : `<span class="al-modal-mat-badge vazio">Nenhuma matéria vinculada</span>`}
       </div>
     </div>`;
   document.body.appendChild(bg);
