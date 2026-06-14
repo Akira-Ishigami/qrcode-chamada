@@ -35,11 +35,12 @@
     #cracha-img { max-width: 100%; height: auto; border-radius: 14px; box-shadow: 0 16px 40px -16px rgba(15,23,42,.45); }
     .cracha-actions { display: flex; gap: 10px; width: 100%; max-width: 360px; }
 
-    /* Cartão de acesso online (mobile) */
+    /* Cartão de acesso online (mobile) — escondido por padrão, mostrado em telas pequenas */
+    .online-card, .online-card-hint { display: none; }
     .online-card {
       width: 100%; max-width: 360px; background: #fff; border-radius: 18px;
       border: 1px solid #e7ebf2; box-shadow: 0 16px 40px -20px rgba(15,23,42,.3);
-      padding: 18px; display: flex; flex-direction: column; gap: 14px;
+      padding: 18px; flex-direction: column; gap: 14px;
     }
     .online-card-head { display: flex; align-items: center; gap: 12px; }
     .online-card-avatar {
@@ -286,6 +287,11 @@
       .idcard-right { padding: 0 24px 26px; }
       .idcard-left { padding-bottom: 8px; }
       .idcard-name { font-size: 1.3rem; }
+
+      /* No celular, troca o crachá completo pelo cartão de acesso online (QR + nome + turma) */
+      .cracha-card-box { display: none; }
+      .online-card { display: flex; }
+      .online-card-hint { display: block; }
     }
 
     .al-empty { font-size: .84rem; color: #94a3b8; text-align: center; padding: 22px 8px; }

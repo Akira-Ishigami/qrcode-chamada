@@ -47,19 +47,6 @@ document.getElementById("al-nav").addEventListener("click", (e) => {
   renderSection(link.dataset.section);
 });
 
-// Re-renderiza o crachá ao cruzar o breakpoint mobile (cartão online <-> crachá completo)
-let _lastCrachaMobile = null;
-let _resizeT = null;
-window.addEventListener("resize", () => {
-  clearTimeout(_resizeT);
-  _resizeT = setTimeout(() => {
-    const ativo = document.querySelector("#al-nav .sidebar-link.active")?.dataset.section;
-    if (ativo !== "cracha") return;
-    const isMobile = window.innerWidth <= 640;
-    if (isMobile === _lastCrachaMobile) return;
-    renderSection("cracha");
-  }, 200);
-});
 
 // ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
@@ -203,7 +190,6 @@ function renderSection(name) {
   `;
 
   if (name === "cracha") {
-    _lastCrachaMobile = window.innerWidth <= 640;
     montarCracha();
     document.getElementById("dl-cracha")?.addEventListener("click", baixarCracha);
     document.getElementById("dl-qr")?.addEventListener("click", baixarQR);
@@ -376,10 +362,12 @@ function abrirModalProf(p, idx = 0) {
 }
 
 function renderCracha() {
-  const isMobile = window.innerWidth <= 640;
-
-  const box = isMobile
-    ? `<div class="online-card" id="online-card">
+  return `
+    <div class="cracha-wrap">
+      <div class="cracha-card-box" id="cracha-box">
+        <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
+      </div>
+      <div class="online-card" id="online-card">
         <div class="online-card-head">
           <div class="online-card-avatar">${_aluno.foto_url ? `<img src="${esc(_aluno.foto_url)}" alt="" />` : `<span>${esc(iniciais(_aluno.nome))}</span>`}</div>
           <div class="online-card-info">
@@ -391,15 +379,8 @@ function renderCracha() {
           <div class="al-loading" style="padding:20px">Gerando QR…</div>
         </div>
         <div class="online-card-foot">Cartão de acesso digital${_instNome ? ` · ${esc(_instNome)}` : ""}</div>
-      </div>`
-    : `<div class="cracha-card-box" id="cracha-box">
-        <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
-      </div>`;
-
-  return `
-    <div class="cracha-wrap">
-      ${box}
-      ${isMobile ? `<div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>` : ""}
+      </div>
+      <div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>
       <div class="cracha-actions">
         <button class="al-dl-btn primary" id="dl-cracha">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -418,18 +399,34 @@ function alunoBadge() {
   return { ..._aluno, turma_nome: _aluno.turmas?.nome ?? "—" };
 }
 
-// Renderiza o crachá configurado pela instituição no desktop, ou o cartão online (QR) no celular
+// Gera o crachá completo (desktop) e o cartão online com QR (mobile) — ambos
+// ficam no DOM e o CSS decide qual mostrar conforme o tamanho da tela.
 async function montarCracha() {
-  if (window.innerWidth <= 640) return montarCartaoOnline();
+  const box   = document.getElementById("cracha-box");
+  const qrBox = document.getElementById("online-qr");
 
-  const box = document.getElementById("cracha-box");
-  if (!box) return;
-  try {
-    const url = await gerarCracha(alunoBadge(), _crachaConfig, _instNome, "ambos");
-    box.innerHTML = `<img id="cracha-img" src="${url}" alt="Crachá de ${esc(_aluno.nome)}" />`;
-  } catch {
-    box.innerHTML = `<div class="al-empty">Não foi possível gerar o crachá.</div>`;
-  }
+  await Promise.all([
+    (async () => {
+      if (!box) return;
+      try {
+        const url = await gerarCracha(alunoBadge(), _crachaConfig, _instNome, "ambos");
+        box.innerHTML = `<img id="cracha-img" src="${url}" alt="Crachá de ${esc(_aluno.nome)}" />`;
+      } catch {
+        box.innerHTML = `<div class="al-empty">Não foi possível gerar o crachá.</div>`;
+      }
+    })(),
+    (async () => {
+      if (!qrBox) return;
+      try {
+        const url = await QRCode.toDataURL(_aluno.matricula || _aluno.id, {
+          width: 360, margin: 1, color: { dark: "#0f172a", light: "#ffffff" },
+        });
+        qrBox.innerHTML = `<img src="${url}" alt="QR Code de presença" />`;
+      } catch {
+        qrBox.innerHTML = `<div class="al-empty">Não foi possível gerar o QR.</div>`;
+      }
+    })(),
+  ]);
 }
 
 // Cartão de acesso online (mobile) — QR + nome + turma, para quando o aluno esquecer o crachá
