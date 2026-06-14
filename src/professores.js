@@ -10,6 +10,7 @@ const SVG_DOTS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const SVG_EYE  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const SVG_EYE_OFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 const SVG_USER_BIG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+const SVG_CAMERA   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function showToast(msg, type = "") {
@@ -84,7 +85,7 @@ async function renderPage(profile) {
   // Carrega professores + limite da instituição em paralelo
   const [{ data, error }, { data: instData }] = await Promise.all([
     supabase.from("profiles")
-      .select("id, nome, email, role, instituicao_id")
+      .select("id, nome, email, role, instituicao_id, foto_url")
       .eq("instituicao_id", profile.instituicao_id)
       .eq("role", "professor")
       .order("nome"),
@@ -210,7 +211,7 @@ function buildCard(p) {
 
   return `
     <div class="prof-card" data-prof-id="${p.id}">
-      <div class="prof-card-avatar" style="background:${bg};color:${fg}">${esc(initials)}</div>
+      <div class="prof-card-avatar" style="background:${bg};color:${fg}">${p.foto_url ? `<img src="${p.foto_url}" alt="${esc(initials)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />` : esc(initials)}</div>
       <div class="prof-card-name">${esc(p.nome || "—")}</div>
       <div class="prof-card-email">${esc(p.email || "—")}</div>
       <div class="prof-card-badge">
@@ -252,11 +253,21 @@ function buildCard(p) {
 
 // ─── Modal: Novo professor ────────────────────────────────────────────────────
 function modalNovoUsuario() {
+  let fotoBase64 = null;
+
   openModal(`
     <div class="modal-title">Novo Professor</div>
     <div class="modal-info-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <span>O e-mail e a senha abaixo serão o acesso do professor no sistema para fazer chamadas pelo celular.</span>
+    </div>
+    <div class="foto-upload-area" id="m-foto-area">
+      <div class="foto-upload-preview" id="m-foto-preview">${SVG_USER_BIG}</div>
+      <div class="foto-upload-info">
+        <span class="foto-upload-label">${SVG_CAMERA} Adicionar foto</span>
+        <span class="foto-upload-hint">JPG ou PNG, máx 2MB (opcional)</span>
+      </div>
+      <input type="file" id="m-foto-input" accept="image/*" style="display:none" />
     </div>
     <div class="modal-field">
       <label>Nome completo</label>
@@ -283,6 +294,24 @@ function modalNovoUsuario() {
   `, () => {
     document.getElementById("m-cancel").addEventListener("click", closeModal);
     document.getElementById("m-pw-toggle").addEventListener("click", () => togglePw("m-senha", "m-pw-toggle"));
+
+    const fotoArea  = document.getElementById("m-foto-area");
+    const fotoInput = document.getElementById("m-foto-input");
+    const fotoPrev  = document.getElementById("m-foto-preview");
+    fotoArea.addEventListener("click", () => fotoInput.click());
+    fotoInput.addEventListener("change", () => {
+      const file = fotoInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { showToast("Foto muito grande (máx 2MB).", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        fotoBase64 = e.target.result;
+        fotoPrev.innerHTML = `<img src="${fotoBase64}" alt="" />`;
+        fotoArea.classList.add("has-foto");
+      };
+      reader.readAsDataURL(file);
+    });
+
     document.getElementById("m-save").addEventListener("click", async () => {
       const nome  = document.getElementById("m-nome").value.trim();
       const email = document.getElementById("m-email").value.trim();
@@ -332,7 +361,7 @@ function modalNovoUsuario() {
 
       // Vincula à instituição
       await supabaseAdmin.from("profiles")
-        .update({ nome, email, instituicao_id: _instId })
+        .update({ nome, email, instituicao_id: _instId, foto_url: fotoBase64 })
         .eq("id", data.user.id);
 
       showToast("Professor criado!", "success");
@@ -348,8 +377,20 @@ function modalNovoUsuario() {
 
 // ─── Modal: Editar dados ──────────────────────────────────────────────────────
 function modalEditar(p) {
+  let fotoBase64 = p.foto_url ?? null;
+  const initials = (p.nome || p.email || "?")
+    .split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+
   openModal(`
     <div class="modal-title">Editar dados</div>
+    <div class="foto-upload-area${p.foto_url ? " has-foto" : ""}" id="e-foto-area">
+      <div class="foto-upload-preview" id="e-foto-preview">${p.foto_url ? `<img src="${p.foto_url}" alt="" />` : esc(initials)}</div>
+      <div class="foto-upload-info">
+        <span class="foto-upload-label">${SVG_CAMERA} ${p.foto_url ? "Trocar foto" : "Adicionar foto"}</span>
+        <span class="foto-upload-hint">JPG ou PNG, máx 2MB</span>
+      </div>
+      <input type="file" id="e-foto-input" accept="image/*" style="display:none" />
+    </div>
     <div class="modal-field">
       <label>Nome</label>
       <input id="e-nome" value="${esc(p.nome || "")}" placeholder="Nome completo" />
@@ -372,6 +413,26 @@ function modalEditar(p) {
   `, () => {
     document.getElementById("e-cancel").addEventListener("click", closeModal);
     document.getElementById("e-pw-toggle").addEventListener("click", () => togglePw("e-senha", "e-pw-toggle"));
+
+    const fotoArea  = document.getElementById("e-foto-area");
+    const fotoInput = document.getElementById("e-foto-input");
+    const fotoPrev  = document.getElementById("e-foto-preview");
+    const fotoLabel = fotoArea.querySelector(".foto-upload-label");
+    fotoArea.addEventListener("click", () => fotoInput.click());
+    fotoInput.addEventListener("change", () => {
+      const file = fotoInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { showToast("Foto muito grande (máx 2MB).", "error"); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        fotoBase64 = e.target.result;
+        fotoPrev.innerHTML = `<img src="${fotoBase64}" alt="" />`;
+        fotoArea.classList.add("has-foto");
+        fotoLabel.innerHTML = `${SVG_CAMERA} Trocar foto`;
+      };
+      reader.readAsDataURL(file);
+    });
+
     document.getElementById("e-save").addEventListener("click", async () => {
       const nome  = document.getElementById("e-nome").value.trim();
       const email = document.getElementById("e-email").value.trim();
@@ -390,7 +451,7 @@ function modalEditar(p) {
       const { error: ae } = await supabaseAdmin.auth.admin.updateUserById(p.id, updates);
       if (ae) { showToast("Erro: " + ae.message, "error"); btn.disabled = false; btn.textContent = "Salvar"; return; }
 
-      await supabase.from("profiles").update({ nome, email }).eq("id", p.id);
+      await supabase.from("profiles").update({ nome, email, foto_url: fotoBase64 }).eq("id", p.id);
       showToast("Dados atualizados!", "success");
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });

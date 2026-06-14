@@ -2,6 +2,7 @@
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
 import { gerarCracha, downloadCracha, buscarCrachaConfig } from "./cracha.js";
+import { hojeLocal } from "./date-utils.js";
 
 const root = document.getElementById("page-root");
 
@@ -134,7 +135,7 @@ async function renderDashboard() {
   clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const hoje    = new Date().toISOString().split("T")[0];
+  const hoje    = hojeLocal();
   const dataFmt = new Date().toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
   const h       = new Date().getHours();
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
@@ -299,7 +300,7 @@ async function renderInstituicoes() {
   clearClock();
   root.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-3)">Carregando…</div>`;
 
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeLocal();
 
   const [
     { data: instituicoes, error: e1 },

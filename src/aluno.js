@@ -27,6 +27,10 @@ function iniciais(nome) {
   return (nome || "?").split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
 }
 
+const SVG_X    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+const SVG_BOOK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="12" height="12"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+const SVG_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+
 // ── Logout ──────────────────────────────────────────────────────────────────
 document.getElementById("logout-btn").addEventListener("click", async () => {
   await supabase.auth.signOut();
@@ -89,7 +93,7 @@ async function carregarDados() {
 
   const [horRes, chamRes, presRes] = await Promise.all([
     turmaId ? supabaseAdmin.from("horarios")
-      .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome)")
+      .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome, foto_url)")
       .eq("turma_id", turmaId).order("dia_semana").order("hora_inicio") : { data: [] },
     turmaId ? supabaseAdmin.from("chamadas")
       .select("id, horario_id, horarios(materia_id)")
@@ -128,14 +132,23 @@ async function carregarDados() {
     };
   }).sort((a, b) => a.nome.localeCompare(b.nome));
 
-  // Professores distintos
+  // Professores distintos (com lista de matérias que lecionam)
   const profMap = {};
   _horarios.forEach(h => {
     if (!h.professor_id) return;
-    const key = `${h.professor_id}|${h.materia_id}`;
-    if (!profMap[key]) profMap[key] = { nome: h.profiles?.nome ?? "Professor", mat: h.materias?.nome ?? "—" };
+    if (!profMap[h.professor_id]) {
+      profMap[h.professor_id] = {
+        id: h.professor_id,
+        nome: h.profiles?.nome ?? "Professor",
+        foto: h.profiles?.foto_url ?? null,
+        materias: new Set(),
+      };
+    }
+    if (h.materias?.nome) profMap[h.professor_id].materias.add(h.materias.nome);
   });
-  _professores = Object.values(profMap).sort((a, b) => a.nome.localeCompare(b.nome));
+  _professores = Object.values(profMap)
+    .map(p => ({ ...p, materias: [...p.materias] }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 function preencherSidebar() {
@@ -179,6 +192,12 @@ function renderSection(name) {
     montarCracha();
     document.getElementById("dl-cracha")?.addEventListener("click", baixarCracha);
     document.getElementById("dl-qr")?.addEventListener("click", baixarQR);
+  }
+
+  if (name === "professores") {
+    document.querySelectorAll(".prof-card-sq").forEach(card => {
+      card.addEventListener("click", () => abrirModalProf(_professores[+card.dataset.idx], +card.dataset.idx));
+    });
   }
 }
 
@@ -284,22 +303,88 @@ function renderHorarios(horarios) {
 function renderProfessores(professores) {
   if (!professores.length) return `<div class="al-card"><div class="al-empty">Nenhum professor vinculado à sua turma ainda.</div></div>`;
 
-  return `<div class="al-card">${professores.map(p => `
-    <div class="prof-item">
-      <div class="prof-av">${esc(iniciais(p.nome))}</div>
-      <div>
-        <div class="prof-nome">${esc(p.nome)}</div>
-        <div class="prof-mat">${esc(p.mat)}</div>
+  return `<div class="prof-grid">${professores.map((p, i) => {
+    const c = GRID_COLORS[i % GRID_COLORS.length];
+    return `
+    <div class="prof-card-sq" data-idx="${i}" style="--accent:${c.border};--accent-bg:${c.bg};--accent-text:${c.text}">
+      <div class="prof-card-photo">
+        ${p.foto
+          ? `<img src="${p.foto}" alt="" />`
+          : `<div class="prof-card-photo-fallback"><span>${esc(iniciais(p.nome))}</span></div>`}
       </div>
-    </div>`).join("")}</div>`;
+      <div class="prof-card-body">
+        <div class="prof-card-sq-nome">${esc(p.nome)}</div>
+        <div class="prof-card-sq-sub">
+          ${SVG_BOOK} ${p.materias.length} matéria${p.materias.length !== 1 ? "s" : ""}
+        </div>
+      </div>
+      <div class="prof-card-hint">Ver perfil ${SVG_ARROW}</div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// ── Modal de detalhes do professor ────────────────────────────────────────────
+function abrirModalProf(p, idx = 0) {
+  if (!p) return;
+  const c = GRID_COLORS[idx % GRID_COLORS.length];
+
+  const bg = document.createElement("div");
+  bg.className = "al-modal-bg";
+  bg.innerHTML = `
+    <div class="al-modal-box" style="--accent:${c.border};--accent-bg:${c.bg};--accent-text:${c.text}">
+      <div class="al-modal-header">
+        <button class="al-modal-close" id="al-modal-close">${SVG_X}</button>
+      </div>
+      <div class="al-modal-photo">${p.foto ? `<img src="${p.foto}" alt="" />` : `<span>${esc(iniciais(p.nome))}</span>`}</div>
+      <div class="al-modal-body">
+        <div class="al-modal-eyebrow">Professor${p.materias.length !== 1 ? "(a)" : ""}</div>
+        <div class="al-modal-nome">${esc(p.nome)}</div>
+        <div class="al-modal-label">Matérias que leciona</div>
+        <div class="al-modal-mats">
+          ${p.materias.length
+            ? p.materias.map((m, j) => {
+                const mc = GRID_COLORS[(idx + j + 1) % GRID_COLORS.length];
+                return `<span class="al-modal-mat-badge" style="background:${mc.bg};color:${mc.text}">${SVG_BOOK} ${esc(m)}</span>`;
+              }).join("")
+            : `<span class="al-modal-mat-badge vazio">Nenhuma matéria vinculada</span>`}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+
+  const close = () => { bg.classList.add("closing"); setTimeout(() => bg.remove(), 140); document.removeEventListener("keydown", onKey); };
+  function onKey(e) { if (e.key === "Escape") close(); }
+
+  bg.addEventListener("click", e => { if (e.target === bg) close(); });
+  bg.querySelector("#al-modal-close").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
 }
 
 function renderCracha() {
+  const isMobile = window.innerWidth <= 640;
+
+  const box = isMobile
+    ? `<div class="online-card" id="online-card">
+        <div class="online-card-head">
+          <div class="online-card-avatar">${_aluno.foto_url ? `<img src="${esc(_aluno.foto_url)}" alt="" />` : `<span>${esc(iniciais(_aluno.nome))}</span>`}</div>
+          <div class="online-card-info">
+            <div class="online-card-name">${esc(_aluno.nome)}</div>
+            <div class="online-card-turma">${esc(_aluno.turmas?.nome ?? "—")}</div>
+          </div>
+        </div>
+        <div class="online-card-qr" id="online-qr">
+          <div class="al-loading" style="padding:20px">Gerando QR…</div>
+        </div>
+        <div class="online-card-foot">Cartão de acesso digital${_instNome ? ` · ${esc(_instNome)}` : ""}</div>
+      </div>`
+    : `<div class="cracha-card-box" id="cracha-box">
+        <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
+      </div>`;
+
   return `
     <div class="cracha-wrap">
-      <div class="cracha-card-box" id="cracha-box">
-        <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
-      </div>
+      ${box}
+      ${isMobile ? `<div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>` : ""}
       <div class="cracha-actions">
         <button class="al-dl-btn primary" id="dl-cracha">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -318,16 +403,31 @@ function alunoBadge() {
   return { ..._aluno, turma_nome: _aluno.turmas?.nome ?? "—" };
 }
 
-// Renderiza o crachá configurado pela instituição (front+verso no desktop, só verso/QR no celular)
+// Renderiza o crachá configurado pela instituição no desktop, ou o cartão online (QR) no celular
 async function montarCracha() {
+  if (window.innerWidth <= 640) return montarCartaoOnline();
+
   const box = document.getElementById("cracha-box");
   if (!box) return;
-  const lado = window.innerWidth <= 640 ? "verso" : "ambos";
   try {
-    const url = await gerarCracha(alunoBadge(), _crachaConfig, _instNome, lado);
+    const url = await gerarCracha(alunoBadge(), _crachaConfig, _instNome, "ambos");
     box.innerHTML = `<img id="cracha-img" src="${url}" alt="Crachá de ${esc(_aluno.nome)}" />`;
   } catch {
     box.innerHTML = `<div class="al-empty">Não foi possível gerar o crachá.</div>`;
+  }
+}
+
+// Cartão de acesso online (mobile) — QR + nome + turma, para quando o aluno esquecer o crachá
+async function montarCartaoOnline() {
+  const qrBox = document.getElementById("online-qr");
+  if (!qrBox) return;
+  try {
+    const url = await QRCode.toDataURL(_aluno.matricula || _aluno.id, {
+      width: 360, margin: 1, color: { dark: "#0f172a", light: "#ffffff" },
+    });
+    qrBox.innerHTML = `<img src="${url}" alt="QR Code de presença" />`;
+  } catch {
+    qrBox.innerHTML = `<div class="al-empty">Não foi possível gerar o QR.</div>`;
   }
 }
 

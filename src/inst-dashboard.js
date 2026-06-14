@@ -1,6 +1,7 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
+import { hojeLocal } from "./date-utils.js";
 
 function showToast(msg, type = "") {
   const t = document.getElementById("toast");
@@ -69,7 +70,7 @@ function setupRealtime(profile) {
 
 async function render(profile) {
   const instId = profile.instituicao_id;
-  const hoje   = new Date().toISOString().split("T")[0];
+  const hoje   = hojeLocal();
   const hora   = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const data   = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 

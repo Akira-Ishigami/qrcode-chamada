@@ -234,7 +234,7 @@ function playNotifSound() {
     };
 
     if (ctx.state === "suspended") {
-      ctx.resume().then(play);
+      ctx.resume().then(play).catch(() => {});
     } else {
       play();
     }

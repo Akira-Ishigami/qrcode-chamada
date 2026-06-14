@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { applyNavRole, podeAdmin } from "./nav-role.js";
+import { hojeLocal } from "./date-utils.js";
 
 const root = document.getElementById("page-root");
 
@@ -29,7 +30,7 @@ async function init() {
 }
 
 async function renderPage(profile) {
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeLocal();
   const adminInstId = profile.role === "instituicao" ? profile.instituicao_id : null;
 
   // Carrega turmas para o filtro (admin: só da sua instituição)

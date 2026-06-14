@@ -1,9 +1,10 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
+import { hojeLocal }     from "./date-utils.js";
 
 const root = document.getElementById("page-root");
-const hoje = new Date().toISOString().split("T")[0];
+const hoje = hojeLocal();
 
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");

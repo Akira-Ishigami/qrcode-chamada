@@ -1,6 +1,7 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin }  from "./supabaseAdmin.js";
 import { abrirModalGerenciar, iniciarModalGerenciar } from "./gerenciar.js";
+import { hojeLocal } from "./date-utils.js";
 import * as XLSX from "xlsx";
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -138,7 +139,7 @@ async function carregarHorarioAtual(profId) {
     .eq("dia_semana", diaSemana);
 
   const slots = data ?? [];
-  const ativa  = slots.find(h => h.hora_inicio <= horaAtual && horaAtual < h.hora_fim);
+  const ativa  = slots.find(h => h.hora_inicio.slice(0,5) <= horaAtual && horaAtual < h.hora_fim.slice(0,5));
 
   const el = document.getElementById("aula-atual");
   if (!el) return;
@@ -190,7 +191,7 @@ async function horarioAtualDaTurma(turmaId) {
     .eq("turma_id", turmaId)
     .eq("dia_semana", diaSemana);
 
-  const slot = (data ?? []).find(h => h.hora_inicio <= horaAtual && horaAtual < h.hora_fim);
+  const slot = (data ?? []).find(h => h.hora_inicio.slice(0,5) <= horaAtual && horaAtual < h.hora_fim.slice(0,5));
   return slot?.id ?? null;
 }
 
@@ -289,7 +290,7 @@ btnIniciar.addEventListener("click", async () => {
     .from("turmas").select("nome, professor, horario")
     .eq("id", turmaId).single();
 
-  chamadaData = new Date().toISOString().split("T")[0];
+  chamadaData = hojeLocal();
   turmaNome   = turma?.nome ?? "Turma";
 
   // Professor escolhe a aula (matéria/horário) — evita misturar matérias da mesma turma.
@@ -1006,7 +1007,7 @@ async function carregarHistoricoHoje(instId) {
   const lista  = document.getElementById("historico-lista");
   if (!painel || !lista) return;
 
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeLocal();
 
   // Para professor: filtra por professor_id direto na chamada
   // Para admin/instituição: filtra por turmas da instituição
@@ -1204,7 +1205,7 @@ function abrirModalObservacao(durSeg, presentes, ausentes, onSalvar) {
 async function reabrirChamada(cId, turmaId, nome) {
   chamadaId         = cId;
   turmaNome         = nome;
-  chamadaData       = new Date().toISOString().split("T")[0];
+  chamadaData       = hojeLocal();
   _modoReabertura   = true;
   _chamadaEncerrada = false;
 

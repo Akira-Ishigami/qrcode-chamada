@@ -1,6 +1,7 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
+import { hojeLocal }     from "./date-utils.js";
 import * as XLSX         from "xlsx";
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -364,7 +365,7 @@ function renderPorChamada(f) {
   const byDate = {};
   filtered.forEach(c => { (byDate[c.data] ??= []).push(c); });
   const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
-  const hoje  = new Date().toISOString().split("T")[0];
+  const hoje  = hojeLocal();
 
   content.innerHTML = "";
   dates.forEach((date, di) => {
