@@ -196,7 +196,7 @@ function renderSection(name) {
   }
 
   if (name === "professores") {
-    document.querySelectorAll(".prof-card-sq").forEach(card => {
+    document.querySelectorAll(".prof-row").forEach(card => {
       card.addEventListener("click", () => abrirModalProf(_professores[+card.dataset.idx], +card.dataset.idx));
     });
   }
@@ -304,22 +304,22 @@ function renderHorarios(horarios) {
 function renderProfessores(professores) {
   if (!professores.length) return `<div class="al-card"><div class="al-empty">Nenhum professor vinculado à sua turma ainda.</div></div>`;
 
-  return `<div class="prof-grid">${professores.map((p, i) => {
+  return `<div class="prof-list">${professores.map((p, i) => {
     const c = GRID_COLORS[i % GRID_COLORS.length];
     return `
-    <div class="prof-card-sq" data-idx="${i}" style="--accent:${c.border};--accent-bg:${c.bg};--accent-text:${c.text}">
-      <div class="prof-card-photo">
+    <div class="prof-row" data-idx="${i}" style="--accent:${c.border};--accent-bg:${c.bg};--accent-text:${c.text}">
+      <div class="prof-row-photo">
         ${p.foto
           ? `<img src="${p.foto}" alt="" />`
-          : `<div class="prof-card-photo-fallback"><span>${esc(iniciais(p.nome))}</span></div>`}
+          : `<span>${esc(iniciais(p.nome))}</span>`}
       </div>
-      <div class="prof-card-body">
-        <div class="prof-card-sq-nome">${esc(p.nome)}</div>
-        <div class="prof-card-sq-sub">
+      <div class="prof-row-info">
+        <div class="prof-row-nome">${esc(p.nome)}</div>
+        <div class="prof-row-sub">
           ${SVG_BOOK} ${p.materias.length} matéria${p.materias.length !== 1 ? "s" : ""}
         </div>
       </div>
-      <div class="prof-card-hint">Ver perfil ${SVG_ARROW}</div>
+      <div class="prof-row-arrow">${SVG_ARROW}</div>
     </div>`;
   }).join("")}</div>`;
 }
