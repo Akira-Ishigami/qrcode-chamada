@@ -368,19 +368,14 @@ function renderCracha() {
         <div class="al-loading" style="padding:40px">Gerando seu crachá…</div>
       </div>
       <div class="online-card" id="online-card">
-        <div class="online-card-head">
-          <div class="online-card-avatar">${_aluno.foto_url ? `<img src="${esc(_aluno.foto_url)}" alt="" />` : `<span>${esc(iniciais(_aluno.nome))}</span>`}</div>
-          <div class="online-card-info">
-            <div class="online-card-name">${esc(_aluno.nome)}</div>
-            <div class="online-card-turma">${esc(_aluno.turmas?.nome ?? "—")}</div>
-          </div>
-        </div>
         <div class="online-card-qr" id="online-qr">
           <div class="al-loading" style="padding:20px">Gerando QR…</div>
         </div>
-        <div class="online-card-foot">Cartão de acesso digital${_instNome ? ` · ${esc(_instNome)}` : ""}</div>
+        <div class="online-card-info">
+          <div class="online-card-name">${esc(_aluno.nome)}</div>
+          <div class="online-card-turma">${esc(_aluno.turmas?.nome ?? "—")}${_instNome ? ` · ${esc(_instNome)}` : ""}</div>
+        </div>
       </div>
-      <div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>
       <div class="cracha-actions">
         <button class="al-dl-btn primary" id="dl-cracha">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -391,6 +386,7 @@ function renderCracha() {
           Baixar QR
         </button>
       </div>
+      <div class="online-card-hint">Mostre este cartão na entrada caso esqueça o crachá físico.</div>
     </div>`;
 }
 
