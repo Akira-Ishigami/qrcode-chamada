@@ -1,6 +1,11 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
+import { gerarGrade }    from "./grade-gen.js";
+
+// Estado da grade automática
+let _gradeConfig = null;
+let _previewHorarios = null; // quando != null, estamos vendo a prévia gerada
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const CAL_START = 5;   // 05:00
@@ -154,12 +159,19 @@ function renderShell() {
       </div>`
     : "";
 
+  const btn = (id, ico, label, primary) =>
+    `<button id="${id}" class="hor-act-btn${primary ? " primary" : ""}">${ico}<span>${label}</span></button>`;
+  const acoesHtml = _isProfessor
+    ? btn("btn-disponibilidade", "🗓️", "Disponibilidade")
+    : `${btn("btn-config", "⚙️", "Configurar")}${btn("btn-curricular", "📚", "Grade curricular")}${btn("btn-gerar", "⚡", "Gerar grade", true)}`;
+
   root.innerHTML = `
     <div class="hor-header">
       <div class="hor-header-left">
         <div class="hor-title">Horários de Aula</div>
         <div class="hor-subtitle">${subtitulo}</div>
       </div>
+      <div class="hor-actions">${acoesHtml}</div>
       <div class="hor-week-badge"><span class="hor-week-dot"></span>${semana}</div>
     </div>
 
@@ -208,6 +220,12 @@ function renderShell() {
   sincronizarLayout();
   window.addEventListener("resize", sincronizarLayout);
 
+  // Botões da grade automática
+  document.getElementById("btn-config")?.addEventListener("click", abrirModalConfig);
+  document.getElementById("btn-curricular")?.addEventListener("click", abrirModalCurricular);
+  document.getElementById("btn-gerar")?.addEventListener("click", iniciarGeracao);
+  document.getElementById("btn-disponibilidade")?.addEventListener("click", abrirModalDisponibilidade);
+
   // Professor mobile → agenda direta; instituição → grid até selecionar turma
   if (window.innerWidth <= 640 && _isProfessor) renderAgenda();
   else renderGrid();
@@ -219,6 +237,14 @@ function renderShell() {
 async function selecionarTurma(id) {
   _turmaId = id;
   document.getElementById("cal-overlay")?.remove();
+
+  // Durante a prévia da grade gerada, mostra direto do preview (sem ir ao banco)
+  if (_previewHorarios) {
+    previewParaTurma(id);
+    renderGrid();
+    renderLegend();
+    return;
+  }
 
   const { data } = await supabaseAdmin
     .from("horarios")
@@ -701,6 +727,336 @@ function abrirModal(dia, horaInicio) {
     else renderGrid();
     renderLegend();
     showToast("Aula adicionada!", "success");
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GRADE AUTOMÁTICA
+// ═══════════════════════════════════════════════════════════════════════════
+const DIAS_OPC = [[1,"Seg"],[2,"Ter"],[3,"Qua"],[4,"Qui"],[5,"Sex"],[6,"Sáb"],[0,"Dom"]];
+
+function modalHor(titulo, sub, bodyHtml, footHtml) {
+  const ov = document.createElement("div");
+  ov.className = "hor-modal-bg";
+  ov.innerHTML = `
+    <div class="hor-modal" style="max-width:460px">
+      <div class="hor-modal-head">
+        <div><h3>${esc(titulo)}</h3><span>${esc(sub)}</span></div>
+        <button class="hor-modal-close" data-close>✕</button>
+      </div>
+      <div class="hor-modal-body">${bodyHtml}</div>
+      <div class="hor-modal-foot">${footHtml}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  ov.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", close));
+  return { ov, close };
+}
+
+function confirmarHor(titulo, msg, labelOk, onOk) {
+  const ov = document.createElement("div");
+  ov.className = "hor-modal-bg";
+  ov.innerHTML = `
+    <div class="hor-modal" style="max-width:400px">
+      <div class="hor-modal-head"><div><h3>${esc(titulo)}</h3></div></div>
+      <div class="hor-modal-body"><p style="font-size:.86rem;color:var(--text-2,#475569);line-height:1.6;margin:0">${esc(msg)}</p></div>
+      <div class="hor-modal-foot">
+        <button class="hor-btn-cancel" data-cancel>Cancelar</button>
+        <button class="hor-btn-save" data-ok>${esc(labelOk)}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  ov.querySelector("[data-cancel]").addEventListener("click", close);
+  ov.querySelector("[data-ok]").addEventListener("click", () => { close(); onOk(); });
+}
+
+async function carregarConfig() {
+  const { data } = await supabaseAdmin.from("grade_config").select("*").eq("instituicao_id", _instId).maybeSingle();
+  _gradeConfig = data || {
+    instituicao_id: _instId, aula_min: 50, intervalo_min: 0,
+    hora_inicio: "07:00", hora_fim: "12:00",
+    recreio_inicio: null, recreio_fim: null, dias_semana: [1,2,3,4,5], max_materia_dia: 2,
+  };
+  return _gradeConfig;
+}
+
+// ── Configuração ──────────────────────────────────────────────────────────────
+async function abrirModalConfig() {
+  const c = await carregarConfig();
+  const dias = new Set(c.dias_semana ?? [1,2,3,4,5]);
+  const diasHtml = DIAS_OPC.map(([v,l]) =>
+    `<button type="button" class="hor-dia-chip${dias.has(v) ? " on" : ""}" data-dia="${v}">${l}</button>`
+  ).join("");
+
+  const { ov, close } = modalHor("Configuração da grade", "Parâmetros usados na geração automática", `
+    <div class="hor-field-row">
+      <div class="hor-field"><label>Início do dia</label><input id="cf-ini" type="time" value="${(c.hora_inicio || '07:00').slice(0,5)}"></div>
+      <div class="hor-field"><label>Fim do dia</label><input id="cf-fim" type="time" value="${(c.hora_fim || '12:00').slice(0,5)}"></div>
+    </div>
+    <div class="hor-field-row">
+      <div class="hor-field"><label>Duração da aula (min)</label><input id="cf-aula" type="number" min="10" max="180" value="${c.aula_min}"></div>
+      <div class="hor-field"><label>Intervalo entre aulas (min)</label><input id="cf-int" type="number" min="0" max="60" value="${c.intervalo_min}"></div>
+    </div>
+    <div class="hor-field"><label>Dias letivos</label><div class="hor-dias">${diasHtml}</div></div>
+    <div class="hor-field-row">
+      <div class="hor-field"><label>Recreio — início</label><input id="cf-rec-ini" type="time" value="${c.recreio_inicio ? c.recreio_inicio.slice(0,5) : ""}"></div>
+      <div class="hor-field"><label>Recreio — fim</label><input id="cf-rec-fim" type="time" value="${c.recreio_fim ? c.recreio_fim.slice(0,5) : ""}"></div>
+    </div>
+    <div class="hor-field"><label>Máx. da mesma matéria por dia</label><input id="cf-max" type="number" min="1" max="6" value="${c.max_materia_dia}"></div>
+    <div class="hor-feedback" id="cf-fb"></div>
+  `, `<button class="hor-btn-cancel" data-close>Cancelar</button><button class="hor-btn-save" id="cf-salvar">Salvar</button>`);
+
+  ov.querySelectorAll(".hor-dia-chip").forEach(chip => {
+    chip.addEventListener("click", () => chip.classList.toggle("on"));
+  });
+
+  ov.querySelector("#cf-salvar").addEventListener("click", async () => {
+    const diasSel = [...ov.querySelectorAll(".hor-dia-chip.on")].map(c => +c.dataset.dia);
+    if (!diasSel.length) { ov.querySelector("#cf-fb").textContent = "Selecione ao menos um dia."; return; }
+    const horaIni = ov.querySelector("#cf-ini").value || "07:00";
+    const horaFim = ov.querySelector("#cf-fim").value || "12:00";
+    if (horaFim <= horaIni) { ov.querySelector("#cf-fb").textContent = "O fim do dia deve ser depois do início."; return; }
+    const payload = {
+      instituicao_id: _instId,
+      hora_inicio: horaIni,
+      hora_fim: horaFim,
+      aula_min: parseInt(ov.querySelector("#cf-aula").value, 10) || 50,
+      intervalo_min: parseInt(ov.querySelector("#cf-int").value, 10) || 0,
+      recreio_inicio: ov.querySelector("#cf-rec-ini").value || null,
+      recreio_fim: ov.querySelector("#cf-rec-fim").value || null,
+      dias_semana: diasSel.sort((a,b)=>a-b),
+      max_materia_dia: parseInt(ov.querySelector("#cf-max").value, 10) || 2,
+    };
+    const { error } = await supabaseAdmin.from("grade_config").upsert(payload, { onConflict: "instituicao_id" });
+    if (error) { ov.querySelector("#cf-fb").textContent = "Erro: " + error.message; return; }
+    _gradeConfig = payload;
+    close();
+    showToast("Configuração salva!", "success");
+  });
+}
+
+// ── Grade curricular (por turma) ──────────────────────────────────────────────
+async function abrirModalCurricular() {
+  if (!_turmaId) { showToast("Selecione uma turma no topo primeiro.", "error"); return; }
+  const turma = _turmas.find(t => t.id === _turmaId);
+
+  const { data: existentes } = await supabaseAdmin
+    .from("grade_curricular").select("materia_id, professor_id, aulas_semana").eq("turma_id", _turmaId);
+  const exMap = {};
+  (existentes ?? []).forEach(e => { exMap[e.materia_id] = e; });
+
+  if (!_materias.length) { showToast("Cadastre matérias primeiro.", "error"); return; }
+
+  const linhas = _materias.map(m => {
+    const ex = exMap[m.id] || {};
+    const profs = _pms.filter(pm => pm.materia_id === m.id);
+    const profOpts = `<option value="">— professor —</option>` + profs.map(pm =>
+      `<option value="${pm.professor_id}" ${ex.professor_id === pm.professor_id ? "selected" : ""}>${esc(pm.profiles?.nome ?? pm.profiles?.email ?? "—")}</option>`).join("");
+    return `
+      <div class="hor-curr-row" data-mat="${m.id}">
+        <div class="hor-curr-nome">${esc(m.nome)}</div>
+        <select class="hor-curr-prof">${profOpts}</select>
+        <input class="hor-curr-aulas" type="number" min="0" max="20" value="${ex.aulas_semana ?? 0}" title="Aulas por semana">
+      </div>`;
+  }).join("");
+
+  const { ov, close } = modalHor(`Grade curricular — ${turma?.nome ?? ""}`, "Defina matérias, professor e nº de aulas por semana", `
+    <div class="hor-curr-head"><span>Matéria</span><span>Professor</span><span>Aulas/sem</span></div>
+    <div class="hor-curr-list">${linhas}</div>
+    <div class="hor-feedback" id="cu-fb"></div>
+  `, `<button class="hor-btn-cancel" data-close>Cancelar</button><button class="hor-btn-save" id="cu-salvar">Salvar</button>`);
+  ov.querySelector("[data-close]").addEventListener("click", close);
+
+  ov.querySelector("#cu-salvar").addEventListener("click", async () => {
+    const btn = ov.querySelector("#cu-salvar"); btn.disabled = true; btn.textContent = "Salvando…";
+    const upserts = [], deletes = [];
+    ov.querySelectorAll(".hor-curr-row").forEach(row => {
+      const materia_id = row.dataset.mat;
+      const aulas = parseInt(row.querySelector(".hor-curr-aulas").value, 10) || 0;
+      const professor_id = row.querySelector(".hor-curr-prof").value || null;
+      if (aulas > 0) upserts.push({ instituicao_id: _instId, turma_id: _turmaId, materia_id, professor_id, aulas_semana: aulas });
+      else deletes.push(materia_id);
+    });
+    try {
+      if (upserts.length) {
+        const { error } = await supabaseAdmin.from("grade_curricular").upsert(upserts, { onConflict: "turma_id,materia_id" });
+        if (error) throw error;
+      }
+      if (deletes.length) {
+        await supabaseAdmin.from("grade_curricular").delete().eq("turma_id", _turmaId).in("materia_id", deletes);
+      }
+      close();
+      showToast("Grade curricular salva!", "success");
+    } catch (e) {
+      ov.querySelector("#cu-fb").textContent = "Erro: " + e.message;
+      btn.disabled = false; btn.textContent = "Salvar";
+    }
+  });
+}
+
+// ── Geração + prévia ──────────────────────────────────────────────────────────
+function previewParaTurma(turmaId) {
+  const rows = (_previewHorarios ?? []).filter(h => h.turma_id === turmaId).map((h, i) => {
+    const mat = _materias.find(m => m.id === h.materia_id);
+    const pm  = _pms.find(p => p.professor_id === h.professor_id);
+    return { ...h, id: `prev-${i}`, colorIdx: 0, matNome: mat?.nome ?? "—",
+             materias: { nome: mat?.nome ?? "—" }, profiles: { nome: pm?.profiles?.nome ?? "" } };
+  });
+  _horarios = rows;
+  recolorHorarios();
+}
+
+async function iniciarGeracao() {
+  if (_previewHorarios) { /* refazer */ }
+  showToast("Gerando grade…");
+  await carregarConfig();
+
+  const [{ data: turmas }, { data: demanda }] = await Promise.all([
+    supabaseAdmin.from("turmas").select("id, nome, hora_inicio, hora_fim").eq("instituicao_id", _instId),
+    supabaseAdmin.from("grade_curricular").select("turma_id, materia_id, professor_id, aulas_semana").eq("instituicao_id", _instId),
+  ]);
+
+  if (!demanda?.length) { showToast("Cadastre a grade curricular (📚) antes de gerar.", "error"); return; }
+  if (!_gradeConfig.hora_inicio || !_gradeConfig.hora_fim) {
+    showToast("Configure o início/fim do dia em ⚙️ Configurar.", "error"); return;
+  }
+
+  const profIds = [...new Set(demanda.map(d => d.professor_id).filter(Boolean))];
+  let indisp = [];
+  if (profIds.length) {
+    const { data } = await supabaseAdmin.from("professor_indisponibilidade")
+      .select("professor_id, dia_semana, hora_inicio, hora_fim").in("professor_id", profIds);
+    indisp = data ?? [];
+  }
+
+  const res = gerarGrade({ turmas: turmas ?? [], config: _gradeConfig, demanda, indisponibilidade: indisp, travados: [] });
+  _previewHorarios = res.horarios;
+  mostrarPreview(res);
+}
+
+function mostrarPreview(res) {
+  // Garante uma turma selecionada para visualizar
+  if (!_turmaId && _turmas[0]) {
+    _turmaId = _turmas[0].id;
+    const sel = document.getElementById("sel-turma"); if (sel) sel.value = _turmaId;
+    const selM = document.getElementById("sel-turma-mobile"); if (selM) selM.value = _turmaId;
+    document.getElementById("cal-overlay")?.remove();
+  }
+  previewParaTurma(_turmaId);
+  renderGrid(); renderLegend();
+
+  const naoAloc = res.naoAlocadas.reduce((s, x) => s + x.faltam, 0);
+  document.getElementById("preview-banner")?.remove();
+  const banner = document.createElement("div");
+  banner.id = "preview-banner";
+  banner.className = "hor-preview-banner";
+  banner.innerHTML = `
+    <div class="pv-info">
+      <strong>⚡ Prévia da grade gerada</strong>
+      <span>${res.horarios.length} aulas alocadas${naoAloc ? ` · <b style="color:#fca5a5">${naoAloc} não couberam</b>` : ""}. Troque a turma no seletor para ver cada uma.</span>
+    </div>
+    <div class="pv-acts">
+      <button id="pv-refazer">↻ Refazer</button>
+      <button id="pv-cancelar">Cancelar</button>
+      <button id="pv-aplicar" class="primary">Aplicar grade</button>
+    </div>`;
+  const outer = document.querySelector(".cal-outer");
+  outer?.parentNode?.insertBefore(banner, outer);
+  document.getElementById("pv-refazer").addEventListener("click", iniciarGeracao);
+  document.getElementById("pv-cancelar").addEventListener("click", cancelarPreview);
+  document.getElementById("pv-aplicar").addEventListener("click", () => aplicarPreview());
+}
+
+function cancelarPreview() {
+  _previewHorarios = null;
+  document.getElementById("preview-banner")?.remove();
+  if (_turmaId) selecionarTurma(_turmaId);
+  else { _horarios = []; renderGrid(); renderLegend(); }
+}
+
+function aplicarPreview() {
+  if (!_previewHorarios) return;
+  confirmarHor(
+    "Aplicar grade gerada",
+    "Isto substitui toda a grade de horários das turmas pela grade gerada. As aulas que estavam cadastradas serão apagadas. Deseja continuar?",
+    "Aplicar grade",
+    aplicarPreviewConfirmado
+  );
+}
+
+async function aplicarPreviewConfirmado() {
+  const btn = document.getElementById("pv-aplicar");
+  if (btn) { btn.disabled = true; btn.textContent = "Aplicando…"; }
+  try {
+    const turmaIds = _turmas.map(t => t.id);
+    await supabaseAdmin.from("horarios").delete().in("turma_id", turmaIds);
+    const rows = _previewHorarios.map(h => ({
+      turma_id: h.turma_id, materia_id: h.materia_id, professor_id: h.professor_id,
+      dia_semana: h.dia_semana, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim,
+    }));
+    if (rows.length) {
+      const { error } = await supabaseAdmin.from("horarios").insert(rows);
+      if (error) throw error;
+    }
+    _previewHorarios = null;
+    document.getElementById("preview-banner")?.remove();
+    showToast("Grade aplicada!", "success");
+    if (_turmaId) selecionarTurma(_turmaId);
+  } catch (e) {
+    showToast("Erro ao aplicar: " + e.message, "error");
+    if (btn) { btn.disabled = false; btn.textContent = "Aplicar grade"; }
+  }
+}
+
+// ── Indisponibilidade do professor ────────────────────────────────────────────
+async function abrirModalDisponibilidade() {
+  const { data } = await supabaseAdmin.from("professor_indisponibilidade")
+    .select("id, dia_semana, hora_inicio, hora_fim").eq("professor_id", _profUserId).order("dia_semana");
+  const blocos = data ?? [];
+
+  const lista = blocos.length
+    ? blocos.map(b => `
+        <div class="hor-indisp-row" data-id="${b.id}">
+          <span>${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][b.dia_semana]} · ${b.hora_inicio.slice(0,5)}–${b.hora_fim.slice(0,5)}</span>
+          <button class="hor-indisp-del" data-del="${b.id}">✕</button>
+        </div>`).join("")
+    : `<div style="font-size:.82rem;color:var(--text-3);padding:6px 0">Nenhum bloqueio — você está disponível em todos os horários.</div>`;
+
+  const diaOpts = DIAS_OPC.map(([v,l]) => `<option value="${v}">${l}</option>`).join("");
+
+  const { ov, close } = modalHor("Minha disponibilidade", "Marque os horários em que você NÃO pode dar aula", `
+    <div class="hor-indisp-list" id="indisp-list">${lista}</div>
+    <div class="hor-field" style="margin-top:6px"><label>Adicionar bloqueio</label></div>
+    <div class="hor-field-row">
+      <div class="hor-field"><select id="in-dia">${diaOpts}</select></div>
+      <div class="hor-field"><input id="in-ini" type="time"></div>
+      <div class="hor-field"><input id="in-fim" type="time"></div>
+    </div>
+    <button class="hor-btn-cancel" id="in-add" style="width:100%;justify-content:center">+ Adicionar</button>
+    <div class="hor-feedback" id="in-fb"></div>
+  `, `<button class="hor-btn-save" data-close>Concluído</button>`);
+  ov.querySelector("[data-close]").addEventListener("click", close);
+
+  const recarregar = () => { close(); abrirModalDisponibilidade(); };
+
+  ov.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    await supabaseAdmin.from("professor_indisponibilidade").delete().eq("id", b.dataset.del);
+    recarregar();
+  }));
+
+  ov.querySelector("#in-add").addEventListener("click", async () => {
+    const dia = +ov.querySelector("#in-dia").value;
+    const ini = ov.querySelector("#in-ini").value, fim = ov.querySelector("#in-fim").value;
+    const fb = ov.querySelector("#in-fb");
+    if (!ini || !fim) { fb.textContent = "Informe início e fim."; return; }
+    if (fim <= ini) { fb.textContent = "Fim deve ser depois do início."; return; }
+    const { error } = await supabaseAdmin.from("professor_indisponibilidade")
+      .insert({ professor_id: _profUserId, dia_semana: dia, hora_inicio: ini, hora_fim: fim });
+    if (error) { fb.textContent = "Erro: " + error.message; return; }
+    recarregar();
   });
 }
 

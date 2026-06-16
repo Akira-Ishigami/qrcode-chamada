@@ -18,20 +18,47 @@ const DIAS_SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const MESES_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
 const TIPOS = {
-  feriado: "Feriado",
-  prova:   "Prova / Avaliação",
-  reuniao: "Reunião",
-  recesso: "Recesso",
-  evento:  "Evento",
+  feriado:  "Feriado",
+  prova:    "Prova / Avaliação",
+  trabalho: "Trabalho",
+  reuniao:  "Reunião",
+  recesso:  "Recesso",
+  evento:   "Evento",
 };
 
 const TIPO_EMOJI = {
-  feriado: "🚩",
-  prova:   "🎓",
-  reuniao: "📋",
-  recesso: "🏖️",
-  evento:  "📅",
+  feriado:  "🚩",
+  prova:    "🎓",
+  trabalho: "📝",
+  reuniao:  "📋",
+  recesso:  "🏖️",
+  evento:   "📅",
 };
+
+let _turmas = []; // turmas da instituição (para escopar eventos)
+async function carregarTurmas() {
+  if (_turmas.length || _isProfessor || !_instId) return;
+  const { data } = await supabaseAdmin
+    .from("turmas").select("id, nome").eq("instituicao_id", _instId).order("nome");
+  _turmas = data ?? [];
+}
+
+// Turmas e matérias do professor (para ele lançar provas/trabalhos)
+let _profTurmas = [], _profMaterias = [];
+async function carregarDadosProf() {
+  if (!_isProfessor) return;
+  const { data } = await supabaseAdmin
+    .from("horarios")
+    .select("turma_id, materia_id, turmas(nome), materias(nome)")
+    .eq("professor_id", _userId);
+  const tMap = {}, mMap = {};
+  (data ?? []).forEach(h => {
+    if (h.turma_id && h.turmas)   tMap[h.turma_id]   = h.turmas.nome;
+    if (h.materia_id && h.materias) mMap[h.materia_id] = h.materias.nome;
+  });
+  _profTurmas   = Object.entries(tMap).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  _profMaterias = Object.entries(mMap).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+}
 
 const root = document.getElementById("page-root");
 
@@ -86,7 +113,7 @@ async function init() {
     _userId  = session.user.id;
     _isProfessor = profile.role === "professor";
 
-    await Promise.all([carregarEventos(), carregarFeriadosNacionais(_anoAtual)]);
+    await Promise.all([carregarEventos(), carregarFeriadosNacionais(_anoAtual), carregarDadosProf()]);
     renderPage();
     iniciarRealtimeCalendario();
   } catch (e) {
@@ -152,12 +179,17 @@ function renderPage() {
         <div class="cal-title">Calendário Escolar</div>
         <div class="cal-subtitle">${tituloSubtitle}</div>
       </div>
-      ${!_isProfessor ? `
+      ${_isProfessor ? `
+        <button class="cal-new-btn" id="btn-nova-prova">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span class="cal-btn-label">Prova / Trabalho</span>
+        </button>
+      ` : `
         <button class="cal-new-btn" id="btn-novo-evento">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span class="cal-btn-label">Novo Evento</span>
         </button>
-      ` : ""}
+      `}
     </div>
 
     <div class="cal-nav">
@@ -184,7 +216,9 @@ function renderPage() {
 
   document.getElementById("btn-mes-ant").addEventListener("click", () => navegarMes(-1));
   document.getElementById("btn-mes-prox").addEventListener("click", () => navegarMes(1));
-  if (!_isProfessor) {
+  if (_isProfessor) {
+    document.getElementById("btn-nova-prova")?.addEventListener("click", () => abrirModalProf(null));
+  } else {
     document.getElementById("btn-novo-evento").addEventListener("click", () => abrirModal(null));
   }
 }
@@ -241,7 +275,7 @@ function renderGrade() {
       : "";
 
     html += `
-      <div class="cal-day${isHoje ? " today" : ""}${isWeekend ? " weekend" : ""}${hasEvents || !_isProfessor ? " clickable" : ""}"
+      <div class="cal-day${isHoje ? " today" : ""}${isWeekend ? " weekend" : ""} clickable"
            data-dia="${d}">
         <div class="cal-day-num">${d}</div>
         <div class="cal-day-events">${pillsHtml}${moreHtml}</div>
@@ -261,12 +295,13 @@ function renderGrade() {
   grid.querySelectorAll(".cal-day.clickable").forEach(el => {
     el.addEventListener("click", () => {
       const dia = parseInt(el.dataset.dia);
+      const dateStr = `${_anoAtual}-${String(_mesAtual + 1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
       if (!_isProfessor) {
-        const dateStr = `${_anoAtual}-${String(_mesAtual + 1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
         abrirModal(null, dateStr);
       } else {
         const evs = eventosPorDia[dia] ?? [];
         if (evs.length > 0) mostrarEventosDia(dia, evs);
+        else abrirModalProf(null, dateStr);
       }
     });
   });
@@ -467,14 +502,137 @@ function mostrarEventosDia(dia, evs) {
 }
 
 // ── Modal criar/editar evento ─────────────────────────────────────────────────
-function abrirModal(evento, dataPreenchida = null) {
+// ── Modal do professor: lançar prova / trabalho ──────────────────────────────
+function abrirModalProf(_evento, dataPreenchida = null) {
+  if (!_profMaterias.length || !_profTurmas.length) {
+    showToast("Você precisa ter aulas cadastradas (matéria e turma) para lançar provas.", "error");
+    return;
+  }
+  const backdrop = document.createElement("div");
+  backdrop.className = "cal-modal-backdrop";
+
+  const matOpts   = _profMaterias.map(m => `<option value="${m.id}">${esc(m.nome)}</option>`).join("");
+  const turmaOpts = _profTurmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+
+  backdrop.innerHTML = `
+    <div class="cal-modal">
+      <div class="cal-modal-title">📝 Prova / Trabalho</div>
+
+      <div class="cal-modal-row">
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Matéria *</label>
+          <select class="cal-modal-select" id="pv-materia">${matOpts}</select>
+        </div>
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Turma *</label>
+          <select class="cal-modal-select" id="pv-turma">${turmaOpts}</select>
+        </div>
+      </div>
+
+      <div class="cal-modal-row">
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Tipo</label>
+          <select class="cal-modal-select" id="pv-tipo">
+            <option value="prova">🎓 Prova / Avaliação</option>
+            <option value="trabalho">📝 Trabalho</option>
+          </select>
+        </div>
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Sobre (título) *</label>
+          <input class="cal-modal-input" id="pv-titulo" type="text" placeholder="Ex: Avaliação capítulos 1-3">
+        </div>
+      </div>
+
+      <div class="cal-modal-row">
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Dia *</label>
+          <input class="cal-modal-input" id="pv-data" type="date" value="${dataPreenchida ?? ""}">
+        </div>
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Hora *</label>
+          <input class="cal-modal-input" id="pv-hora" type="time">
+        </div>
+      </div>
+
+      <div class="cal-modal-field">
+        <label class="cal-modal-label">Descrição</label>
+        <textarea class="cal-modal-textarea" id="pv-descricao" placeholder="Detalhes (opcional)…"></textarea>
+      </div>
+
+      <div class="cal-modal-actions">
+        <button class="cal-modal-cancel" id="pv-cancel">Cancelar</button>
+        <button class="cal-modal-save" id="pv-save">Lançar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) backdrop.remove(); });
+  backdrop.querySelector("#pv-cancel").addEventListener("click", () => backdrop.remove());
+  backdrop.querySelector("#pv-save").addEventListener("click", () => salvarProvaTrabalho(backdrop));
+}
+
+async function salvarProvaTrabalho(backdrop) {
+  const materiaId = backdrop.querySelector("#pv-materia").value;
+  const turmaId   = backdrop.querySelector("#pv-turma").value;
+  const tipo      = backdrop.querySelector("#pv-tipo").value;
+  const titulo    = backdrop.querySelector("#pv-titulo").value.trim();
+  const data      = backdrop.querySelector("#pv-data").value;
+  const hora      = backdrop.querySelector("#pv-hora").value;
+  const descricao = backdrop.querySelector("#pv-descricao").value.trim() || null;
+
+  if (!titulo) { showToast("Informe o título.", "error"); return; }
+  if (!data)   { showToast("Informe o dia.", "error"); return; }
+  if (!hora)   { showToast("Informe a hora.", "error"); return; }
+
+  const btn = backdrop.querySelector("#pv-save");
+  btn.disabled = true; btn.textContent = "Lançando…";
+
+  try {
+    const { data: novoEv, error } = await supabaseAdmin
+      .from("eventos_calendario")
+      .insert({
+        titulo, tipo, descricao,
+        data_inicio: data, data_fim: null,
+        hora_inicio: hora, hora_fim: null,
+        instituicao_id: _instId, criado_por: _userId,
+        turma_id: turmaId, materia_id: materiaId,
+      }).select().single();
+
+    if (error) {
+      if (error.code === "23505") {
+        showToast("Já existe uma prova/trabalho nesse horário para essa turma.", "error");
+      } else {
+        showToast("Erro ao lançar: " + error.message, "error");
+      }
+      btn.disabled = false; btn.textContent = "Lançar";
+      return;
+    }
+
+    backdrop.remove();
+    showToast("Lançado no calendário!", "success");
+    await carregarEventos();
+    renderGrade();
+    renderUpcoming();
+  } catch (e) {
+    showToast("Erro: " + e.message, "error");
+    btn.disabled = false; btn.textContent = "Lançar";
+  }
+}
+
+async function abrirModal(evento, dataPreenchida = null) {
   const isEdit = !!evento;
+  await carregarTurmas();
   const backdrop = document.createElement("div");
   backdrop.className = "cal-modal-backdrop";
 
   const tipoOpts = Object.entries(TIPOS).map(([v, l]) =>
     `<option value="${v}" ${evento?.tipo === v ? "selected" : ""}>${TIPO_EMOJI[v]} ${l}</option>`
   ).join("");
+
+  const turmaOpts = `
+    <option value="">🏫 Toda a escola</option>
+    ${_turmas.map(t => `<option value="${t.id}" ${evento?.turma_id === t.id ? "selected" : ""}>👥 ${esc(t.nome)}</option>`).join("")}`;
 
   backdrop.innerHTML = `
     <div class="cal-modal">
@@ -485,9 +643,15 @@ function abrirModal(evento, dataPreenchida = null) {
         <input class="cal-modal-input" id="ev-titulo" type="text" placeholder="Ex: Recesso de Carnaval" value="${esc(evento?.titulo ?? "")}">
       </div>
 
-      <div class="cal-modal-field">
-        <label class="cal-modal-label">Tipo</label>
-        <select class="cal-modal-select" id="ev-tipo">${tipoOpts}</select>
+      <div class="cal-modal-row">
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Tipo</label>
+          <select class="cal-modal-select" id="ev-tipo">${tipoOpts}</select>
+        </div>
+        <div class="cal-modal-field">
+          <label class="cal-modal-label">Para</label>
+          <select class="cal-modal-select" id="ev-turma">${turmaOpts}</select>
+        </div>
       </div>
 
       <div class="cal-modal-row">
@@ -545,6 +709,7 @@ async function salvarEvento(eventoId, backdrop) {
   const horaInicio = document.getElementById("ev-hora-inicio").value || null;
   const horaFim    = document.getElementById("ev-hora-fim").value || null;
   const descricao  = document.getElementById("ev-descricao").value.trim() || null;
+  const turmaId    = document.getElementById("ev-turma")?.value || null;
 
   if (!titulo) { showToast("Título obrigatório", "error"); return; }
   if (!dataInicio) { showToast("Data de início obrigatória", "error"); return; }
@@ -557,6 +722,7 @@ async function salvarEvento(eventoId, backdrop) {
       titulo, tipo, data_inicio: dataInicio, data_fim: dataFim,
       hora_inicio: horaInicio, hora_fim: horaFim,
       descricao, instituicao_id: _instId, criado_por: _userId,
+      turma_id: turmaId,
     };
 
     if (eventoId) {

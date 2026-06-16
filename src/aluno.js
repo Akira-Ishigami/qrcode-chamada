@@ -14,6 +14,11 @@ let _horarios = [];
 let _professores = [];
 let _crachaConfig = null;
 let _instNome = "";
+let _eventos = [];          // calendário: escola + turma + feriados
+let _calFiltro = "tudo";    // tudo | escola | turma
+let _calView = "lista";     // lista | grade
+let _calMes = new Date().getMonth();
+let _calAno = new Date().getFullYear();
 
 function toast(msg, type = "") {
   const t = document.getElementById("toast");
@@ -150,6 +155,56 @@ async function carregarDados() {
   _professores = Object.values(profMap)
     .map(p => ({ ...p, materias: [...p.materias] }))
     .sort((a, b) => a.nome.localeCompare(b.nome));
+
+  // Calendário: eventos da escola (turma_id null) + da turma do aluno + feriados nacionais
+  await carregarEventos(instId, turmaId);
+}
+
+const _DIAS_MES_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+async function carregarEventos(instId, turmaId) {
+  let eventos = [];
+  if (instId) {
+    let q = supabaseAdmin
+      .from("eventos_calendario")
+      .select("id, titulo, descricao, data_inicio, data_fim, hora_inicio, tipo, turma_id, materia_id, materias(nome), profiles(nome), turmas(nome)")
+      .eq("instituicao_id", instId);
+    q = turmaId
+      ? q.or(`turma_id.is.null,turma_id.eq.${turmaId}`)
+      : q.is("turma_id", null);
+    const { data } = await q.order("data_inicio");
+    eventos = (data ?? []).map(e => ({
+      ...e,
+      escopo:    e.turma_id ? "turma" : "escola",
+      materia:   e.materias?.nome ?? null,
+      professor: e.profiles?.nome ?? null,
+      turmaNome: e.turmas?.nome ?? null,
+    }));
+  }
+
+  // Feriados nacionais (BrasilAPI) — ano atual e próximo
+  const ano = new Date().getFullYear();
+  const feriados = (await Promise.all([feriadosNacionais(ano), feriadosNacionais(ano + 1)])).flat();
+
+  _eventos = [...eventos, ...feriados];
+}
+
+const _feriadosCache = {};
+async function feriadosNacionais(ano) {
+  if (_feriadosCache[ano]) return _feriadosCache[ano];
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`);
+    if (!res.ok) throw new Error("status " + res.status);
+    const data = await res.json();
+    _feriadosCache[ano] = (data ?? []).map(f => ({
+      id: `nacional-${f.date}`, titulo: f.name ?? "Feriado Nacional",
+      tipo: "feriado", data_inicio: f.date, data_fim: null, descricao: null,
+      escopo: "escola", _nacional: true,
+    }));
+  } catch {
+    _feriadosCache[ano] = [];
+  }
+  return _feriadosCache[ano];
 }
 
 function preencherSidebar() {
@@ -167,6 +222,7 @@ function preencherSidebar() {
 const TITULOS = {
   faltas:      { t: "Minhas faltas",     s: "Acompanhe suas faltas por matéria" },
   horarios:    { t: "Meus horários",     s: "Grade de aulas da sua turma" },
+  calendario:  { t: "Calendário",        s: "Feriados da escola, provas e trabalhos da turma" },
   professores: { t: "Meus professores",  s: "Quem leciona na sua turma" },
   cracha:      { t: "Meu crachá",        s: "Seu QR Code de presença" },
 };
@@ -176,6 +232,7 @@ function renderSection(name) {
   let corpo = "";
   if (name === "faltas")           corpo = renderFaltas(_faltas);
   else if (name === "horarios")    corpo = renderHorarios(_horarios);
+  else if (name === "calendario")  corpo = renderCalendario();
   else if (name === "professores") corpo = renderProfessores(_professores);
   else if (name === "cracha")      corpo = renderCracha(_aluno);
 
@@ -200,6 +257,290 @@ function renderSection(name) {
       card.addEventListener("click", () => abrirModalProf(_professores[+card.dataset.idx], +card.dataset.idx));
     });
   }
+
+  if (name === "calendario") {
+    document.querySelectorAll(".cal2-tab").forEach(tab => {
+      tab.addEventListener("click", () => { _calFiltro = tab.dataset.filtro; renderSection("calendario"); });
+    });
+    document.querySelectorAll(".cal2-vbtn").forEach(b => {
+      b.addEventListener("click", () => { _calView = b.dataset.view; renderSection("calendario"); });
+    });
+    document.querySelectorAll(".cal3-navbtn").forEach(b => {
+      b.addEventListener("click", () => {
+        if (b.dataset.nav === "hoje") { _calMes = new Date().getMonth(); _calAno = new Date().getFullYear(); }
+        else {
+          _calMes += parseInt(b.dataset.nav, 10);
+          if (_calMes < 0)  { _calMes = 11; _calAno--; }
+          if (_calMes > 11) { _calMes = 0;  _calAno++; }
+        }
+        renderSection("calendario");
+      });
+    });
+    // Dia na grade → modal com os eventos do dia
+    document.querySelectorAll(".cal3-day.has-ev").forEach(d => {
+      d.addEventListener("click", () => abrirDiaModal(d.dataset.date));
+    });
+    // Item na lista → detalhe do evento
+    document.querySelectorAll(".cal2-item[data-id]").forEach(it => {
+      it.addEventListener("click", () => {
+        const ev = _eventos.find(e => String(e.id) === it.dataset.id);
+        if (ev) abrirEventoModal(ev);
+      });
+    });
+  }
+}
+
+// ── Modais do calendário ──────────────────────────────────────────────────────
+const _MES_ABBR = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const SVG_BACK   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="16" height="16"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`;
+const SVG_CLOCK  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+const SVG_BOOK2  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+const SVG_SCHOOL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+const SVG_USER   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+const SVG_GROUP  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+const SVG_CLK    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+function _dateParts(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return {
+    dia: d.getDate(),
+    weekday: d.toLocaleDateString("pt-BR", { weekday: "long" }),
+    curto: d.toLocaleDateString("pt-BR", { day: "numeric", month: "long" }),
+    mesAno: d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+  };
+}
+
+function _countdown(dateStr) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr + "T00:00:00");
+  const diff = Math.round((d - hoje) / 86400000);
+  if (diff === 0)  return { txt: "É hoje", cls: "hoje" };
+  if (diff === 1)  return { txt: "É amanhã", cls: "soon" };
+  if (diff > 1)    return { txt: `Faltam ${diff} dias`, cls: diff <= 3 ? "soon" : "" };
+  if (diff === -1) return { txt: "Foi ontem", cls: "past" };
+  return { txt: `Há ${-diff} dias`, cls: "past" };
+}
+
+function _calmOverlay(inner, extra = "") {
+  const bg = document.createElement("div");
+  bg.className = "calm-bg";
+  bg.innerHTML = `<div class="calm ${extra}">${inner}</div>`;
+  document.body.appendChild(bg);
+  const close = () => { bg.classList.add("out"); setTimeout(() => bg.remove(), 270); document.removeEventListener("keydown", onKey); };
+  function onKey(e) { if (e.key === "Escape") close(); }
+  bg.addEventListener("click", e => { if (e.target === bg) close(); });
+  document.addEventListener("keydown", onKey);
+  return { bg, close };
+}
+
+function abrirDiaModal(dateStr) {
+  const p = _dateParts(dateStr);
+  const evs = eventosFiltrados()
+    .filter(e => dateStr >= e.data_inicio && dateStr <= (e.data_fim || e.data_inicio))
+    .sort((a, b) => (a.hora_inicio || "99").localeCompare(b.hora_inicio || "99"));
+
+  const rows = evs.length ? evs.map(e => {
+    const cor = TIPO_COR[e.tipo] ?? "#94a3b8", bg = TIPO_BG[e.tipo] ?? "#f1f5f9";
+    return `
+      <button class="calm-evrow" data-id="${esc(e.id)}" style="--evc:${cor};--evbg:${bg}">
+        <span class="calm-evrow-ic">${TIPO_EMOJI[e.tipo] ?? "📅"}</span>
+        <span class="calm-evrow-mid">
+          <span class="calm-evrow-t">${esc(e.titulo)}</span>
+          <span class="calm-evrow-s">${e.hora_inicio ? `<span class="calm-evrow-time">${e.hora_inicio.slice(0,5)}</span>` : ""}${esc(TIPO_LABEL[e.tipo] ?? e.tipo)}${e.materia ? ` · ${esc(e.materia)}` : ""}</span>
+        </span>
+        <span class="calm-chev">›</span>
+      </button>`;
+  }).join("") : `<div class="calm-vazio"><div class="calm-vazio-ic">📭</div><div>Nenhum evento neste dia</div></div>`;
+
+  const { bg, close } = _calmOverlay(`
+    <div class="calm-appbar">
+      <span class="calm-appbar-t">Agenda do dia</span>
+      <button class="calm-iconbtn dark" id="calm-x">✕</button>
+    </div>
+    <div class="calm-dayhero">
+      <div class="calm-dayhero-num">${p.dia}</div>
+      <div>
+        <div class="calm-dayhero-wd">${esc(p.weekday)}</div>
+        <div class="calm-dayhero-mo">${esc(p.mesAno)}</div>
+        <div class="calm-dayhero-count">${evs.length} evento${evs.length !== 1 ? "s" : ""}</div>
+      </div>
+    </div>
+    <div class="calm-content">${rows}</div>
+  `, "calm-day");
+  bg.querySelector("#calm-x").addEventListener("click", close);
+  bg.querySelectorAll(".calm-evrow").forEach(r => r.addEventListener("click", () => {
+    const ev = _eventos.find(e => String(e.id) === r.dataset.id);
+    close();
+    if (ev) setTimeout(() => abrirEventoModal(ev, dateStr), 120);
+  }));
+}
+
+function abrirEventoModal(e, voltarData = null) {
+  const cor = TIPO_COR[e.tipo] ?? "#2563eb";
+  const p = _dateParts(e.data_inicio);
+  const cd = _countdown(e.data_inicio);
+  const row = (icon, label, val) => val ? `
+    <div class="calm-row">
+      <span class="calm-row-ic">${icon}</span>
+      <div style="min-width:0">
+        <div class="calm-row-l">${label}</div>
+        <div class="calm-row-v">${esc(val)}</div>
+      </div>
+    </div>` : "";
+
+  const { bg, close } = _calmOverlay(`
+    <div class="calm-hero" style="--evc:${cor}">
+      <div class="calm-appbar light">
+        <button class="calm-backbtn" id="calm-back">${SVG_BACK}<span>Voltar</span></button>
+        <button class="calm-iconbtn" id="calm-close">✕</button>
+      </div>
+      <div class="calm-hero-body">
+        <div class="calm-hero-eyebrow">${TIPO_EMOJI[e.tipo] ?? "📅"} ${esc(TIPO_LABEL[e.tipo] ?? e.tipo)}</div>
+        <h1 class="calm-hero-title">${esc(e.titulo)}</h1>
+        <div class="calm-hero-chips">
+          <span class="calm-hchip">📅 ${esc(p.weekday)}, ${esc(p.curto)}</span>
+          ${e.hora_inicio ? `<span class="calm-hchip">${SVG_CLOCK} ${e.hora_inicio.slice(0,5)}</span>` : ""}
+        </div>
+      </div>
+    </div>
+    <div class="calm-content">
+      <div class="calm-cd ${cd.cls}">${cd.txt}</div>
+      ${row(SVG_BOOK2, "Matéria", e.materia)}
+      ${row(SVG_USER, "Professor", e.professor)}
+      ${row(SVG_GROUP, "Turma", e.turma_id ? (e.turmaNome || "Sua turma") : "Toda a escola")}
+      ${row(SVG_CLK, "Horário", e.hora_inicio ? e.hora_inicio.slice(0,5) : null)}
+      ${e.descricao ? `<div class="calm-desc"><div class="calm-desc-l">Descrição</div>${esc(e.descricao)}</div>` : ""}
+    </div>
+  `, "calm-detail");
+  bg.querySelector("#calm-close").addEventListener("click", close);
+  bg.querySelector("#calm-back").addEventListener("click", () => { close(); setTimeout(() => abrirDiaModal(voltarData || e.data_inicio), 120); });
+}
+
+// ── Calendário ─────────────────────────────────────────────────────────────────
+const TIPO_LABEL = { feriado: "Feriado", prova: "Prova", trabalho: "Trabalho", reuniao: "Reunião", recesso: "Recesso", evento: "Evento" };
+const TIPO_EMOJI = { feriado: "🚩", prova: "🎓", trabalho: "📝", reuniao: "📋", recesso: "🏖️", evento: "📅" };
+const TIPO_COR   = { feriado: "#ef4444", prova: "#7c3aed", trabalho: "#2563eb", reuniao: "#0891b2", recesso: "#16a34a", evento: "#ea580c" };
+const TIPO_BG    = { feriado: "#fee2e2", prova: "#f3e8ff", trabalho: "#dbeafe", reuniao: "#cffafe", recesso: "#dcfce7", evento: "#ffedd5" };
+
+function eventosFiltrados() {
+  return _eventos.filter(e => _calFiltro === "tudo" ? true : e.escopo === _calFiltro);
+}
+
+function renderCalendario() {
+  const tabs = [
+    { k: "tudo",   l: "Tudo" },
+    { k: "turma",  l: "Provas & trabalhos" },
+    { k: "escola", l: "Escola" },
+  ];
+  const tabsHtml = tabs.map(t =>
+    `<button class="cal2-tab${_calFiltro === t.k ? " active" : ""}" data-filtro="${t.k}">${t.l}</button>`
+  ).join("");
+
+  const viewHtml = `
+    <div class="cal2-view">
+      <button class="cal2-vbtn${_calView === "lista" ? " active" : ""}" data-view="lista" title="Lista">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+      <button class="cal2-vbtn${_calView === "grade" ? " active" : ""}" data-view="grade" title="Mês">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+    </div>`;
+
+  const controls = `<div class="cal2-controls"><div class="cal2-tabs">${tabsHtml}</div>${viewHtml}</div>`;
+
+  return controls + (_calView === "grade" ? renderGradeMes() : renderLista());
+}
+
+function renderGradeMes() {
+  const nomeMes = new Date(_calAno, _calMes, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const primeiroDiaSemana = new Date(_calAno, _calMes, 1).getDay(); // 0=Dom
+  const diasNoMes = new Date(_calAno, _calMes + 1, 0).getDate();
+  const hoje = new Date();
+  const ev = eventosFiltrados();
+
+  const eventosDoDia = (dia) => {
+    const ds = `${_calAno}-${String(_calMes + 1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+    return ev.filter(e => ds >= e.data_inicio && ds <= (e.data_fim || e.data_inicio));
+  };
+
+  const head = `
+    <div class="cal3-head">
+      <div class="cal3-mes">${esc(nomeMes)}</div>
+      <div class="cal3-nav">
+        <button class="cal3-navbtn" data-nav="-1">‹</button>
+        <button class="cal3-navbtn" data-nav="hoje">Hoje</button>
+        <button class="cal3-navbtn" data-nav="1">›</button>
+      </div>
+    </div>`;
+
+  const weekdays = `<div class="cal3-weekdays">${DIAS.map(d => `<span>${d}</span>`).join("")}</div>`;
+
+  let celulas = "";
+  for (let i = 0; i < primeiroDiaSemana; i++) celulas += `<div class="cal3-day empty"></div>`;
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    const isHoje = hoje.getDate() === dia && hoje.getMonth() === _calMes && hoje.getFullYear() === _calAno;
+    const evs = eventosDoDia(dia);
+    const pills = evs.slice(0, 3).map(e => {
+      const hr = e.hora_inicio ? `<b>${e.hora_inicio.slice(0,5)}</b> ` : "";
+      return `<span class="cal3-pill tipo-${esc(e.tipo)}" title="${esc(e.titulo)}">${hr}${esc(e.titulo)}</span>`;
+    }).join("");
+    const mais = evs.length > 3 ? `<span class="cal3-mais">+${evs.length - 3}</span>` : "";
+    const dstr = `${_calAno}-${String(_calMes + 1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+    celulas += `
+      <div class="cal3-day${isHoje ? " hoje" : ""}${evs.length ? " has-ev" : ""}"${evs.length ? ` data-date="${dstr}"` : ""}>
+        <span class="cal3-num">${dia}</span>
+        ${pills}${mais}
+      </div>`;
+  }
+
+  return `${head}${weekdays}<div class="cal3-grid">${celulas}</div>`;
+}
+
+function renderLista() {
+  // Da data de hoje em diante, ordenado por data
+  const hojeStr = new Date().toISOString().split("T")[0];
+  let lista = eventosFiltrados()
+    .filter(e => (e.data_fim || e.data_inicio) >= hojeStr)
+    .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
+
+  if (!lista.length) {
+    return `<div class="al-card"><div class="al-empty">Nenhum evento próximo${_calFiltro === "turma" ? " para a sua turma" : ""}.</div></div>`;
+  }
+
+  // Agrupa por mês/ano
+  let html = "", mesAtual = "";
+  lista.forEach(e => {
+    const d = new Date(e.data_inicio + "T00:00:00");
+    const chaveMes = `${d.getFullYear()}-${d.getMonth()}`;
+    if (chaveMes !== mesAtual) {
+      mesAtual = chaveMes;
+      const nomeMes = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      html += `<div class="cal2-month">${esc(nomeMes)}</div>`;
+    }
+    const dia = String(d.getDate()).padStart(2, "0");
+    const mes = _DIAS_MES_SHORT[d.getMonth()];
+    const tag = e.escopo === "turma" ? `<span class="cal2-badge turma">Turma</span>` : `<span class="cal2-badge escola">Escola</span>`;
+    const periodo = e.data_fim && e.data_fim !== e.data_inicio
+      ? `<span class="cal2-badge">até ${new Date(e.data_fim + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>` : "";
+    const hora = e.hora_inicio ? `<span class="cal2-badge hora">${e.hora_inicio.slice(0,5)}</span>` : "";
+    html += `
+      <div class="cal2-item tipo-${esc(e.tipo)}" data-id="${esc(e.id)}">
+        <div class="cal2-date">
+          <span class="cal2-date-dia">${dia}</span>
+          <span class="cal2-date-mes">${mes}</span>
+        </div>
+        <div class="cal2-body">
+          <div class="cal2-titulo">${TIPO_EMOJI[e.tipo] ?? "📅"} ${esc(e.titulo)}</div>
+          ${e.descricao ? `<div class="cal2-desc">${esc(e.descricao)}</div>` : ""}
+          <div class="cal2-meta">
+            <span class="cal2-badge">${TIPO_LABEL[e.tipo] ?? e.tipo}</span>
+            ${e.materia ? `<span class="cal2-badge turma">${esc(e.materia)}</span>` : ""}
+            ${tag}${hora}${periodo}
+          </div>
+        </div>
+      </div>`;
+  });
+  return html;
 }
 
 function renderFaltas(materias) {

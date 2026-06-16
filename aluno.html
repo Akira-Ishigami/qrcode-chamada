@@ -305,7 +305,23 @@
     .idcard-qr-wrap canvas { display: block; margin: 0 auto; width: 190px; height: 190px; }
     .idcard-qr-cap { margin-top: 11px; font-size: .56rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #1e3a8a; }
 
-    /* Vertical no mobile */
+    /* Celular E tablet: mostra só o cartão de acesso online (QR), esconde o crachá completo */
+    @media (max-width: 1024px) {
+      .cracha-card-box { display: none; }
+      .online-card { display: flex; max-width: none; }
+      .online-card-hint { display: flex; padding: 0 20px 20px; }
+
+      /* Cartão único estilo "boarding pass", centralizado */
+      .cracha-wrap {
+        position: relative; overflow: hidden; gap: 0; padding: 0;
+        background: #fff; border-radius: 22px;
+        max-width: 420px; margin: 0 auto;
+        box-shadow: 0 24px 60px -26px rgba(15,23,42,.4), 0 1px 0 rgba(15,23,42,.02);
+      }
+      .cracha-actions { max-width: none; padding: 14px 20px 22px; }
+    }
+
+    /* Compactação específica de celular */
     @media (max-width: 640px) {
       .idcard { flex-direction: column; }
       .idcard-right { padding: 0 24px 26px; }
@@ -319,22 +335,155 @@
       .cal-day-head { font-size: .58rem; }
       .cal-block-nome { font-size: .62rem; }
       .cal-block-sub, .cal-block-time { font-size: .5rem; }
-
-      /* No celular, troca o crachá completo pelo cartão de acesso online (QR + nome + turma) */
-      .cracha-card-box { display: none; }
-      .online-card { display: flex; }
-      .online-card-hint { display: flex; }
-
-      /* Cartão único estilo "boarding pass" */
-      .cracha-wrap {
-        position: relative; overflow: hidden; gap: 0; padding: 0;
-        background: #fff; border-radius: 22px;
-        box-shadow: 0 24px 60px -26px rgba(15,23,42,.4), 0 1px 0 rgba(15,23,42,.02);
-      }
-      .online-card { max-width: none; }
-      .cracha-actions { flex-direction: row; max-width: none; padding: 0 20px 22px; }
-      .online-card-hint { padding: 0 20px 20px; }
     }
+
+    /* ── Calendário do aluno ── */
+    .cal2-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .cal2-view { display: flex; gap: 4px; background: #eef2f7; border-radius: 11px; padding: 3px; flex-shrink: 0; }
+    .cal2-vbtn { display: flex; align-items: center; justify-content: center; width: 34px; height: 30px; border: none; background: transparent; color: #64748b; border-radius: 8px; cursor: pointer; transition: all .14s; }
+    .cal2-vbtn.active { background: #fff; color: #2563eb; box-shadow: 0 1px 4px rgba(15,23,42,.1); }
+    .cal2-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cal2-tab {
+      padding: 7px 15px; border-radius: 99px; border: 1.5px solid #e2e8f0; background: #fff;
+      font-family: 'Outfit', sans-serif; font-size: .78rem; font-weight: 700; color: #64748b;
+      cursor: pointer; transition: all .14s;
+    }
+    .cal2-tab:hover { border-color: #cbd5e1; }
+    .cal2-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; box-shadow: 0 4px 12px -4px rgba(37,99,235,.5); }
+    .cal2-month { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #94a3b8; margin: 18px 2px 9px; }
+    .cal2-month:first-child { margin-top: 0; }
+    .cal2-item {
+      display: flex; gap: 14px; align-items: stretch; background: #fff; border: 1px solid #e7ebf2;
+      border-radius: 14px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(15,23,42,.04); margin-bottom: 9px;
+      border-left-width: 4px;
+    }
+    .cal2-item.tipo-feriado  { border-left-color: #ef4444; }
+    .cal2-item.tipo-prova    { border-left-color: #7c3aed; }
+    .cal2-item.tipo-trabalho { border-left-color: #2563eb; }
+    .cal2-item.tipo-reuniao  { border-left-color: #0891b2; }
+    .cal2-item.tipo-recesso  { border-left-color: #16a34a; }
+    .cal2-item.tipo-evento   { border-left-color: #ea580c; }
+    .cal2-item[data-id] { cursor: pointer; transition: box-shadow .14s, transform .14s; }
+    .cal2-item[data-id]:hover { box-shadow: 0 6px 18px -6px rgba(15,23,42,.22); transform: translateY(-1px); }
+    .cal2-date {
+      flex-shrink: 0; width: 48px; text-align: center; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: #f8fafc; border-radius: 10px; padding: 6px 0;
+    }
+    .cal2-date-dia { font-size: 1.2rem; font-weight: 800; color: #0f172a; line-height: 1; }
+    .cal2-date-mes { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-top: 2px; }
+    .cal2-body { flex: 1; min-width: 0; }
+    .cal2-titulo { font-size: .9rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px; }
+    .cal2-desc { font-size: .76rem; color: #64748b; margin-top: 3px; line-height: 1.4; }
+    .cal2-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+    .cal2-badge { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 99px; background: #f1f5f9; color: #475569; }
+    .cal2-badge.turma  { background: #eff6ff; color: #2563eb; }
+    .cal2-badge.escola { background: #f0fdf4; color: #15803d; }
+    .cal2-badge.hora   { background: #fef9c3; color: #a16207; }
+
+    /* Grade do mês */
+    .cal3-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .cal3-mes { font-size: 1.05rem; font-weight: 800; color: #0f172a; text-transform: capitalize; letter-spacing: -.02em; }
+    .cal3-nav { display: flex; gap: 6px; }
+    .cal3-navbtn { min-width: 34px; height: 32px; padding: 0 10px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 9px; font-family: 'Outfit', sans-serif; font-size: .8rem; font-weight: 700; color: #475569; cursor: pointer; transition: all .14s; }
+    .cal3-navbtn:hover { border-color: #2563eb; color: #2563eb; }
+    .cal3-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+    .cal3-weekdays span { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; text-align: center; }
+    .cal3-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal3-day { min-height: 96px; background: #fff; border: 1px solid #e7ebf2; border-radius: 10px; padding: 5px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+    .cal3-day.empty { background: transparent; border: none; }
+    .cal3-day.hoje { border-color: #2563eb; box-shadow: inset 0 0 0 1px #2563eb; }
+    .cal3-day.has-ev { cursor: pointer; }
+    .cal3-day.has-ev:hover { border-color: #2563eb; background: #f8fbff; }
+    .cal3-num { font-size: .74rem; font-weight: 700; color: #475569; align-self: flex-start; padding: 1px 3px; }
+    .cal3-day.hoje .cal3-num { color: #fff; background: #2563eb; border-radius: 6px; min-width: 20px; text-align: center; }
+    /* Chips estilo Google Calendar: cor sólida + texto branco */
+    .cal3-pill { font-size: .64rem; font-weight: 600; line-height: 1.45; padding: 2px 7px; border-radius: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; background: #94a3b8; }
+    .cal3-pill b { font-weight: 800; }
+    .cal3-pill.tipo-feriado  { background: #ef4444; }
+    .cal3-pill.tipo-prova    { background: #7c3aed; }
+    .cal3-pill.tipo-trabalho { background: #2563eb; }
+    .cal3-pill.tipo-reuniao  { background: #0891b2; }
+    .cal3-pill.tipo-recesso  { background: #16a34a; }
+    .cal3-pill.tipo-evento   { background: #ea580c; }
+    .cal3-mais { font-size: .6rem; font-weight: 800; color: #64748b; padding-left: 4px; margin-top: 1px; }
+
+    @media (max-width: 640px) {
+      .cal3-day { min-height: 70px; padding: 3px; }
+      .cal3-pill { font-size: .56rem; padding: 1px 5px; }
+      .cal3-num { font-size: .66rem; }
+    }
+
+    /* ── Painel do calendário (abre como uma tela / drawer) ── */
+    .calm-bg { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.5); backdrop-filter: blur(4px); animation: calmFade .25s ease; }
+    .calm-bg.out { animation: calmFadeOut .26s ease forwards; }
+    @keyframes calmFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes calmFadeOut { to { opacity: 0; } }
+    .calm { position: absolute; top: 0; right: 0; height: 100vh; height: 100dvh; width: min(540px, 100vw); background: #fff;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: -24px 0 70px -24px rgba(15,23,42,.5);
+      animation: calmSlide .34s cubic-bezier(.22,1,.36,1); }
+    .calm-bg.out .calm { animation: calmSlideOut .26s cubic-bezier(.4,0,1,1) forwards; }
+    @keyframes calmSlide { from { transform: translateX(100%); } to { transform: none; } }
+    @keyframes calmSlideOut { to { transform: translateX(100%); } }
+    @media (max-width: 640px) { .calm { width: 100vw; } }
+
+    /* Barra superior */
+    .calm-appbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; flex-shrink: 0; }
+    .calm-appbar.light { position: relative; z-index: 1; }
+    .calm-appbar-t { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #94a3b8; }
+    .calm-iconbtn { width: 34px; height: 34px; border-radius: 11px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .95rem; transition: .13s; background: rgba(255,255,255,.2); color: #fff; }
+    .calm-iconbtn:hover { background: rgba(255,255,255,.36); }
+    .calm-iconbtn.dark { background: #f1f5f9; color: #64748b; }
+    .calm-iconbtn.dark:hover { background: #fee2e2; color: #dc2626; }
+    .calm-backbtn { display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: .84rem; padding: 8px 13px 8px 9px; border-radius: 11px; background: rgba(255,255,255,.18); color: #fff; transition: .13s; }
+    .calm-backbtn:hover { background: rgba(255,255,255,.32); }
+
+    /* Detalhe — hero colorido */
+    .calm-hero { background: var(--evc, #2563eb); color: #fff; position: relative; overflow: hidden; flex-shrink: 0; }
+    .calm-hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(120% 120% at 100% 0, rgba(255,255,255,.22), transparent 50%), linear-gradient(180deg, transparent, rgba(0,0,0,.14)); }
+    .calm-hero-body { padding: 8px 24px 28px; position: relative; z-index: 1; }
+    .calm-hero-eyebrow { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; opacity: .9; }
+    .calm-hero-title { font-size: 1.85rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.12; margin-top: 8px; }
+    .calm-hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .calm-hchip { display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; font-weight: 700; padding: 6px 13px; border-radius: 99px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.22); }
+
+    /* Conteúdo */
+    .calm-content { flex: 1; overflow-y: auto; padding: 22px 24px 44px; }
+    .calm-cd { display: inline-flex; align-items: center; font-size: .74rem; font-weight: 800; padding: 7px 15px; border-radius: 99px; background: #f1f5f9; color: #475569; margin-bottom: 20px; }
+    .calm-cd.soon { background: #fff7ed; color: #c2410c; }
+    .calm-cd.hoje { background: #dcfce7; color: #15803d; }
+    .calm-cd.past { background: #f1f5f9; color: #94a3b8; }
+
+    /* Linhas de info */
+    .calm-row { display: flex; align-items: center; gap: 13px; padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+    .calm-row:last-of-type { border-bottom: none; }
+    .calm-row-ic { width: 40px; height: 40px; border-radius: 12px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .calm-row-l { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; }
+    .calm-row-v { font-size: .95rem; font-weight: 700; color: #0f172a; margin-top: 2px; }
+    .calm-desc { margin-top: 20px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 16px; padding: 16px 18px; font-size: .9rem; color: #475569; line-height: 1.6; white-space: pre-wrap; }
+    .calm-desc-l { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: #94a3b8; margin-bottom: 8px; }
+
+    /* Dia (lista) — hero */
+    .calm-dayhero { display: flex; align-items: center; gap: 16px; padding: 4px 24px 22px; border-bottom: 1px solid #eef2f7; flex-shrink: 0; }
+    .calm-dayhero-num { font-size: 3rem; font-weight: 800; color: #0f172a; letter-spacing: -.04em; line-height: .9; }
+    .calm-dayhero-wd { font-size: 1.05rem; font-weight: 800; color: #2563eb; text-transform: capitalize; letter-spacing: -.01em; }
+    .calm-dayhero-mo { font-size: .8rem; color: #94a3b8; text-transform: capitalize; margin-top: 1px; }
+    .calm-dayhero-count { font-size: .7rem; font-weight: 700; color: #64748b; margin-top: 7px; background: #f1f5f9; display: inline-block; padding: 3px 11px; border-radius: 99px; }
+
+    /* Linhas de evento (lista do dia) */
+    .calm-evrow { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 13px 14px;
+      border: 1px solid #eef2f7; border-radius: 15px; background: #fff; cursor: pointer; font-family: 'Outfit', sans-serif;
+      transition: transform .12s, box-shadow .12s, border-color .12s; position: relative; overflow: hidden; margin-bottom: 9px; }
+    .calm-evrow::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--evc, #94a3b8); }
+    .calm-evrow:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -10px rgba(15,23,42,.28); border-color: #dbe3ee; }
+    .calm-evrow-ic { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: var(--evbg, #f1f5f9); margin-left: 3px; }
+    .calm-evrow-mid { flex: 1; min-width: 0; }
+    .calm-evrow-t { display: block; font-size: .95rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .calm-evrow-s { display: block; font-size: .76rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .calm-evrow-time { font-weight: 800; color: var(--evc, #475569); margin-right: 6px; }
+    .calm-chev { color: #cbd5e1; flex-shrink: 0; font-size: 1.2rem; }
+    .calm-vazio { text-align: center; padding: 50px 20px; color: #94a3b8; font-weight: 600; }
+    .calm-vazio-ic { font-size: 2.2rem; margin-bottom: 10px; opacity: .6; }
 
     .al-empty { font-size: .84rem; color: #94a3b8; text-align: center; padding: 22px 8px; }
     .al-loading { text-align: center; padding: 80px 20px; color: #94a3b8; font-weight: 500; }
@@ -393,6 +542,10 @@
       <a class="sidebar-link" data-section="horarios">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
         Meus horários
+      </a>
+      <a class="sidebar-link" data-section="calendario">
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        Calendário
       </a>
       <a class="sidebar-link" data-section="professores">
         <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
