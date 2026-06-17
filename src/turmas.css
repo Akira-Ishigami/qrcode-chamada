@@ -232,8 +232,12 @@
 @media (max-width: 900px) { .turma-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
 @media (max-width: 540px) {
   .turma-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .tc-card { padding-bottom: 16px; }
-  .tc-name { font-size: 1rem; }
+  .tc-card { padding: 15px 11px 13px; }
+  .tc-initial { width: 42px; height: 42px; border-radius: 11px; font-size: 1.05rem; margin-bottom: 8px; }
+  .tc-name { font-size: .9rem; margin-bottom: 3px; }
+  .tc-info { font-size: .66rem; margin-bottom: 8px; }
+  .tc-badge { font-size: .56rem; padding: 2px 9px; }
+  .tc-edit, .tc-del { width: 26px; height: 26px; }
 }
 @media (max-width: 380px) {
   .turma-card-grid { grid-template-columns: 1fr; }
@@ -329,7 +333,19 @@
   transition: transform .34s cubic-bezier(.22,1,.36,1);
 }
 .tv-modal-overlay.open .tv-modal-card { transform: none; }
-@media (max-width: 520px) { .tv-modal-card { width: 100vw; } }
+@media (max-width: 520px) { .tv-modal-card:not(.center) { width: 100vw; } }
+
+/* Variante centralizada (confirmacoes, ex.: excluir turma) */
+.tv-modal-overlay.center { display: flex; align-items: center; justify-content: center; padding: 20px; }
+.tv-modal-card.center {
+  position: relative; top: auto; right: auto;
+  height: auto; max-height: 86vh; width: min(400px, 100%);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 30px 80px -24px rgba(13,21,38,.55);
+  transform: translateY(14px) scale(.97); opacity: 0;
+  transition: transform .28s cubic-bezier(.22,1,.36,1), opacity .22s ease;
+}
+.tv-modal-overlay.center.open .tv-modal-card.center { transform: none; opacity: 1; }
 
 .tv-modal-head {
   display: flex; align-items: center; gap: 13px;

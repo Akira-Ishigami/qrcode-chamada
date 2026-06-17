@@ -211,6 +211,7 @@
       background: #dbeafe; border-color: #93c5fd; color: #2563eb;
     }
     .idash-nav-pill span { font-family: 'Sora', system-ui, sans-serif; font-size: .78rem; }
+    .idash-nav-pill span .short { display: none; }
 
     /* ── Section heading ── */
     .idash-section-head {
@@ -498,6 +499,7 @@
     .idl-kpi-num small { font-size: .85rem; opacity: .6; font-weight: 700; }
     .idl-live-dot { width: 9px; height: 9px; border-radius: 50%; background: #16a34a; animation: idcPulse 1.5s infinite; }
     .idl-kpi-lbl { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #7d8aa3; margin-top: 13px; }
+    .idl-kpi-lbl .short { display: none; }
     .idl-kpi-sub { font-size: .72rem; color: #9aa7bd; margin-top: 4px; font-weight: 600; }
     .idl-kpi-bar { height: 6px; background: #eef2f7; border-radius: 99px; margin-top: 11px; overflow: hidden; }
     .idl-kpi-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--ac); transition: width .6s cubic-bezier(.22,1,.36,1); }
@@ -518,6 +520,54 @@
       .idl-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
       .idl-kpi { padding: 14px; }
       .idl-kpi-num { font-size: 1.7rem; }
+    }
+
+    /* ════ Compacto no celular ════ */
+    @media (max-width: 600px) {
+      .idash-body { padding: 16px 13px 56px; }
+
+      .idl-head { margin-bottom: 12px; }
+      .idl-eyebrow { font-size: .58rem; letter-spacing: .12em; }
+      .idl-title { font-size: 1.4rem; margin-top: 5px; }
+      .idl-datepill { padding: 6px 11px; font-size: .66rem; }
+
+      /* 4 KPIs numa linha só, minimalistas */
+      .idl-kpis { grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 9px; }
+      .idl-kpi { padding: 10px 5px 11px; border-radius: 13px; text-align: center; }
+      .idl-kpi::before { height: 3px; }
+      .idl-kpi-top { flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+      .idl-kpi-ico { width: 26px; height: 26px; border-radius: 8px; }
+      .idl-kpi-ico svg { width: 14px; height: 14px; }
+      .idl-kpi-num { font-size: 1.15rem; }
+      .idl-kpi-num small { font-size: .6rem; }
+      .idl-kpi-lbl { margin-top: 6px; font-size: .52rem; line-height: 1.2; letter-spacing: .02em; }
+      .idl-kpi-lbl .full { display: none; }
+      .idl-kpi-lbl .short { display: inline; }
+      .idl-kpi-sub, .idl-kpi-bar, .idl-live-dot { display: none; }
+
+      .idl-alert { padding: 9px 11px; gap: 9px; border-radius: 11px; margin-bottom: 9px; }
+      .idl-alert-ic { width: 26px; height: 26px; border-radius: 7px; font-size: .9rem; }
+      .idl-alert-txt b { font-size: .74rem; line-height: 1.25; }
+      .idl-alert-txt span { display: none; }   /* não lista as turmas no celular */
+
+      /* 4 tiles numa linha só, minimalistas */
+      .idc-tiles { grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 9px; }
+      .idc-tile { padding: 10px 5px 11px; border-radius: 13px; text-align: center; }
+      .idc-tile-icon { width: 26px; height: 26px; border-radius: 8px; margin: 0 auto; }
+      .idc-tile-icon svg { width: 14px; height: 14px; }
+      .idc-tile-num { font-size: 1.25rem; margin-top: 7px; }
+      .idc-tile-lbl { font-size: .52rem; margin-top: 4px; letter-spacing: .02em; }
+      .idc-tile-arrow { display: none; }
+
+      /* Atalhos numa linha só, compactos */
+      .idash-nav-strip { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .idash-nav-pill { flex-direction: column; align-items: center; text-align: center; padding: 10px 5px; }
+      .idash-nav-pill-icon { margin: 0 auto 6px; }
+      .idash-nav-pill span { font-size: .52rem; line-height: 1.2; }
+      .idash-nav-pill span .full { display: none; }
+      .idash-nav-pill span .short { display: inline; }
+      .idash-nav-pill > svg { display: none; }   /* esconde a seta */
+      .idash-section-head { margin-top: 4px; }
     }
   </style>
 </head>

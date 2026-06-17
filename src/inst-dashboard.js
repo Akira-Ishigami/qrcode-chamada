@@ -175,7 +175,7 @@ async function render(profile) {
           <span class="idl-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
           <span class="idl-kpi-num">${taxaHoje != null ? `${taxaHoje}<small>%</small>` : "—"}</span>
         </div>
-        <div class="idl-kpi-lbl">Presença de hoje</div>
+        <div class="idl-kpi-lbl"><span class="full">Presença de hoje</span><span class="short">Presença</span></div>
         <div class="idl-kpi-sub">${taxaHoje != null ? `${nPresHoje} de ${esperadosHoje} presenças` : "Sem chamadas hoje"}</div>
         <div class="idl-kpi-bar"><i style="width:${taxaHoje ?? 0}%"></i></div>
       </div>
@@ -185,7 +185,7 @@ async function render(profile) {
           <span class="idl-kpi-ico">${svgQr().replace('width="20" height="20"','width="17" height="17"')}</span>
           <span class="idl-kpi-num">${nAbertas}${nAbertas ? ` <span class="idl-live-dot"></span>` : ""}</span>
         </div>
-        <div class="idl-kpi-lbl">Em andamento</div>
+        <div class="idl-kpi-lbl"><span class="full">Em andamento</span><span class="short">Abertas</span></div>
         <div class="idl-kpi-sub">${nAbertas ? `${nAbertas} chamada${nAbertas > 1 ? "s" : ""} aberta${nAbertas > 1 ? "s" : ""}` : "nenhuma aberta agora"}</div>
       </div>
 
@@ -194,7 +194,7 @@ async function render(profile) {
           <span class="idl-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
           <span class="idl-kpi-num">${coberturaPct != null ? `${coberturaPct}<small>%</small>` : "—"}</span>
         </div>
-        <div class="idl-kpi-lbl">Cobertura de hoje</div>
+        <div class="idl-kpi-lbl"><span class="full">Cobertura de hoje</span><span class="short">Cobertura</span></div>
         <div class="idl-kpi-sub">${nAulaHoje > 0 ? `${nComChamada} de ${nAulaHoje} turmas c/ chamada` : "Sem aulas hoje"}</div>
         <div class="idl-kpi-bar"><i style="width:${coberturaPct ?? 0}%"></i></div>
       </div>
@@ -204,7 +204,7 @@ async function render(profile) {
           <span class="idl-kpi-ico">${svgRel().replace('width="20" height="20"','width="17" height="17"')}</span>
           <span class="idl-kpi-num">${nCham}</span>
         </div>
-        <div class="idl-kpi-lbl">Chamadas hoje</div>
+        <div class="idl-kpi-lbl"><span class="full">Chamadas hoje</span><span class="short">Chamadas</span></div>
         <div class="idl-kpi-sub">${nCham === 0 ? "nenhuma registrada" : `${nCham} registrada${nCham > 1 ? "s" : ""}`}</div>
       </div>
     </div>
@@ -258,7 +258,7 @@ async function render(profile) {
       </div>
 
       <div class="idash-nav-strip">
-        ${pill("relatorio-dia.html", svgRel(),     "Relatório do Dia", 0)}
+        ${pill("relatorio-dia.html", svgRel(),     `<span class="full">Relatório do Dia</span><span class="short">Relatório</span>`, 0)}
         ${pill("horarios.html",      svgHorario(), "Horários",         1)}
         ${pill("calendario.html",    svgCal(),     "Calendário",       2)}
         ${pill("cracha.html",        svgCracha(),  "Crachá",           3)}

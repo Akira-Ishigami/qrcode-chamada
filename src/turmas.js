@@ -469,9 +469,9 @@ function modalConfirmarExclusao({ titulo, msg, onConfirm }) {
   document.getElementById("tv-modal")?.remove();
   const ov = document.createElement("div");
   ov.id = "tv-modal";
-  ov.className = "tv-modal-overlay";
+  ov.className = "tv-modal-overlay center";
   ov.innerHTML = `
-    <div class="tv-modal-card" style="max-width:420px">
+    <div class="tv-modal-card center" style="max-width:420px">
       <div class="tv-modal-head" style="background:#fff5f5;border-bottom-color:#fee2e2">
         <div class="tv-modal-icon" style="background:#fee2e2;color:#dc2626">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>

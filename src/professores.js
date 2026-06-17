@@ -25,11 +25,11 @@ function showToast(msg, type = "") {
 // ─── Modal ────────────────────────────────────────────────────────────────────
 let modalEl = null;
 
-function openModal(html, onMounted) {
+function openModal(html, onMounted, opts = {}) {
   if (modalEl) modalEl.remove();
   modalEl = document.createElement("div");
-  modalEl.className = "prof-modal-bg";
-  modalEl.innerHTML = `<div class="prof-modal-box">${html}</div>`;
+  modalEl.className = "prof-modal-bg" + (opts.center ? " center" : "");
+  modalEl.innerHTML = `<div class="prof-modal-box${opts.center ? " center" : ""}">${html}</div>`;
   document.body.appendChild(modalEl);
   requestAnimationFrame(() => modalEl.classList.add("open"));
   modalEl.addEventListener("click", (e) => {
@@ -161,9 +161,9 @@ async function renderPage(profile) {
         <div class="prof-title">Professores</div>
         <div class="prof-subtitle">${atual} professor${atual !== 1 ? "es" : ""}${_limite ? ` <span style="color:${limCor};font-weight:700">· ${atual}/${_limite} acessos usados</span>` : ""}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="prof-head-actions" style="display:flex;align-items:center;gap:10px">
         ${_limite ? `
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px">
+          <div class="prof-acessos" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px">
             <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
               <span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Acessos</span>
               <span style="font-size:.68rem;font-weight:700;color:${limCor}">${limPct}%</span>
@@ -172,14 +172,14 @@ async function renderPage(profile) {
               <div style="height:100%;width:${limPct}%;background:${limCor};border-radius:99px;transition:width .4s ease"></div>
             </div>
           </div>` : ""}
-        <button class="btn btn-primary" id="btn-novo" ${limiteAtingido ? "disabled title='Limite de professores atingido'" : ""}>
-          ${SVG_PLUS}&nbsp; Novo Professor
+        <button class="btn btn-primary" id="btn-novo"${limiteAtingido ? " title='Limite de professores atingido'" : ""}>
+          ${SVG_PLUS}<span class="bn-lbl">&nbsp; Novo Professor</span>
         </button>
       </div>
     </div>
     ${limiteAtingido ? `
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff5f5;border:1px solid #fecaca;border-radius:10px;margin-bottom:16px;font-size:.82rem;color:#b91c1c;font-weight:600">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div class="prof-limit-alert" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff5f5;border:1px solid #fecaca;border-radius:10px;margin-bottom:16px;font-size:.82rem;color:#b91c1c;font-weight:600">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         Limite de ${_limite} professor${_limite !== 1 ? "es" : ""} atingido. Aumente o limite no painel do administrador para adicionar mais.
       </div>` : ""}
     ${atual
@@ -188,7 +188,10 @@ async function renderPage(profile) {
     }`;
 
   document.getElementById("btn-novo").addEventListener("click", () => {
-    if (limiteAtingido) return;
+    if (limiteAtingido) {
+      showToast(`Limite de ${_limite} professores atingido. Aumente no painel do administrador.`, "error");
+      return;
+    }
     modalNovoUsuario();
   });
 
@@ -201,6 +204,11 @@ async function renderPage(profile) {
     card.querySelector(".pc-btn-turmas")?.addEventListener("click",   async () => modalTurmas(p));
     card.querySelector(".pc-btn-materias")?.addEventListener("click", async () => modalMaterias(p));
     card.querySelector(".pc-btn-del")?.addEventListener("click",      ()  => modalExcluir(p));
+    // No cell (botões ocultos) o card inteiro abre a edição
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".pc-btn")) return;
+      modalEditar(p);
+    });
   });
 }
 
@@ -632,7 +640,7 @@ function modalExcluir(p) {
       closeModal();
       await renderPage({ role: "instituicao", instituicao_id: _instId });
     });
-  });
+  }, { center: true });
 }
 
 // ─── Modal: Matérias do professor ─────────────────────────────────────────────

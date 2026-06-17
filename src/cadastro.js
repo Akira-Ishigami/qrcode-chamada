@@ -339,9 +339,9 @@ function renderAlunos() {
         ${a.turma?.nome ? `<span class="aluno-card-turma" style="background:${ct.solid};color:#fff;border-color:transparent">${a.turma.nome}</span>` : ""}
       </div>
       <div class="aluno-card-actions">
-        <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT} Editar</button>
-        <button class="aluno-btn-qr aluno-card-btn aluno-card-btn-qr" data-id="${a.id}" title="QR Code">${SVG_QR} QR</button>
-        <button class="aluno-btn-cracha aluno-card-btn aluno-card-btn-cracha" data-id="${a.id}" title="Crachá">${SVG_CRACHA} Crachá</button>
+        <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT}<span class="abl">Editar</span></button>
+        <button class="aluno-btn-qr aluno-card-btn aluno-card-btn-qr" data-id="${a.id}" title="QR Code">${SVG_QR}<span class="abl">QR</span></button>
+        <button class="aluno-btn-cracha aluno-card-btn aluno-card-btn-cracha" data-id="${a.id}" title="Crachá">${SVG_CRACHA}<span class="abl">Crachá</span></button>
       </div>
     `;
 
@@ -630,6 +630,7 @@ function abrirModalEditar(aluno) {
   }
 
   carregarTurmasEd();
+  enhanceSelect(edSelTurma, { placeholder: "Selecione a turma…", containerSel: ".fld", withIcon: false });
 
   // ── acesso do aluno (login) ──
   let _alunoUserId = aluno.user_id || null;
@@ -1015,6 +1016,69 @@ filterInst.addEventListener("change", async () => {
 
 filterTurma.addEventListener("change", aplicarFiltros);
 filterBusca.addEventListener("input",  aplicarFiltros);
+
+// ─── Dropdown custom para o filtro de turma (visual; mantém o <select>) ───────
+function enhanceSelect(sel, opts = {}) {
+  if (!sel) return;
+  const { placeholder = "Selecione…", containerSel = ".filter-group", withIcon = true } = opts;
+  const group = sel.closest(containerSel) || sel.parentElement;
+  if (!group || group.querySelector(".fsel")) return;
+  const escH = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  sel.style.display = "none";
+  const origIcon = group.querySelector(".filter-group-icon");
+  if (origIcon) origIcon.style.display = "none";
+
+  const ico = withIcon
+    ? `<span class="fsel-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>`
+    : "";
+  const wrap = document.createElement("div");
+  wrap.className = "fsel" + (withIcon ? "" : " fsel-plain");
+  wrap.innerHTML = `
+    <button type="button" class="fsel-trigger" aria-haspopup="listbox" aria-expanded="false">
+      ${ico}
+      <span class="fsel-label">${escH(placeholder)}</span>
+      <svg class="fsel-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="fsel-panel" role="listbox"></div>`;
+  sel.insertAdjacentElement("afterend", wrap);
+
+  const trigger = wrap.querySelector(".fsel-trigger");
+  const panel   = wrap.querySelector(".fsel-panel");
+  const labelEl = wrap.querySelector(".fsel-label");
+
+  const close = () => { wrap.classList.remove("open"); trigger.setAttribute("aria-expanded", "false"); };
+  const open  = () => { if (sel.disabled) return; wrap.classList.add("open"); trigger.setAttribute("aria-expanded", "true"); };
+
+  const rebuild = () => {
+    trigger.classList.toggle("disabled", sel.disabled);
+    labelEl.textContent = sel.options[sel.selectedIndex]?.textContent || placeholder;
+    panel.innerHTML = [...sel.options].map((o, i) => {
+      const c = o.value ? corDaTurma(o.value).solid : "#cbd5e1";
+      return `
+        <button type="button" class="fsel-opt${o.value === sel.value ? " on" : ""}" data-v="${escH(o.value)}" style="animation-delay:${i * .02}s">
+          <span class="fsel-dot" style="background:${c}"></span>
+          <span class="fsel-txt">${escH(o.textContent)}</span>
+          <svg class="fsel-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>`;
+    }).join("");
+    panel.querySelectorAll(".fsel-opt").forEach(b => b.addEventListener("click", () => {
+      sel.value = b.dataset.v;
+      labelEl.textContent = b.querySelector(".fsel-txt").textContent;
+      panel.querySelectorAll(".fsel-opt").forEach(x => x.classList.toggle("on", x.dataset.v === sel.value));
+      close();
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }));
+  };
+
+  trigger.addEventListener("click", () => wrap.classList.contains("open") ? close() : open());
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+  new MutationObserver(rebuild).observe(sel, { childList: true });
+  rebuild();
+}
+enhanceSelect(filterTurma, { placeholder: "Todas as turmas", containerSel: ".filter-group", withIcon: true });
+enhanceSelect(selTurma,    { placeholder: "Selecione a turma…", containerSel: ".fld", withIcon: false });
 
 // ─── Gerar imagem de QR Code (cartão com nome e matrícula) ────────────────────
 async function gerarQRCard(aluno) {
