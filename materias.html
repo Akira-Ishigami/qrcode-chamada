@@ -39,26 +39,33 @@
       /* "Nova matéria" vira só "+" */
       .mat-btn-nova { padding: 0; width: 40px; height: 40px; justify-content: center; gap: 0; flex-shrink: 0; }
       .mat-btn-nova .mbn-lbl { display: none; }
-      /* Card compacto */
-      .matx-card { padding: 11px; border-radius: 13px; }
-      .matx-head { gap: 8px; margin-bottom: 9px; }
-      .matx-ico { width: 34px; height: 34px; border-radius: 9px; font-size: 1rem; }
-      .matx-name { font-size: .8rem; }
+      /* Card compacto — conteúdo centralizado e empilhado */
+      .matx-card { padding: 12px 9px; border-radius: 14px; display: flex; flex-direction: column; }
+      .matx-head {
+        flex-direction: column; align-items: center; text-align: center;
+        gap: 7px; margin-bottom: 10px;
+      }
+      .matx-ico { width: 38px; height: 38px; border-radius: 11px; font-size: 1.05rem; }
+      .matx-name {
+        font-size: .76rem; line-height: 1.2; text-align: center;
+        word-break: normal; overflow-wrap: break-word; hyphens: auto;
+      }
       .matx-profs { display: none; }
-      .matx-freq { padding: 8px 9px; border-radius: 9px; }
+      .matx-freq { margin-top: auto; padding: 8px 9px; border-radius: 10px; }
       .matx-freq.nodef { padding: 9px 7px; }
-      .matx-freq.nodef span { font-size: .56rem; text-align: center; line-height: 1.3; }
+      .matx-freq.nodef span { font-size: .58rem; text-align: center; line-height: 1.3; }
       .matx-freq-lbl { font-size: .5rem; }
-      .matx-freq-val { font-size: .82rem; }
+      .matx-freq-val { font-size: .84rem; }
       .matx-freq-bar { height: 5px; }
-      .matx-freq-sub { font-size: .55rem; margin-top: 5px; }
-      .matx-card::after { width: 60px; height: 60px; right: -18px; top: -14px; }
+      .matx-freq-sub { font-size: .56rem; margin-top: 5px; }
+      .matx-del { opacity: 1; top: 8px; right: 8px; width: 24px; height: 24px; }
+      .matx-card::after { width: 56px; height: 56px; right: -16px; top: -14px; }
     }
     @media (max-width: 360px) {
       .mat-list { gap: 5px; }
-      .matx-card { padding: 9px; }
-      .matx-ico { width: 30px; height: 30px; font-size: .9rem; }
-      .matx-name { font-size: .74rem; }
+      .matx-card { padding: 10px 7px; }
+      .matx-ico { width: 34px; height: 34px; font-size: .95rem; }
+      .matx-name { font-size: .7rem; }
     }
     @keyframes matUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
