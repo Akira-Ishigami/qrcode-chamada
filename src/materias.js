@@ -263,7 +263,7 @@ async function renderMaterias() {
            <div class="matx-freq-bar"><i style="width:${presMin ?? 0}%"></i></div>
            <div class="matx-freq-sub">${mat.limite_faltas != null ? `${mat.limite_faltas} falta${mat.limite_faltas !== 1 ? "s" : ""} permitida${mat.limite_faltas !== 1 ? "s" : ""}` : "sem limite"} · ${mat.aulas_semestre} aulas</div>
          </div>`
-      : `<div class="matx-noferq"><span class="matx-noferq-dot"></span>Sem frequência</div>`;
+      : `<span class="matx-flag" title="Sem frequência configurada">!</span>`;
 
     card.innerHTML = `
       <button class="matx-del" title="Excluir matéria">
@@ -358,7 +358,6 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
               <input id="mgr-faltas" class="mat-input" type="number" min="0" max="100"
                 value="${(mat.limite_faltas != null && mat.aulas_semestre) ? Math.round(mat.limite_faltas / mat.aulas_semestre * 100) : ""}" placeholder="%" style="text-align:center" />
             </div>
-            <button class="mat-btn-criar" id="mgr-salvar-faltas" style="white-space:nowrap;align-self:flex-end;height:38px">Salvar</button>
           </div>
           <div id="mgr-faltas-resumo" class="mat-faltas-resumo"></div>
         </div>
@@ -369,7 +368,14 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
       </div>
 
       <div class="matd-foot">
-        <button id="mgr-fechar">Fechar</button>
+        <button class="matd-btn-del" id="mgr-excluir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Excluir
+        </button>
+        <div class="matd-foot-right">
+          <button class="matd-btn-ghost" id="mgr-fechar">Cancelar</button>
+          <button class="matd-btn-save" id="mgr-salvar">Salvar</button>
+        </div>
       </div>
     </div>`;
 
@@ -424,7 +430,7 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
 
     const limite = calcLimite(a.val, f.val);
 
-    const btn = ov.querySelector("#mgr-salvar-faltas");
+    const btn = ov.querySelector("#mgr-salvar");
     btn.disabled = true; btn.textContent = "Salvando…";
 
     const { error } = await supabaseAdmin
@@ -437,9 +443,11 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
     mat.limite_faltas  = limite;
     showToast("Frequência atualizada!", "success");
     await renderMaterias();
+    fechar();
   };
 
-  ov.querySelector("#mgr-salvar-faltas").addEventListener("click", salvarFaltas);
+  ov.querySelector("#mgr-salvar").addEventListener("click", salvarFaltas);
+  ov.querySelector("#mgr-excluir").addEventListener("click", () => { fechar(); confirmarExcluir(mat.id, mat.nome); });
   ov.querySelector("#mgr-aulas").addEventListener("input", atualizarResumo);
   ov.querySelector("#mgr-faltas").addEventListener("input", atualizarResumo);
   ov.querySelector("#mgr-aulas").addEventListener("keydown", e => { if (e.key === "Enter") salvarFaltas(); });
