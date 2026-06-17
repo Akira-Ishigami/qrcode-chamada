@@ -364,7 +364,7 @@ function renderUpcoming() {
     ` : (ev._nacional ? `<span style="font-size:.6rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;opacity:.7">Nacional</span>` : "");
 
     return `
-      <div class="cal-upcoming-item tipo-${esc(ev.tipo)}${(_isProfessor || ev._nacional) ? " clickable-item" : ""}" data-idx="${idx}">
+      <div class="cal-upcoming-item tipo-${esc(ev.tipo)} clickable-item" data-idx="${idx}">
         <div class="cal-date-box">
           <div class="cal-date-day">${dia}</div>
           <div class="cal-date-mon">${mon}</div>
@@ -381,15 +381,13 @@ function renderUpcoming() {
     `;
   }).join("");
 
-  // Professor: click item → modal de detalhes
-  if (_isProfessor) {
-    container.querySelectorAll(".cal-upcoming-item.clickable-item").forEach(el => {
-      el.addEventListener("click", () => {
-        const idx = parseInt(el.dataset.idx);
-        mostrarDetalheEvento(proximos[idx]);
-      });
+  // Click no item → detalhe lateral (todos os usuários)
+  container.querySelectorAll(".cal-upcoming-item.clickable-item").forEach(el => {
+    el.addEventListener("click", e => {
+      if (e.target.closest("[data-edit],[data-del]")) return;
+      mostrarDetalheEvento(proximos[parseInt(el.dataset.idx)]);
     });
-  }
+  });
 
   // Institution: edit/delete buttons
   container.querySelectorAll("[data-edit]").forEach(btn => {
@@ -427,33 +425,49 @@ function mostrarDetalheEvento(ev) {
     dataFimHtml = `<span style="color:var(--text-3);font-size:.75rem;"> até ${df.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span>`;
   }
 
+  const podeEditar = !_isProfessor && !ev._nacional;
+
+  backdrop.className = "cal-modal-backdrop cal-drawer-bg";
   backdrop.innerHTML = `
-    <div class="cal-modal cal-detail-modal">
+    <div class="cal-drawer cal-detail-modal">
       <div class="cal-detail-tipo-bar tipo-${esc(ev.tipo)}"></div>
-      <div class="cal-detail-title">${emoji} ${esc(ev.titulo)}</div>
-      <div class="cal-detail-meta">
-        <span class="cal-tipo-badge tipo-${esc(ev.tipo)}">${esc(tipoLabel)}</span>
-        <div class="cal-detail-date-chip">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          ${esc(dataFormatada)}${dataFimHtml}
-        </div>
-        ${horario ? `
-          <div class="cal-detail-time-chip">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${esc(horario)}
+      <button class="cal-drawer-x" id="close-detail" aria-label="Fechar">✕</button>
+      <div class="cal-drawer-body">
+        <div class="cal-detail-title">${emoji} ${esc(ev.titulo)}</div>
+        <div class="cal-detail-meta">
+          <span class="cal-tipo-badge tipo-${esc(ev.tipo)}">${esc(tipoLabel)}</span>
+          ${ev._nacional ? `<span class="cal-tipo-badge" style="background:#f1f5f9;color:#64748b">Feriado nacional</span>` : ""}
+          <div class="cal-detail-date-chip">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${esc(dataFormatada)}${dataFimHtml}
           </div>
-        ` : ""}
+          ${horario ? `
+            <div class="cal-detail-time-chip">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${esc(horario)}
+            </div>
+          ` : ""}
+        </div>
+        ${ev.descricao ? `<div class="cal-detail-desc">${esc(ev.descricao)}</div>` : ""}
       </div>
-      ${ev.descricao ? `<div class="cal-detail-desc">${esc(ev.descricao)}</div>` : ""}
       <div class="cal-modal-actions">
-        <button class="cal-modal-cancel" id="close-detail">Fechar</button>
+        ${podeEditar ? `<button class="cal-modal-del" id="detail-del">Excluir</button>` : ""}
+        <button class="cal-modal-cancel" id="close-detail-2">Fechar</button>
+        ${podeEditar ? `<button class="cal-modal-save" id="detail-edit">Editar</button>` : ""}
       </div>
     </div>
   `;
 
   document.body.appendChild(backdrop);
-  backdrop.addEventListener("click", e => { if (e.target === backdrop) backdrop.remove(); });
-  backdrop.querySelector("#close-detail").addEventListener("click", () => backdrop.remove());
+  requestAnimationFrame(() => backdrop.classList.add("open"));
+  const fechar = () => { backdrop.classList.remove("open"); setTimeout(() => backdrop.remove(), 320); };
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) fechar(); });
+  backdrop.querySelector("#close-detail").addEventListener("click", fechar);
+  backdrop.querySelector("#close-detail-2").addEventListener("click", fechar);
+  if (podeEditar) {
+    backdrop.querySelector("#detail-edit").addEventListener("click", () => { fechar(); abrirModal(ev); });
+    backdrop.querySelector("#detail-del").addEventListener("click", () => { fechar(); confirmarExcluir(ev.id); });
+  }
 }
 
 // ── Modal popup (dia no grid, professor) ─────────────────────────────────────
