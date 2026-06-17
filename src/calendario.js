@@ -274,11 +274,16 @@ function renderGrade() {
       ? `<div class="cal-event-more">+${evs.length - maxShow}</div>`
       : "";
 
+    // Bolinhas por evento — visão compacta no cell
+    const dotsHtml = evs.slice(0, 4).map(ev =>
+      `<span class="cal-dot tipo-${esc(ev.tipo)}${ev._nacional ? " nacional" : ""}"></span>`).join("");
+
     html += `
-      <div class="cal-day${isHoje ? " today" : ""}${isWeekend ? " weekend" : ""} clickable"
+      <div class="cal-day${isHoje ? " today" : ""}${isWeekend ? " weekend" : ""}${hasEvents ? " has-ev" : ""} clickable"
            data-dia="${d}">
         <div class="cal-day-num">${d}</div>
         <div class="cal-day-events">${pillsHtml}${moreHtml}</div>
+        <div class="cal-day-dots">${dotsHtml}</div>
       </div>
     `;
   }
@@ -620,6 +625,41 @@ async function salvarProvaTrabalho(backdrop) {
   }
 }
 
+// Dropdown custom para os selects do modal (espelha o <select> nativo escondido)
+function enhanceCalSelect(sel) {
+  if (!sel || sel.dataset.cdd === "1") return;
+  sel.dataset.cdd = "1";
+  sel.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "cdd";
+  sel.insertAdjacentElement("afterend", wrap);
+  wrap.innerHTML = `
+    <button type="button" class="cdd-trigger">
+      <span class="cdd-val"></span>
+      <svg class="cdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="cdd-panel" role="listbox"></div>`;
+  const trigger = wrap.querySelector(".cdd-trigger");
+  const panel   = wrap.querySelector(".cdd-panel");
+  const valEl   = wrap.querySelector(".cdd-val");
+  const close = () => wrap.classList.remove("open");
+  const rebuild = () => {
+    valEl.textContent = sel.options[sel.selectedIndex]?.textContent || "";
+    panel.innerHTML = [...sel.options].map(o => `
+      <button type="button" class="cdd-opt${o.value === sel.value ? " on" : ""}" data-v="${esc(o.value)}">
+        <span class="cdd-opt-txt">${esc(o.textContent)}</span>
+        <svg class="cdd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>`).join("");
+    panel.querySelectorAll(".cdd-opt").forEach(b => b.addEventListener("click", () => {
+      sel.value = b.dataset.v; rebuild(); close();
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }));
+  };
+  trigger.addEventListener("click", () => wrap.classList.toggle("open"));
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  rebuild();
+}
+
 async function abrirModal(evento, dataPreenchida = null) {
   const isEdit = !!evento;
   await carregarTurmas();
@@ -633,6 +673,8 @@ async function abrirModal(evento, dataPreenchida = null) {
   const turmaOpts = `
     <option value="">🏫 Toda a escola</option>
     ${_turmas.map(t => `<option value="${t.id}" ${evento?.turma_id === t.id ? "selected" : ""}>👥 ${esc(t.nome)}</option>`).join("")}`;
+
+  const temExtras = !!(evento?.hora_inicio || evento?.hora_fim || evento?.descricao);
 
   backdrop.innerHTML = `
     <div class="cal-modal">
@@ -665,20 +707,25 @@ async function abrirModal(evento, dataPreenchida = null) {
         </div>
       </div>
 
-      <div class="cal-modal-row">
-        <div class="cal-modal-field">
-          <label class="cal-modal-label">Hora Início</label>
-          <input class="cal-modal-input" id="ev-hora-inicio" type="time" value="${evento?.hora_inicio ?? ""}">
+      <button type="button" class="cal-more-toggle${temExtras ? " open" : ""}" id="ev-more-toggle">
+        <svg class="cal-more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="13" height="13"><polyline points="6 9 12 15 18 9"/></svg>
+        Horário e descrição
+      </button>
+      <div class="cal-more${temExtras ? " open" : ""}" id="ev-more">
+        <div class="cal-modal-row">
+          <div class="cal-modal-field">
+            <label class="cal-modal-label">Hora Início</label>
+            <input class="cal-modal-input" id="ev-hora-inicio" type="time" value="${evento?.hora_inicio ?? ""}">
+          </div>
+          <div class="cal-modal-field">
+            <label class="cal-modal-label">Hora Fim</label>
+            <input class="cal-modal-input" id="ev-hora-fim" type="time" value="${evento?.hora_fim ?? ""}">
+          </div>
         </div>
-        <div class="cal-modal-field">
-          <label class="cal-modal-label">Hora Fim</label>
-          <input class="cal-modal-input" id="ev-hora-fim" type="time" value="${evento?.hora_fim ?? ""}">
+        <div class="cal-modal-field" style="margin-bottom:0">
+          <label class="cal-modal-label">Descrição</label>
+          <textarea class="cal-modal-textarea" id="ev-descricao" placeholder="Detalhes adicionais (opcional)…">${esc(evento?.descricao ?? "")}</textarea>
         </div>
-      </div>
-
-      <div class="cal-modal-field">
-        <label class="cal-modal-label">Descrição</label>
-        <textarea class="cal-modal-textarea" id="ev-descricao" placeholder="Detalhes adicionais (opcional)…">${esc(evento?.descricao ?? "")}</textarea>
       </div>
 
       <div class="cal-modal-actions">
@@ -699,6 +746,18 @@ async function abrirModal(evento, dataPreenchida = null) {
     });
   }
   backdrop.querySelector("#btn-save-ev").addEventListener("click", () => salvarEvento(evento?.id, backdrop));
+
+  // Toggle de opções extras (horário + descrição)
+  const moreToggle = backdrop.querySelector("#ev-more-toggle");
+  const moreBox    = backdrop.querySelector("#ev-more");
+  moreToggle.addEventListener("click", () => {
+    const aberto = moreBox.classList.toggle("open");
+    moreToggle.classList.toggle("open", aberto);
+  });
+
+  // Dropdowns custom para Tipo e Para
+  enhanceCalSelect(backdrop.querySelector("#ev-tipo"));
+  enhanceCalSelect(backdrop.querySelector("#ev-turma"));
 }
 
 async function salvarEvento(eventoId, backdrop) {
