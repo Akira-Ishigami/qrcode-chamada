@@ -39,11 +39,15 @@
       /* "Nova matéria" vira só "+" */
       .mat-btn-nova { padding: 0; width: 40px; height: 40px; justify-content: center; gap: 0; flex-shrink: 0; }
       .mat-btn-nova .mbn-lbl { display: none; }
-      /* Card compacto — conteúdo centralizado e empilhado */
-      .matx-card { padding: 11px 8px 10px; border-radius: 14px; display: flex; flex-direction: column; }
+      /* Card quadrado — conteúdo centralizado */
+      .matx-card {
+        padding: 10px 8px; border-radius: 14px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        aspect-ratio: 1 / 1;
+      }
       .matx-head {
         flex-direction: column; align-items: center; text-align: center;
-        gap: 6px; margin-bottom: 9px;
+        gap: 7px; margin-bottom: 0;
       }
       .matx-ico { width: 36px; height: 36px; border-radius: 10px; font-size: 1rem; }
       .matx-name {
