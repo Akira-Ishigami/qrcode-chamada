@@ -740,3 +740,57 @@ input::placeholder { color: var(--text-3); font-weight: 400; }
   .filter-divider { display: block; }
   .search-wrap   { max-width: 340px; flex: 2; min-width: 160px; }
 }
+
+/* ═══ Drawer lateral (escopado na tela de Alunos) ═══ */
+.form-modal { align-items: stretch; justify-content: flex-end; transition: opacity .3s; }
+.form-modal-card {
+  border-radius: 0;
+  width: min(480px, 100vw); max-width: none;
+  height: 100vh; height: 100dvh; max-height: none;
+  transform: translateX(100%);
+  transition: transform .34s cubic-bezier(.22, 1, .36, 1);
+  box-shadow: -24px 0 70px -24px rgba(13, 21, 38, .55);
+  overflow: hidden;            /* cabeçalho/rodapé fixos; corpo rola */
+}
+.form-modal.open .form-modal-card { transform: none; }
+
+/* Cabeçalho e rodapé fixos, corpo rolável */
+.form-modal-header, .ed-modal-header { flex-shrink: 0; }
+.form-modal-body  { flex: 1; overflow-y: auto; }
+.form-modal-footer {
+  flex-shrink: 0; position: sticky; bottom: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 20px -16px rgba(13,21,38,.3);
+}
+
+/* Modal de visualizar também vira drawer */
+.mv-card {
+  width: min(480px, 100vw) !important; max-width: none !important;
+  height: 100vh; height: 100dvh; border-radius: 0;
+  animation: none;
+  transform: translateX(100%);
+  transition: transform .34s cubic-bezier(.22, 1, .36, 1);
+  display: flex; flex-direction: column;
+  box-shadow: -24px 0 70px -24px rgba(13, 21, 38, .55);
+}
+.form-modal.open .mv-card { transform: none; }
+.mv-hero, .mv-footer { flex-shrink: 0; }
+.mv-body { flex: 1; overflow-y: auto; }
+
+/* Placeholder à prova de extensões que colorem o texto */
+.search-input::placeholder,
+input::placeholder, textarea::placeholder {
+  color: var(--text-3) !important;
+  -webkit-text-fill-color: var(--text-3);
+  background: none !important;
+  opacity: 1;
+}
+
+/* Polimento dos cards de aluno + cor por turma */
+.aluno-card { position: relative; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.aluno-card::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: var(--turma-c, transparent);
+  border-radius: var(--r-lg, 14px) var(--r-lg, 14px) 0 0;
+}
+.aluno-card:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -16px rgba(13, 21, 38, .26); }

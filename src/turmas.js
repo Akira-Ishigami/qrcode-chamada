@@ -306,7 +306,7 @@ function abrirModal(tipo) {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.classList.add("open"), 10);
 
-  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 360); };
   overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
   document.getElementById("modal-x").addEventListener("click", fechar);
   document.getElementById("modal-cancel").addEventListener("click", fechar);
@@ -405,7 +405,7 @@ function abrirModalEditar(t) {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.classList.add("open"), 10);
 
-  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 360); };
   overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
   document.getElementById("modal-x").addEventListener("click", fechar);
   document.getElementById("modal-cancel").addEventListener("click", fechar);
@@ -491,7 +491,7 @@ function modalConfirmarExclusao({ titulo, msg, onConfirm }) {
   document.body.appendChild(ov);
   setTimeout(() => ov.classList.add("open"), 10);
 
-  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 200); };
+  const fechar = () => { ov.classList.remove("open"); setTimeout(() => ov.remove(), 360); };
   ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
   ov.querySelector("#del-cancel").addEventListener("click", fechar);
   ov.querySelector("#del-ok").addEventListener("click", async () => {

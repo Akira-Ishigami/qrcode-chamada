@@ -102,8 +102,8 @@ async function carregarDados() {
       .select("id, dia_semana, hora_inicio, hora_fim, sala, materia_id, professor_id, materias(nome), profiles(nome, foto_url)")
       .eq("turma_id", turmaId).order("dia_semana").order("hora_inicio") : { data: [] },
     turmaId ? supabaseAdmin.from("chamadas")
-      .select("id, horario_id, horarios(materia_id)")
-      .eq("turma_id", turmaId) : { data: [] },
+      .select("id, data, horario_id, horarios(materia_id)")
+      .eq("turma_id", turmaId).order("data") : { data: [] },
     supabaseAdmin.from("presencas").select("chamada_id").eq("aluno_id", _aluno.id),
   ]);
 
@@ -120,13 +120,15 @@ async function carregarDados() {
     (data ?? []).forEach(m => { matCfg[m.id] = m; });
   }
 
-  // Faltas por matéria
-  const totalPorMat = {}, faltasPorMat = {};
+  // Faltas por matéria + histórico (data + presente)
+  const totalPorMat = {}, faltasPorMat = {}, registrosPorMat = {};
   chamadas.forEach(c => {
     const matId = c.horarios?.materia_id;
     if (!matId) return;
+    const presente = presIds.has(c.id);
     totalPorMat[matId] = (totalPorMat[matId] ?? 0) + 1;
-    if (!presIds.has(c.id)) faltasPorMat[matId] = (faltasPorMat[matId] ?? 0) + 1;
+    if (!presente) faltasPorMat[matId] = (faltasPorMat[matId] ?? 0) + 1;
+    (registrosPorMat[matId] ??= []).push({ data: c.data, presente });
   });
 
   _faltas = matIds.map(id => {
@@ -135,6 +137,7 @@ async function carregarDados() {
       id, nome: m.nome ?? "Matéria",
       faltas: faltasPorMat[id] ?? 0, total: totalPorMat[id] ?? 0,
       aulas: m.aulas_semestre ?? null, limite: m.limite_faltas ?? null,
+      registros: registrosPorMat[id] ?? [],
     };
   }).sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -237,19 +240,29 @@ function renderSection(name) {
   else if (name === "cracha")      corpo = renderCracha(_aluno);
 
   const wide = (name === "horarios" || name === "cracha");
-  root.innerHTML = `
+  const cabecalho = `
     <div class="al-page-head">
       <div class="al-eyebrow">Portal do aluno</div>
       <div class="al-page-title">${meta.t}</div>
       <div class="al-page-sub">${meta.s}</div>
-    </div>
-    ${wide ? corpo : `<div class="al-narrow">${corpo}</div>`}
-  `;
+    </div>`;
+  root.innerHTML = wide
+    ? `${cabecalho}${corpo}`
+    : `<div class="al-narrow">${cabecalho}${corpo}</div>`;
 
   if (name === "cracha") {
     montarCracha();
     document.getElementById("dl-cracha")?.addEventListener("click", baixarCracha);
     document.getElementById("dl-qr")?.addEventListener("click", baixarQR);
+  }
+
+  if (name === "faltas") {
+    document.querySelectorAll(".falb-card[data-id]").forEach(c => {
+      c.addEventListener("click", () => {
+        const m = _faltas.find(x => String(x.id) === c.dataset.id);
+        if (m) abrirFaltaModal(m);
+      });
+    });
   }
 
   if (name === "professores") {
@@ -543,33 +556,130 @@ function renderLista() {
   return html;
 }
 
+const freqCor = (f) => f >= 75 ? "#16a34a" : f >= 60 ? "#ea580c" : "#dc2626";
+
+// Avalia o risco de uma matéria pelas faltas vs limite
+function riscoDe(m) {
+  if (m.limite != null) {
+    if (m.faltas >= m.limite)            return { cor: "#dc2626", rotulo: "Limite atingido", risco: "alto" };
+    if (m.faltas >= m.limite * 0.7)      return { cor: "#ea580c", rotulo: "Atenção", risco: "medio" };
+  }
+  return { cor: "#16a34a", rotulo: "Em dia", risco: "ok" };
+}
+function metricasDe(m) {
+  const base = m.total || 0;
+  const freq = base > 0 ? Math.round((base - m.faltas) / base * 100) : 100;
+  const restantes = m.limite != null ? Math.max(0, m.limite - m.faltas) : null;
+  const fillPct = m.limite != null
+    ? Math.min(100, Math.round(m.faltas / Math.max(1, m.limite) * 100))
+    : (m.aulas ? Math.min(100, Math.round(m.faltas / m.aulas * 100)) : 0);
+  return { base, freq, restantes, fillPct };
+}
+
 function renderFaltas(materias) {
   if (!materias.length) return `<div class="al-card"><div class="al-empty">Nenhuma matéria com aulas registradas ainda.</div></div>`;
 
-  return materias.map(m => {
-    let cor = "#16a34a", bg = "#dcfce7", txt = "#15803d", rotulo = "OK";
-    if (m.limite != null) {
-      if (m.faltas >= m.limite)             { cor = "#dc2626"; bg = "#fee2e2"; txt = "#b91c1c"; rotulo = "Limite atingido"; }
-      else if (m.faltas / m.limite >= 0.7)  { cor = "#ea580c"; bg = "#ffedd5"; txt = "#c2410c"; rotulo = "Atenção"; }
-    }
-    const pct = Math.min(100, Math.round((m.limite ? m.faltas / m.limite : (m.aulas ? m.faltas / m.aulas : 0)) * 100));
-    const detalhe = m.limite != null
-      ? `${m.faltas} de ${m.limite} faltas permitidas${m.aulas ? ` · ${m.total}/${m.aulas} aulas dadas` : ""}`
-      : `${m.faltas} falta${m.faltas !== 1 ? "s" : ""}${m.aulas ? ` · de ${m.aulas} aulas no semestre` : ` em ${m.total} aula${m.total !== 1 ? "s" : ""}`}`;
+  // Resumo geral
+  let totalFaltas = 0, somaPres = 0, somaTotal = 0, emRisco = 0;
+  materias.forEach(m => {
+    totalFaltas += m.faltas;
+    const base = m.total || 0;
+    somaPres += Math.max(0, base - m.faltas);
+    somaTotal += base;
+    if (m.limite != null && m.faltas >= m.limite * 0.7) emRisco++;
+  });
+  const freqGeral = somaTotal > 0 ? Math.round(somaPres / somaTotal * 100) : 100;
+
+  const resumo = `
+    <div class="falb-summary">
+      <div><div class="falb-sum-num" style="color:${freqCor(freqGeral)}">${freqGeral}%</div><div class="falb-sum-lbl">frequência geral</div></div>
+      <div><div class="falb-sum-num">${totalFaltas}</div><div class="falb-sum-lbl">faltas no total</div></div>
+      <div><div class="falb-sum-num" style="color:${emRisco ? "#ea580c" : "#16a34a"}">${emRisco}</div><div class="falb-sum-lbl">em risco</div></div>
+    </div>`;
+
+  const cards = materias.map((m, i) => {
+    const { cor, rotulo, risco } = riscoDe(m);
+    const { base, freq, restantes, fillPct } = metricasDe(m);
+
+    const legenda = m.limite != null
+      ? `<span class="falb-leg" style="color:${cor}">● ${m.faltas} usada${m.faltas !== 1 ? "s" : ""}</span>
+         <span class="falb-leg ok">● +${restantes} disponíve${restantes !== 1 ? "is" : "l"}</span>`
+      : `<span class="falb-leg" style="color:${cor}">● ${m.faltas} falta${m.faltas !== 1 ? "s" : ""}</span>`;
 
     return `
-      <div class="al-card">
-        <div class="fal-top">
-          <span class="fal-mat">${esc(m.nome)}</span>
-          <span class="fal-count" style="color:${cor}">
-            ${m.faltas}${m.limite != null ? `/${m.limite}` : ""}
-            <span class="fal-badge" style="background:${bg};color:${txt};margin-left:6px">${rotulo}</span>
-          </span>
+      <div class="falb-card risco-${risco}" data-id="${esc(m.id)}" style="animation-delay:${80 + i * 55}ms">
+        <div class="falb-head">
+          <span class="falb-mat">${esc(m.nome)}</span>
+          <span class="falb-badge ${risco}">${rotulo}</span>
         </div>
-        <div class="fal-bar"><div class="fal-bar-fill" style="width:${pct}%;background:${cor}"></div></div>
-        <div class="fal-sub">${detalhe}</div>
+        <div class="falb-bar">
+          <div class="falb-bar-fill" style="width:${fillPct}%;background:${cor}"></div>
+        </div>
+        <div class="falb-legs">${legenda}</div>
+        <div class="falb-foot">
+          <span><b style="color:${freqCor(freq)}">${freq}%</b> de presença · ${base} aula${base !== 1 ? "s" : ""}</span>
+          <span class="falb-ver">detalhes ›</span>
+        </div>
       </div>`;
   }).join("");
+
+  return resumo + cards;
+}
+
+function fmtDataLonga(iso) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+}
+
+function abrirFaltaModal(m) {
+  const { cor, rotulo } = riscoDe(m);
+  const { base, freq, restantes, fillPct } = metricasDe(m);
+
+  const regs = (m.registros ?? []).slice().sort((a, b) => b.data.localeCompare(a.data));
+  const regsHtml = regs.length
+    ? regs.map(r => `
+        <div class="fd-reg ${r.presente ? "pres" : "falt"}">
+          <span class="fd-reg-ic">${r.presente ? "✓" : "✕"}</span>
+          <span class="fd-reg-data">${fmtDataLonga(r.data)}</span>
+          <span class="fd-reg-tag">${r.presente ? "Presente" : "Falta"}</span>
+        </div>`).join("")
+    : `<div class="al-empty">Nenhuma aula registrada ainda.</div>`;
+
+  const { bg, close } = _calmOverlay(`
+    <div class="calm-hero" style="--evc:${cor}">
+      <div class="calm-appbar light">
+        <span class="fd-hero-tag">Minhas faltas</span>
+        <button class="calm-iconbtn" id="fd-close">✕</button>
+      </div>
+      <div class="calm-hero-body">
+        <div class="calm-hero-eyebrow">${esc(rotulo)}</div>
+        <h1 class="calm-hero-title">${esc(m.nome)}</h1>
+        <div class="fd-hero-big">${m.faltas}${m.limite != null ? `<small> de ${m.limite} faltas</small>` : `<small> falta${m.faltas !== 1 ? "s" : ""}</small>`}</div>
+      </div>
+    </div>
+    <div class="calm-content">
+      <div class="fd-bar"><div class="fd-bar-fill" style="width:${fillPct}%;background:${cor}"></div></div>
+      <div class="fd-legs">
+        <span class="fd-leg" style="color:${cor}">● ${m.faltas} usada${m.faltas !== 1 ? "s" : ""}</span>
+        ${restantes != null ? `<span class="fd-leg" style="color:#16a34a">● +${restantes} disponíve${restantes !== 1 ? "is" : "l"}</span>` : ""}
+      </div>
+
+      <div class="fd-stats">
+        <div class="fd-stat"><b style="color:${freqCor(freq)}">${freq}%</b><span>presença</span></div>
+        ${restantes != null ? `<div class="fd-stat"><b>${restantes}</b><span>pode faltar</span></div>` : ""}
+        <div class="fd-stat"><b>${base}${m.aulas ? `/${m.aulas}` : ""}</b><span>aulas dadas</span></div>
+      </div>
+
+      ${restantes != null ? `<div class="fd-msg ${restantes === 0 ? "alto" : restantes <= 2 ? "medio" : "ok"}">
+        ${restantes === 0 ? "Você atingiu o limite de faltas desta matéria." :
+          restantes <= 2 ? `Atenção! Você pode faltar só mais ${restantes} vez${restantes !== 1 ? "es" : ""}.` :
+          `Você ainda pode faltar ${restantes} vezes nesta matéria.`}
+      </div>` : ""}
+
+      <div class="fd-sec">Histórico de presença</div>
+      <div class="fd-regs">${regsHtml}</div>
+    </div>
+  `, "calm-detail");
+  bg.querySelector("#fd-close").addEventListener("click", close);
 }
 
 const GRID_COLORS = [

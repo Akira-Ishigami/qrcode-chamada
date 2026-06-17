@@ -27,7 +27,7 @@
 
     /* ── Conteúdo ── */
     .al-content { padding: 26px 30px 60px; }
-    .al-narrow { max-width: 820px; }
+    .al-narrow { max-width: 760px; margin: 0 auto; }
 
     /* Crachá configurado da instituição + download */
     .cracha-wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -127,6 +127,63 @@
     .fal-bar-fill { height: 100%; border-radius: 99px; transition: width .4s; }
     .fal-sub { font-size: .7rem; color: #94a3b8; margin-top: 6px; }
     .fal-badge { font-size: .58rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: .04em; }
+
+    /* ── Minhas faltas (barras) ── */
+    @keyframes falxUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .falb-summary { display: flex; gap: 30px; background: #fff; border: 1px solid #e7ebf2; border-radius: 18px; padding: 18px 22px; margin-bottom: 14px; box-shadow: 0 6px 20px -14px rgba(15,23,42,.25); animation: falxUp .4s cubic-bezier(.22,1,.36,1) both; }
+    .falb-sum-num { font-size: 1.6rem; font-weight: 800; color: #0f172a; letter-spacing: -.03em; line-height: 1; }
+    .falb-sum-lbl { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; margin-top: 6px; }
+
+    .falb-card { background: #fff; border: 1px solid #e7ebf2; border-radius: 18px; padding: 16px 18px; margin-bottom: 11px; box-shadow: 0 1px 4px rgba(15,23,42,.04); position: relative; overflow: hidden; cursor: pointer; animation: falxUp .45s cubic-bezier(.22,1,.36,1) both; transition: transform .14s, box-shadow .14s, border-color .14s; }
+    .falb-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--accent, #16a34a); }
+    .falb-card.risco-ok    { --accent: #16a34a; }
+    .falb-card.risco-medio { --accent: #ea580c; }
+    .falb-card.risco-alto  { --accent: #dc2626; }
+    .falb-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -16px rgba(15,23,42,.3); border-color: #dbe3ee; }
+    .falb-card:hover .falb-ver { color: #2563eb; }
+    .falb-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .falb-mat { font-size: 1.05rem; font-weight: 800; color: #0f172a; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .falb-badge { flex-shrink: 0; font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 4px 11px; border-radius: 99px; }
+    .falb-badge.ok    { background: #dcfce7; color: #15803d; }
+    .falb-badge.medio { background: #ffedd5; color: #c2410c; }
+    .falb-badge.alto  { background: #fee2e2; color: #b91c1c; }
+    .falb-bar { height: 16px; background: #e8f7ee; border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(15,23,42,.06); }
+    .falb-bar-fill { height: 100%; border-radius: 99px; min-width: 7px; transition: width .6s cubic-bezier(.22,1,.36,1); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+    .falb-legs { display: flex; gap: 14px; margin-top: 9px; flex-wrap: wrap; }
+    .falb-leg { font-size: .74rem; font-weight: 800; }
+    .falb-leg.ok { color: #16a34a; }
+    .falb-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; font-size: .76rem; color: #64748b; font-weight: 600; }
+    .falb-foot b { font-weight: 800; }
+    .falb-ver { font-weight: 800; color: #94a3b8; transition: color .14s; white-space: nowrap; }
+    @media (max-width: 540px) { .falb-summary { gap: 18px; padding: 16px; } .falb-sum-num { font-size: 1.3rem; } .falb-mat { font-size: .95rem; } }
+
+    /* Modal de detalhes (reusa o drawer .calm) */
+    .fd-hero-tag { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; opacity: .85; }
+    .fd-hero-big { font-size: 2.6rem; font-weight: 800; letter-spacing: -.04em; margin-top: 14px; line-height: 1; }
+    .fd-hero-big small { font-size: .9rem; font-weight: 700; opacity: .8; letter-spacing: 0; }
+    .fd-bar { height: 18px; background: #eef2f7; border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(15,23,42,.07); }
+    .fd-bar-fill { height: 100%; border-radius: 99px; min-width: 8px; transition: width .6s cubic-bezier(.22,1,.36,1); }
+    .fd-legs { display: flex; gap: 16px; margin-top: 10px; }
+    .fd-leg { font-size: .82rem; font-weight: 800; }
+    .fd-stats { display: flex; gap: 12px; margin-top: 20px; }
+    .fd-stat { flex: 1; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 14px; padding: 12px; text-align: center; }
+    .fd-stat b { display: block; font-size: 1.4rem; font-weight: 800; color: #0f172a; letter-spacing: -.03em; line-height: 1; }
+    .fd-stat span { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #94a3b8; margin-top: 6px; display: block; }
+    .fd-msg { margin-top: 16px; padding: 12px 15px; border-radius: 12px; font-size: .84rem; font-weight: 700; }
+    .fd-msg.ok { background: #f0fdf4; color: #15803d; }
+    .fd-msg.medio { background: #fff7ed; color: #c2410c; }
+    .fd-msg.alto { background: #fef2f2; color: #b91c1c; }
+    .fd-sec { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin: 22px 0 10px; }
+    .fd-regs { display: flex; flex-direction: column; gap: 7px; }
+    .fd-reg { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: 11px; border: 1px solid #eef2f7; background: #fff; }
+    .fd-reg-ic { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800; flex-shrink: 0; }
+    .fd-reg.pres .fd-reg-ic { background: #dcfce7; color: #15803d; }
+    .fd-reg.falt .fd-reg-ic { background: #fee2e2; color: #b91c1c; }
+    .fd-reg-data { flex: 1; font-size: .84rem; font-weight: 700; color: #334155; text-transform: capitalize; }
+    .fd-reg-tag { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .fd-reg.pres .fd-reg-tag { color: #16a34a; }
+    .fd-reg.falt .fd-reg-tag { color: #dc2626; }
 
     /* Horários */
     .hor-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }

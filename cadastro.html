@@ -264,15 +264,17 @@
             <input type="tel" id="telefone" placeholder="Ex: (11) 99999-0000" autocomplete="off" />
           </div>
           <div class="fld fld-half">
-            <label>Data de nascimento</label>
+            <label class="required">Data de nascimento</label>
             <input type="date" id="data_nascimento" />
+            <span class="fld-err" id="err-data_nascimento"></span>
           </div>
         </div>
 
         <!-- Linha 3: ID Estadual -->
         <div class="fld">
-          <label>ID Estadual / RG</label>
+          <label class="required">ID Estadual / RG</label>
           <input type="text" id="id_estadual" placeholder="Ex: 12.345.678-9" autocomplete="off" />
+          <span class="fld-err" id="err-id_estadual"></span>
         </div>
 
         <!-- Linha 4: Endereço -->

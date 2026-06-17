@@ -550,6 +550,8 @@ function mostrarPopoverAgenda(horarioId) {
 
 // ── Excluir horário ───────────────────────────────────────────────────────────
 async function excluirHorario(id) {
+  // Desliga as chamadas ligadas a este horário antes de apagá-lo (preserva as chamadas)
+  await supabaseAdmin.from("chamadas").update({ horario_id: null }).eq("horario_id", id);
   const { error } = await supabaseAdmin.from("horarios").delete().eq("id", id);
   if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
   showToast("Horário removido.", "success");
@@ -992,6 +994,12 @@ async function aplicarPreviewConfirmado() {
   if (btn) { btn.disabled = true; btn.textContent = "Aplicando…"; }
   try {
     const turmaIds = _turmas.map(t => t.id);
+    // Desliga as chamadas dos horários atuais antes de substituir a grade
+    const { data: hAntigos } = await supabaseAdmin.from("horarios").select("id").in("turma_id", turmaIds);
+    const hAntigosIds = (hAntigos ?? []).map(h => h.id);
+    if (hAntigosIds.length) {
+      await supabaseAdmin.from("chamadas").update({ horario_id: null }).in("horario_id", hAntigosIds);
+    }
     await supabaseAdmin.from("horarios").delete().in("turma_id", turmaIds);
     const rows = _previewHorarios.map(h => ({
       turma_id: h.turma_id, materia_id: h.materia_id, professor_id: h.professor_id,

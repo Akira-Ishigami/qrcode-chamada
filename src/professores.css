@@ -174,21 +174,23 @@
 .prof-empty svg { opacity: .3; }
 .prof-empty p { font-size: .875rem; }
 
-/* ── Modal overlay ── */
+/* ── Drawer lateral ── */
 .prof-modal-bg {
   position: fixed; inset: 0;
-  background: rgba(13,21,38,.52); backdrop-filter: blur(5px);
-  z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: rgba(13,21,38,.5); backdrop-filter: blur(5px);
+  z-index: 500; opacity: 0; transition: opacity .3s;
 }
+.prof-modal-bg.open { opacity: 1; }
 .prof-modal-box {
-  background: var(--surface); border-radius: 16px; padding: 26px 24px;
-  width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.22);
-  animation: profModalIn .2s cubic-bezier(.22,1,.36,1) both;
+  position: absolute; top: 0; right: 0;
+  height: 100vh; height: 100dvh; width: min(460px, 100vw);
+  background: var(--surface); padding: 26px 24px 32px; box-sizing: border-box;
+  box-shadow: -24px 0 70px -24px rgba(13,21,38,.55);
+  transform: translateX(100%); transition: transform .34s cubic-bezier(.22,1,.36,1);
+  overflow-y: auto;
 }
-@keyframes profModalIn {
-  from { opacity: 0; transform: translateY(12px) scale(.97); }
-  to   { opacity: 1; transform: none; }
-}
+.prof-modal-bg.open .prof-modal-box { transform: none; }
+@media (max-width: 520px) { .prof-modal-box { width: 100vw; } }
 
 .modal-title {
   font-family: 'Outfit', system-ui, sans-serif;

@@ -71,6 +71,7 @@ function setupRealtime(profile) {
 async function render(profile) {
   const instId = profile.instituicao_id;
   const hoje   = hojeLocal();
+  const dow    = new Date().getDay();
   const hora   = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const data   = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -85,7 +86,7 @@ async function render(profile) {
     { data: materias },
   ] = await Promise.all([
     supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", instId),
-    supabaseAdmin.from("alunos").select("id").eq("instituicao_id", instId),
+    supabaseAdmin.from("alunos").select("id, turma_id").eq("instituicao_id", instId),
     supabaseAdmin.from("profiles").select("id").eq("instituicao_id", instId).eq("role", "professor"),
     instId ? supabaseAdmin.from("instituicoes").select("nome").eq("id", instId).single() : { data: null },
     supabaseAdmin.from("chamadas")
@@ -96,17 +97,40 @@ async function render(profile) {
     supabaseAdmin.from("materias").select("id").eq("instituicao_id", instId),
   ]);
 
-  // Setup check — horários e vínculos dependem dos IDs acima
-  const turmaIds = (turmas ?? []).map(t => t.id);
-  const profIds  = (profs  ?? []).map(p => p.id);
-  const [{ data: horarios }, { data: vinculos }] = await Promise.all([
+  // Setup check + presença de hoje — dependem dos IDs acima
+  const turmaIds   = (turmas ?? []).map(t => t.id);
+  const profIds    = (profs  ?? []).map(p => p.id);
+  const chamadaIds = (chamadas ?? []).map(c => c.id);
+  const [{ data: horarios }, { data: vinculos }, { data: presencasHoje }, { data: horariosHoje }] = await Promise.all([
     turmaIds.length
       ? supabaseAdmin.from("horarios").select("id").in("turma_id", turmaIds).limit(1)
       : { data: [] },
     profIds.length
       ? supabaseAdmin.from("professor_materias").select("professor_id").in("professor_id", profIds).limit(1)
       : { data: [] },
+    chamadaIds.length
+      ? supabaseAdmin.from("presencas").select("chamada_id").in("chamada_id", chamadaIds)
+      : { data: [] },
+    turmaIds.length
+      ? supabaseAdmin.from("horarios").select("turma_id").in("turma_id", turmaIds).eq("dia_semana", dow)
+      : { data: [] },
   ]);
+
+  // Taxa de presença de hoje = presenças / esperados (soma dos alunos das turmas que tiveram chamada)
+  const turmaSize = {};
+  (alunos ?? []).forEach(a => { if (a.turma_id) turmaSize[a.turma_id] = (turmaSize[a.turma_id] ?? 0) + 1; });
+  const esperadosHoje = (chamadas ?? []).reduce((s, c) => s + (turmaSize[c.turmas?.id] ?? 0), 0);
+  const nPresHoje = (presencasHoje ?? []).length;
+  const taxaHoje  = esperadosHoje > 0 ? Math.round(nPresHoje / esperadosHoje * 100) : null;
+
+  // Cobertura de hoje = turmas com aula hoje que já tiveram chamada
+  const turmaNomeMap     = {}; (turmas ?? []).forEach(t => { turmaNomeMap[t.id] = t.nome; });
+  const turmasAulaHoje   = new Set((horariosHoje ?? []).map(h => h.turma_id));
+  const turmasComChamada = new Set((chamadas ?? []).map(c => c.turmas?.id).filter(Boolean));
+  const turmasSemChamada = [...turmasAulaHoje].filter(id => !turmasComChamada.has(id));
+  const nAulaHoje        = turmasAulaHoje.size;
+  const nComChamada      = nAulaHoje - turmasSemChamada.length;
+  const coberturaPct     = nAulaHoje > 0 ? Math.round(nComChamada / nAulaHoje * 100) : null;
 
   const nTurmas  = (turmas  ?? []).length;
   const nAlunos  = (alunos  ?? []).length;
@@ -136,18 +160,64 @@ async function render(profile) {
   })();
 
   root.innerHTML = `
-    <div class="idash-header">
-      <div class="idash-header-left">
-        <div class="idash-greeting">${greeting}</div>
-        <div class="idash-title">${instNome}</div>
+    <div class="idash-body">
+    <div class="idl-head">
+      <div>
+        <div class="idl-eyebrow"><span class="idl-dot"></span>${greeting} · Painel da instituição</div>
+        <h1 class="idl-title">${esc(instNome)}</h1>
       </div>
-      <div class="idash-date-pill">
-        <span class="idash-date-dot"></span>
-        ${hora} &nbsp;&middot;&nbsp; ${data}
+      <div class="idl-datepill"><span class="idl-pill-dot"></span>${hora} &middot; ${data}</div>
+    </div>
+
+    <div class="idl-kpis">
+      <div class="idl-kpi green" style="animation-delay:0s">
+        <div class="idl-kpi-top">
+          <span class="idl-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+          <span class="idl-kpi-num">${taxaHoje != null ? `${taxaHoje}<small>%</small>` : "—"}</span>
+        </div>
+        <div class="idl-kpi-lbl">Presença de hoje</div>
+        <div class="idl-kpi-sub">${taxaHoje != null ? `${nPresHoje} de ${esperadosHoje} presenças` : "Sem chamadas hoje"}</div>
+        <div class="idl-kpi-bar"><i style="width:${taxaHoje ?? 0}%"></i></div>
+      </div>
+
+      <div class="idl-kpi ${nAbertas ? "live" : "blue"}" style="animation-delay:.06s">
+        <div class="idl-kpi-top">
+          <span class="idl-kpi-ico">${svgQr().replace('width="20" height="20"','width="17" height="17"')}</span>
+          <span class="idl-kpi-num">${nAbertas}${nAbertas ? ` <span class="idl-live-dot"></span>` : ""}</span>
+        </div>
+        <div class="idl-kpi-lbl">Em andamento</div>
+        <div class="idl-kpi-sub">${nAbertas ? `${nAbertas} chamada${nAbertas > 1 ? "s" : ""} aberta${nAbertas > 1 ? "s" : ""}` : "nenhuma aberta agora"}</div>
+      </div>
+
+      <div class="idl-kpi purple" style="animation-delay:.12s">
+        <div class="idl-kpi-top">
+          <span class="idl-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+          <span class="idl-kpi-num">${coberturaPct != null ? `${coberturaPct}<small>%</small>` : "—"}</span>
+        </div>
+        <div class="idl-kpi-lbl">Cobertura de hoje</div>
+        <div class="idl-kpi-sub">${nAulaHoje > 0 ? `${nComChamada} de ${nAulaHoje} turmas c/ chamada` : "Sem aulas hoje"}</div>
+        <div class="idl-kpi-bar"><i style="width:${coberturaPct ?? 0}%"></i></div>
+      </div>
+
+      <div class="idl-kpi orange" style="animation-delay:.18s">
+        <div class="idl-kpi-top">
+          <span class="idl-kpi-ico">${svgRel().replace('width="20" height="20"','width="17" height="17"')}</span>
+          <span class="idl-kpi-num">${nCham}</span>
+        </div>
+        <div class="idl-kpi-lbl">Chamadas hoje</div>
+        <div class="idl-kpi-sub">${nCham === 0 ? "nenhuma registrada" : `${nCham} registrada${nCham > 1 ? "s" : ""}`}</div>
       </div>
     </div>
 
-    <div class="idash-body">
+    ${turmasSemChamada.length ? `
+      <a href="relatorio-dia.html" class="idl-alert">
+        <span class="idl-alert-ic">!</span>
+        <div class="idl-alert-txt">
+          <b>${turmasSemChamada.length} turma${turmasSemChamada.length > 1 ? "s" : ""} com aula hoje ainda sem chamada</b>
+          <span>${turmasSemChamada.slice(0,4).map(id => esc(turmaNomeMap[id] ?? "")).filter(Boolean).join(" · ")}${turmasSemChamada.length > 4 ? " …" : ""}</span>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15" style="flex-shrink:0;opacity:.6"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>` : ""}
 
       ${!setupDone ? `
       <div class="idash-setup-card">
@@ -180,20 +250,18 @@ async function render(profile) {
         </div>
       </div>` : ""}
 
-      <div class="idash-stats">
-        ${stat("blue",   svgTurma(), nTurmas, "Turmas",      0)}
-        ${stat("green",  svgAluno(), nAlunos, "Alunos",      1)}
-        ${stat("purple", svgProf(),  nProfs,  "Professores", 2)}
-        ${stat("orange", svgQr(),    nCham,   nAbertas
-          ? `Chamadas <span style="display:block;font-size:.58rem;font-weight:700;color:#c2410c;margin-top:3px;letter-spacing:.04em">${nAbertas} ABERTA${nAbertas>1?"S":""}</span>`
-          : "Chamadas hoje", 3)}
+      <div class="idc-tiles">
+        ${tile("blue",   svgTurma(), nTurmas,   "Turmas",      "turmas.html",      0)}
+        ${tile("green",  svgAluno(), nAlunos,   "Alunos",      "cadastro.html",    1)}
+        ${tile("purple", svgProf(),  nProfs,    "Professores", "professores.html", 2)}
+        ${tile("orange", svgMat(),   nMaterias, "Matérias",    "materias.html",    3)}
       </div>
 
       <div class="idash-nav-strip">
-        ${pill("turmas.html",        svgTurma(), "Turmas",      0)}
-        ${pill("cadastro.html",      svgAluno(), "Alunos",      1)}
-        ${pill("professores.html",   svgProf(),  "Professores", 2)}
-        ${pill("relatorio-dia.html", svgRel(),   "Rel. do Dia", 3)}
+        ${pill("relatorio-dia.html", svgRel(),     "Relatório do Dia", 0)}
+        ${pill("horarios.html",      svgHorario(), "Horários",         1)}
+        ${pill("calendario.html",    svgCal(),     "Calendário",       2)}
+        ${pill("cracha.html",        svgCracha(),  "Crachá",           3)}
       </div>
 
       <div class="idash-section-head">
@@ -385,6 +453,21 @@ function stat(color, icon, num, lbl, idx) {
       </div>
     </div>`;
 }
+
+function tile(color, icon, num, lbl, href, idx) {
+  return `
+    <a href="${href}" class="idc-tile ${color}" style="animation-delay:${idx * .06}s">
+      <div class="idc-tile-icon">${icon}</div>
+      <div class="idc-tile-num">${num}</div>
+      <div class="idc-tile-lbl">${lbl}</div>
+      <svg class="idc-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>`;
+}
+
+function svgMat()     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`; }
+function svgHorario() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`; }
+function svgCal()     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`; }
+function svgCracha()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="2"/></svg>`; }
 
 function pill(href, icon, label, idx) {
   return `

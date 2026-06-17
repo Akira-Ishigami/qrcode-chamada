@@ -143,9 +143,11 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
   const turmaId       = selTurma.value || null;
 
   let hasError = false;
-  if (!nome)      { fieldError("nome",      "Nome é obrigatório.");      hasError = true; }
-  if (!matricula) { fieldError("matricula", "Matrícula é obrigatória."); hasError = true; }
-  if (!turmaId)   { fieldError("turma",     "Selecione uma turma.");     hasError = true; }
+  if (!nome)       { fieldError("nome",            "Nome é obrigatório.");            hasError = true; }
+  if (!matricula)  { fieldError("matricula",       "Matrícula é obrigatória.");       hasError = true; }
+  if (!dataNasc)   { fieldError("data_nascimento", "Data de nascimento obrigatória."); hasError = true; }
+  if (!idEstadual) { fieldError("id_estadual",     "ID Estadual é obrigatório.");      hasError = true; }
+  if (!turmaId)    { fieldError("turma",           "Selecione uma turma.");            hasError = true; }
   if (hasError) return;
 
   setLoading(true);
@@ -273,6 +275,26 @@ const ALUNO_PALETTES = [
   ["#cffafe","#0e7490"], ["#fef2f2","#b91c1c"],
 ];
 
+// Cor por turma (estável: deriva do id da turma), para identificar quem é de qual turma
+const TURMA_CORES = [
+  { solid:"#2563eb", tint:"#eff6ff", text:"#1e40af" },
+  { solid:"#16a34a", tint:"#f0fdf4", text:"#15803d" },
+  { solid:"#db2777", tint:"#fdf2f8", text:"#9d174d" },
+  { solid:"#ea580c", tint:"#fff7ed", text:"#c2410c" },
+  { solid:"#7c3aed", tint:"#f5f3ff", text:"#5b21b6" },
+  { solid:"#0891b2", tint:"#ecfeff", text:"#0e7490" },
+  { solid:"#ca8a04", tint:"#fefce8", text:"#a16207" },
+  { solid:"#dc2626", tint:"#fef2f2", text:"#b91c1c" },
+  { solid:"#0d9488", tint:"#f0fdfa", text:"#115e59" },
+  { solid:"#4f46e5", tint:"#eef2ff", text:"#3730a3" },
+];
+function corDaTurma(turmaId) {
+  const s = String(turmaId || "");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return TURMA_CORES[h % TURMA_CORES.length];
+}
+
 function renderAlunos() {
   countBadge.textContent = alunosFiltrados.length;
   btnDlAll.disabled    = alunosFiltrados.length === 0;
@@ -300,19 +322,21 @@ function renderAlunos() {
   alunosFiltrados.forEach((a, i) => {
     const initials = a.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
     const [bg, fg] = ALUNO_PALETTES[(a.nome.charCodeAt(0) || 0) % ALUNO_PALETTES.length];
+    const ct = a.turma?.id ? corDaTurma(a.turma.id) : null;
 
     const card = document.createElement("div");
     card.className = "aluno-card";
     card.style.animationDelay = `${i * 0.03}s`;
+    if (ct) card.style.setProperty("--turma-c", ct.solid);
 
     card.innerHTML = `
-      <div class="aluno-card-avatar" style="background:${bg};color:${fg}">
+      <div class="aluno-card-avatar" style="background:${bg};color:${fg}${ct ? `;box-shadow:0 0 0 3px #fff,0 0 0 5px ${ct.solid}` : ""}">
         ${a.foto_url ? `<img src="${a.foto_url}" alt="${initials}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />` : initials}
       </div>
       <div class="aluno-card-name">${a.nome}</div>
       <div class="aluno-card-meta">
         <span class="aluno-card-mat">${a.matricula}</span>
-        ${a.turma?.nome ? `<span class="aluno-card-turma">${a.turma.nome}</span>` : ""}
+        ${a.turma?.nome ? `<span class="aluno-card-turma" style="background:${ct.solid};color:#fff;border-color:transparent">${a.turma.nome}</span>` : ""}
       </div>
       <div class="aluno-card-actions">
         <button class="aluno-btn-edit aluno-card-btn" title="Editar">${SVG_EDIT} Editar</button>
@@ -338,6 +362,8 @@ function abrirModalVisualizar(aluno) {
 
   const initials = aluno.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
   const [bg, fg] = ALUNO_PALETTES[(aluno.nome.charCodeAt(0) || 0) % ALUNO_PALETTES.length];
+  const ct = aluno.turma?.id ? corDaTurma(aluno.turma.id) : null;
+  const heroC = ct ? ct.solid : fg;   // hero usa a cor da turma
 
   const fmtNasc = s => s ? new Date(s + "T00:00:00").toLocaleDateString("pt-BR") : null;
 
@@ -352,7 +378,7 @@ function abrirModalVisualizar(aluno) {
 
   const overlay = document.createElement("div");
   overlay.id = "modal-visualizar-aluno";
-  overlay.className = "form-modal open";
+  overlay.className = "form-modal";
 
   overlay.innerHTML = `
     <div class="mv-card">
@@ -360,9 +386,9 @@ function abrirModalVisualizar(aluno) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
 
-      <div class="mv-hero" style="background:linear-gradient(150deg,${fg} 0%,${fg}cc 100%)">
+      <div class="mv-hero" style="background:linear-gradient(150deg,${heroC} 0%,${heroC}cc 100%)">
         <div class="mv-avatar-ring">
-          <div class="mv-avatar" style="background:${bg};color:${fg}">
+          <div class="mv-avatar" style="background:${bg};color:${heroC}">
             ${aluno.foto_url
               ? `<img src="${aluno.foto_url}" alt="${initials}" />`
               : `<span>${initials}</span>`}
@@ -402,8 +428,9 @@ function abrirModalVisualizar(aluno) {
   `;
 
   document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("open"));
 
-  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 220); };
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 360); };
   overlay.querySelector("#mv-close").addEventListener("click", fechar);
   overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
   document.addEventListener("keydown", function onEsc(e) {
@@ -424,7 +451,7 @@ function abrirModalEditar(aluno) {
   const nascVal = aluno.data_nascimento ?? "";
   const overlay = document.createElement("div");
   overlay.id = "modal-editar-aluno";
-  overlay.className = "form-modal open";
+  overlay.className = "form-modal";
 
   overlay.innerHTML = `
     <div class="form-modal-card ed-card">
@@ -554,6 +581,7 @@ function abrirModalEditar(aluno) {
   `;
 
   document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("open"));
 
   // Máscara no campo de telefone do modal de edição
   maskPhone(overlay.querySelector("#ed-telefone"));
@@ -576,7 +604,7 @@ function abrirModalEditar(aluno) {
   });
 
   // ── fechar ──
-  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 200); };
+  const fechar = () => { overlay.classList.remove("open"); setTimeout(() => overlay.remove(), 360); };
   overlay.querySelector("#ed-fechar").addEventListener("click", fechar);
   overlay.querySelector("#ed-cancelar").addEventListener("click", fechar);
   overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
@@ -832,7 +860,7 @@ function confirmarExcluirAluno(aluno, onConfirm) {
   const fecharDel = () => {
     ov.style.opacity = "0";
     ov.querySelector("#del-card").style.transform = "scale(.94) translateY(12px)";
-    setTimeout(() => ov.remove(), 220);
+    setTimeout(() => ov.remove(), 360);
   };
 
   ov.querySelector("#del-cancel").addEventListener("click", fecharDel);
@@ -939,7 +967,7 @@ async function abrirModalTransferirAluno(aluno, instId, onConfirm) {
   const fecharTr = () => {
     ov.style.opacity = "0";
     ov.querySelector("#tr-card").style.transform = "scale(.94) translateY(12px)";
-    setTimeout(() => ov.remove(), 220);
+    setTimeout(() => ov.remove(), 360);
   };
 
   ov.querySelector("#tr-cancel").addEventListener("click", fecharTr);
@@ -1186,7 +1214,7 @@ function fieldError(id, msg) {
 }
 
 function clearErrors() {
-  ["nome", "matricula", "turma"].forEach(id => fieldError(id, ""));
+  ["nome", "matricula", "data_nascimento", "id_estadual", "turma"].forEach(id => fieldError(id, ""));
   ["nome", "matricula", "telefone", "data_nascimento", "id_estadual", "endereco", "foto_url", "turma"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("error"); });
 }

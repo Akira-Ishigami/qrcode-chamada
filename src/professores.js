@@ -31,6 +31,7 @@ function openModal(html, onMounted) {
   modalEl.className = "prof-modal-bg";
   modalEl.innerHTML = `<div class="prof-modal-box">${html}</div>`;
   document.body.appendChild(modalEl);
+  requestAnimationFrame(() => modalEl.classList.add("open"));
   modalEl.addEventListener("click", (e) => {
     if (e.target === modalEl) closeModal();
   });
@@ -39,7 +40,12 @@ function openModal(html, onMounted) {
 }
 
 function closeModal() {
-  if (modalEl) { modalEl.remove(); modalEl = null; }
+  if (modalEl) {
+    const el = modalEl;
+    el.classList.remove("open");
+    setTimeout(() => el.remove(), 320);
+    modalEl = null;
+  }
   document.removeEventListener("keydown", escHandler);
 }
 
