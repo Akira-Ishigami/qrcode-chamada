@@ -337,6 +337,18 @@
     .matd-prof-nome { font-size: .9rem; font-weight: 700; color: #0f172a; }
     .matd-prof-email { font-size: .72rem; color: #94a3b8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .matd-prof-vazio { font-size: .82rem; color: #94a3b8; padding: 16px; background: #f8fafc; border: 1px dashed #e2e8f0; border-radius: 12px; text-align: center; line-height: 1.6; }
+    /* Toggle de vínculo de professor */
+    .matd-prof-hint { font-size: .74rem; color: #94a3b8; margin: -4px 0 11px; }
+    .matd-prof.toggle { cursor: pointer; border: 2px solid #eef2f7; transition: border-color .14s, background .14s; user-select: none; }
+    .matd-prof.toggle:hover { border-color: #d7dee8; }
+    .matd-prof.toggle .matd-prof-info { flex: 1; min-width: 0; }
+    .matd-prof-check {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; margin-left: auto;
+      border: 2px solid #cbd5e1; background: #fff; color: transparent;
+      display: flex; align-items: center; justify-content: center; transition: .14s;
+    }
+    .matd-prof.toggle.on { border-color: var(--c, #2563eb); background: color-mix(in srgb, var(--c, #2563eb) 7%, #fff); }
+    .matd-prof.toggle.on .matd-prof-check { border-color: var(--c, #2563eb); background: var(--c, #2563eb); color: #fff; }
     .matd-foot {
       flex-shrink: 0; padding: 13px 20px 16px; border-top: 1px solid #eef2f7;
       display: flex; align-items: center; justify-content: space-between; gap: 8px;

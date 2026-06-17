@@ -364,7 +364,8 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
         <div id="mgr-faltas-err" class="mat-modal-err"></div>
 
         <div class="matd-section-title" style="margin-top:18px">Professores vinculados</div>
-        <div class="matd-profs">${profRows}</div>
+        <div class="matd-prof-hint">Marque os professores que dão esta matéria.</div>
+        <div class="matd-profs" id="mgr-profs"><div class="matd-prof-vazio">Carregando professores…</div></div>
       </div>
 
       <div class="matd-foot">
@@ -436,12 +437,30 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
     const { error } = await supabaseAdmin
       .from("materias").update({ aulas_semestre: a.val, limite_faltas: limite }).eq("id", mat.id);
 
-    btn.disabled = false; btn.textContent = "Salvar";
-    if (error) { err.textContent = "Erro: " + error.message; return; }
+    if (error) { btn.disabled = false; btn.textContent = "Salvar"; err.textContent = "Erro: " + error.message; return; }
 
+    // Salvar vínculos de professores (toggles marcados)
+    const cont = ov.querySelector("#mgr-profs");
+    if (cont && cont.dataset.ready === "1") {
+      const desired  = new Set([...cont.querySelectorAll(".matd-prof.on")].map(r => r.dataset.pid));
+      const toAdd    = [...desired].filter(id => !vinculadoSet.has(id));
+      const toRemove = [...vinculadoSet].filter(id => !desired.has(id));
+      if (toAdd.length) {
+        const { error: eA } = await supabaseAdmin.from("professor_materias")
+          .insert(toAdd.map(pid => ({ professor_id: pid, materia_id: mat.id })));
+        if (eA) { btn.disabled = false; btn.textContent = "Salvar"; err.textContent = "Erro ao vincular: " + eA.message; return; }
+      }
+      if (toRemove.length) {
+        const { error: eR } = await supabaseAdmin.from("professor_materias")
+          .delete().eq("materia_id", mat.id).in("professor_id", toRemove);
+        if (eR) { btn.disabled = false; btn.textContent = "Salvar"; err.textContent = "Erro ao desvincular: " + eR.message; return; }
+      }
+    }
+
+    btn.disabled = false; btn.textContent = "Salvar";
     mat.aulas_semestre = a.val;
     mat.limite_faltas  = limite;
-    showToast("Frequência atualizada!", "success");
+    showToast("Matéria atualizada!", "success");
     await renderMaterias();
     fechar();
   };
@@ -479,6 +498,41 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
 
   ov.querySelector("#mgr-salvar-nome").addEventListener("click", salvarNome);
   ov.querySelector("#mgr-input-nome").addEventListener("keydown", e => { if (e.key === "Enter") salvarNome(); });
+
+  // ── Vincular professores (toggle) ──
+  const vinculadoSet = new Set(profs.map(v => v.profiles?.id).filter(Boolean));
+  (async () => {
+    const { data: allProfs } = await supabaseAdmin
+      .from("profiles").select("id, nome, email, foto_url")
+      .eq("instituicao_id", _instId).eq("role", "professor").order("nome");
+    const cont = ov.querySelector("#mgr-profs");
+    if (!cont) return;
+    if (!allProfs?.length) {
+      cont.innerHTML = `<div class="matd-prof-vazio">Nenhum professor cadastrado.<br>Crie em <strong>Professores</strong>.</div>`;
+      return;
+    }
+    cont.innerHTML = allProfs.map(p => {
+      const ini = (p.nome || "?").split(" ").slice(0, 2).map(n => n[0]).join("");
+      const av  = p.foto_url
+        ? `<img src="${esc(p.foto_url)}" alt="${esc(p.nome || "")}" loading="lazy">`
+        : `<span>${esc(ini)}</span>`;
+      const on = vinculadoSet.has(p.id);
+      return `
+        <div class="matd-prof toggle${on ? " on" : ""}" data-pid="${p.id}">
+          <div class="matd-prof-av">${av}</div>
+          <div class="matd-prof-info">
+            <div class="matd-prof-nome">${esc(p.nome || "Professor")}</div>
+            ${p.email ? `<div class="matd-prof-email">${esc(p.email)}</div>` : ""}
+          </div>
+          <div class="matd-prof-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>`;
+    }).join("");
+    cont.querySelectorAll(".matd-prof.toggle").forEach(r =>
+      r.addEventListener("click", () => r.classList.toggle("on")));
+    cont.dataset.ready = "1";
+  })();
 }
 
 // ── Confirmar exclusão (modal inline) ────────────────────────────────────────
