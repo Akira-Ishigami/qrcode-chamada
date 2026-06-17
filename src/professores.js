@@ -607,7 +607,7 @@ async function modalTurmas(p) {
       showToast("Turmas atualizadas!", "success");
       closeModal();
     });
-  }, { side: true });
+  });
 }
 
 // ─── Modal: Excluir ───────────────────────────────────────────────────────────
@@ -726,7 +726,7 @@ async function modalMaterias(p, onSave = null) {
       closeModal();
       if (onSave) setTimeout(() => onSave(), 200);
     });
-  }, { side: true });
+  });
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
