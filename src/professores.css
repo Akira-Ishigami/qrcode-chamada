@@ -64,11 +64,8 @@
 }
 .prof-card-badge { margin-bottom: 10px; }
 
-/* Resumo matérias/turmas */
-.prof-card-resumo {
-  width: 100%; padding: 0 14px; margin-bottom: 12px;
-  display: flex; flex-direction: column; gap: 4px;
-}
+/* Resumo matérias/turmas — não listamos as matérias no card */
+.prof-card-resumo { display: none; }
 .prof-resumo-row {
   display: flex; align-items: center; gap: 5px;
   font-size: .72rem; color: var(--text-3); font-weight: 500;
