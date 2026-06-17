@@ -361,43 +361,13 @@
 }
 .cal-modal-del:hover { background: #fecaca; }
 
-/* ── Detalhe do evento: drawer lateral ── */
-.cal-drawer-bg {
-  align-items: stretch; justify-content: flex-end; padding: 0;
-  background: rgba(15,23,42,.5); opacity: 0; transition: opacity .3s;
-  animation: none;
-}
-.cal-drawer-bg.open { opacity: 1; }
-.cal-drawer {
-  position: relative; background: var(--surface);
-  width: min(440px, 100vw); height: 100vh; height: 100dvh;
-  display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: -24px 0 70px -24px rgba(13,21,38,.55);
-  transform: translateX(100%);
-  transition: transform .34s cubic-bezier(.22,1,.36,1);
-}
-.cal-drawer-bg.open .cal-drawer { transform: none; }
-.cal-drawer-x {
-  position: absolute; top: 16px; right: 16px; z-index: 2;
-  width: 32px; height: 32px; border-radius: 9px; border: none;
-  background: var(--surface-2); color: var(--text-3); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-size: .95rem;
-  transition: background .13s, color .13s;
-}
-.cal-drawer-x:hover { background: #fee2e2; color: #dc2626; }
-.cal-drawer-body { flex: 1; overflow-y: auto; padding: 28px 24px 8px; }
-.cal-drawer .cal-modal-actions {
-  flex-shrink: 0; margin-top: 0; padding: 16px 20px;
-  border-top: 1px solid var(--border); background: var(--surface);
-}
-
-/* ── Detail (conteúdo) ── */
+/* ── Detail modal (central) ── */
 .cal-detail-modal {
   max-width: 420px;
 }
 .cal-detail-tipo-bar {
-  height: 5px; border-radius: 0; margin: 0;
-  background: var(--border); flex-shrink: 0;
+  height: 4px; border-radius: 4px; margin-bottom: 22px;
+  background: var(--border);
 }
 .cal-detail-tipo-bar.tipo-feriado { background: var(--cal-feriado); }
 .cal-detail-tipo-bar.tipo-prova   { background: var(--cal-prova); }

@@ -427,46 +427,40 @@ function mostrarDetalheEvento(ev) {
 
   const podeEditar = !_isProfessor && !ev._nacional;
 
-  backdrop.className = "cal-modal-backdrop cal-drawer-bg";
+  backdrop.className = "cal-modal-backdrop";
   backdrop.innerHTML = `
-    <div class="cal-drawer cal-detail-modal">
+    <div class="cal-modal cal-detail-modal">
       <div class="cal-detail-tipo-bar tipo-${esc(ev.tipo)}"></div>
-      <button class="cal-drawer-x" id="close-detail" aria-label="Fechar">✕</button>
-      <div class="cal-drawer-body">
-        <div class="cal-detail-title">${emoji} ${esc(ev.titulo)}</div>
-        <div class="cal-detail-meta">
-          <span class="cal-tipo-badge tipo-${esc(ev.tipo)}">${esc(tipoLabel)}</span>
-          ${ev._nacional ? `<span class="cal-tipo-badge" style="background:#f1f5f9;color:#64748b">Feriado nacional</span>` : ""}
-          <div class="cal-detail-date-chip">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            ${esc(dataFormatada)}${dataFimHtml}
-          </div>
-          ${horario ? `
-            <div class="cal-detail-time-chip">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ${esc(horario)}
-            </div>
-          ` : ""}
+      <div class="cal-detail-title">${emoji} ${esc(ev.titulo)}</div>
+      <div class="cal-detail-meta">
+        <span class="cal-tipo-badge tipo-${esc(ev.tipo)}">${esc(tipoLabel)}</span>
+        ${ev._nacional ? `<span class="cal-tipo-badge" style="background:#f1f5f9;color:#64748b">Feriado nacional</span>` : ""}
+        <div class="cal-detail-date-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ${esc(dataFormatada)}${dataFimHtml}
         </div>
-        ${ev.descricao ? `<div class="cal-detail-desc">${esc(ev.descricao)}</div>` : ""}
+        ${horario ? `
+          <div class="cal-detail-time-chip">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${esc(horario)}
+          </div>
+        ` : ""}
       </div>
+      ${ev.descricao ? `<div class="cal-detail-desc">${esc(ev.descricao)}</div>` : ""}
       <div class="cal-modal-actions">
         ${podeEditar ? `<button class="cal-modal-del" id="detail-del">Excluir</button>` : ""}
-        <button class="cal-modal-cancel" id="close-detail-2">Fechar</button>
+        <button class="cal-modal-cancel" id="close-detail">Fechar</button>
         ${podeEditar ? `<button class="cal-modal-save" id="detail-edit">Editar</button>` : ""}
       </div>
     </div>
   `;
 
   document.body.appendChild(backdrop);
-  requestAnimationFrame(() => backdrop.classList.add("open"));
-  const fechar = () => { backdrop.classList.remove("open"); setTimeout(() => backdrop.remove(), 320); };
-  backdrop.addEventListener("click", e => { if (e.target === backdrop) fechar(); });
-  backdrop.querySelector("#close-detail").addEventListener("click", fechar);
-  backdrop.querySelector("#close-detail-2").addEventListener("click", fechar);
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) backdrop.remove(); });
+  backdrop.querySelector("#close-detail").addEventListener("click", () => backdrop.remove());
   if (podeEditar) {
-    backdrop.querySelector("#detail-edit").addEventListener("click", () => { fechar(); abrirModal(ev); });
-    backdrop.querySelector("#detail-del").addEventListener("click", () => { fechar(); confirmarExcluir(ev.id); });
+    backdrop.querySelector("#detail-edit").addEventListener("click", () => { backdrop.remove(); abrirModal(ev); });
+    backdrop.querySelector("#detail-del").addEventListener("click", () => { backdrop.remove(); confirmarExcluir(ev.id); });
   }
 }
 
