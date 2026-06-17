@@ -40,26 +40,26 @@
       .mat-btn-nova { padding: 0; width: 40px; height: 40px; justify-content: center; gap: 0; flex-shrink: 0; }
       .mat-btn-nova .mbn-lbl { display: none; }
       /* Card compacto — conteúdo centralizado e empilhado */
-      .matx-card { padding: 12px 9px; border-radius: 14px; display: flex; flex-direction: column; }
+      .matx-card { padding: 11px 8px 10px; border-radius: 14px; display: flex; flex-direction: column; }
       .matx-head {
         flex-direction: column; align-items: center; text-align: center;
-        gap: 7px; margin-bottom: 10px;
+        gap: 6px; margin-bottom: 9px;
       }
-      .matx-ico { width: 38px; height: 38px; border-radius: 11px; font-size: 1.05rem; }
+      .matx-ico { width: 36px; height: 36px; border-radius: 10px; font-size: 1rem; }
       .matx-name {
-        font-size: .76rem; line-height: 1.2; text-align: center;
+        font-size: .74rem; line-height: 1.18; text-align: center;
         word-break: normal; overflow-wrap: break-word; hyphens: auto;
       }
       .matx-profs { display: none; }
-      .matx-freq { margin-top: auto; padding: 8px 9px; border-radius: 10px; }
-      .matx-freq.nodef { padding: 9px 7px; }
-      .matx-freq.nodef span { font-size: .58rem; text-align: center; line-height: 1.3; }
+      .matx-freq { margin-top: auto; padding: 7px 9px; border-radius: 10px; }
       .matx-freq-lbl { font-size: .5rem; }
-      .matx-freq-val { font-size: .84rem; }
+      .matx-freq-val { font-size: .82rem; }
       .matx-freq-bar { height: 5px; }
-      .matx-freq-sub { font-size: .56rem; margin-top: 5px; }
-      .matx-del { opacity: 1; top: 8px; right: 8px; width: 24px; height: 24px; }
-      .matx-card::after { width: 56px; height: 56px; right: -16px; top: -14px; }
+      .matx-freq-sub { font-size: .55rem; margin-top: 4px; }
+      .matx-noferq { margin-top: auto; font-size: .6rem; padding: 4px 9px; gap: 5px; }
+      .matx-noferq-dot { width: 5px; height: 5px; }
+      .matx-del { opacity: 1; top: 7px; right: 7px; width: 23px; height: 23px; }
+      .matx-card::after { width: 52px; height: 52px; right: -16px; top: -14px; }
     }
     @media (max-width: 360px) {
       .mat-list { gap: 5px; }
@@ -271,6 +271,14 @@
     .matx-freq { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 11px 13px; }
     .matx-freq.nodef { display: flex; align-items: center; justify-content: center; padding: 13px; }
     .matx-freq.nodef span { font-size: .74rem; color: #94a3b8; font-weight: 600; }
+    /* Notificação compacta quando não há frequência */
+    .matx-noferq {
+      display: inline-flex; align-items: center; gap: 6px; align-self: center;
+      padding: 5px 11px; border-radius: 99px;
+      background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c;
+      font-size: .68rem; font-weight: 700; white-space: nowrap;
+    }
+    .matx-noferq-dot { width: 6px; height: 6px; border-radius: 50%; background: #f97316; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(249,115,22,.18); }
     .matx-freq-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
     .matx-freq-lbl { font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; }
     .matx-freq-val { font-size: .95rem; font-weight: 800; color: #16a34a; }

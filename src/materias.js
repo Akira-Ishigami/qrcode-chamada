@@ -263,7 +263,7 @@ async function renderMaterias() {
            <div class="matx-freq-bar"><i style="width:${presMin ?? 0}%"></i></div>
            <div class="matx-freq-sub">${mat.limite_faltas != null ? `${mat.limite_faltas} falta${mat.limite_faltas !== 1 ? "s" : ""} permitida${mat.limite_faltas !== 1 ? "s" : ""}` : "sem limite"} · ${mat.aulas_semestre} aulas</div>
          </div>`
-      : `<div class="matx-freq nodef"><span>Frequência não configurada</span></div>`;
+      : `<div class="matx-noferq"><span class="matx-noferq-dot"></span>Sem frequência</div>`;
 
     card.innerHTML = `
       <button class="matx-del" title="Excluir matéria">
