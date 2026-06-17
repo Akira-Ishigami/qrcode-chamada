@@ -39,34 +39,44 @@
       /* "Nova matéria" vira só "+" */
       .mat-btn-nova { padding: 0; width: 40px; height: 40px; justify-content: center; gap: 0; flex-shrink: 0; }
       .mat-btn-nova .mbn-lbl { display: none; }
-      /* Card quadrado — conteúdo centralizado */
+      /* Card quadrado — tile limpo, ícone como foco */
       .matx-card {
-        padding: 10px 8px; border-radius: 14px;
+        padding: 12px 9px; border-radius: 17px;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        aspect-ratio: 1 / 1;
+        gap: 10px; aspect-ratio: 1 / 1;
+        background: linear-gradient(162deg, #fff 56%, color-mix(in srgb, var(--c) 11%, #fff));
+        border: 1px solid #edf1f7;
       }
+      .matx-card::before { height: 0; }
+      .matx-card::after { display: none; }
       .matx-head {
         flex-direction: column; align-items: center; text-align: center;
-        gap: 7px; margin-bottom: 0;
+        gap: 9px; margin: 0;
       }
-      .matx-ico { width: 36px; height: 36px; border-radius: 10px; font-size: 1rem; }
+      .matx-ico {
+        width: 48px; height: 48px; border-radius: 15px; font-size: 1.25rem;
+        box-shadow: 0 6px 14px -5px color-mix(in srgb, var(--c) 55%, transparent);
+      }
       .matx-name {
-        font-size: .74rem; line-height: 1.18; text-align: center;
-        word-break: normal; overflow-wrap: break-word; hyphens: auto;
+        font-size: .8rem; font-weight: 700; line-height: 1.2; color: #1e293b;
+        text-align: center; word-break: normal; overflow-wrap: break-word; hyphens: auto;
       }
       .matx-profs { display: none; }
       /* Com frequência: não mostra nada. Sem frequência: bolinha "!" no canto */
       .matx-freq { display: none; }
-      .matx-flag { top: 8px; left: 8px; width: 18px; height: 18px; font-size: .68rem; }
-      .matx-noferq-dot { width: 5px; height: 5px; }
-      .matx-del { opacity: 1; top: 7px; right: 7px; width: 23px; height: 23px; }
-      .matx-card::after { width: 52px; height: 52px; right: -16px; top: -14px; }
+      .matx-flag { top: 9px; left: 9px; width: 19px; height: 19px; font-size: .7rem; }
+      .matx-del {
+        opacity: 1; top: 8px; right: 8px; width: 24px; height: 24px;
+        border-radius: 8px; background: rgba(255,255,255,.72); backdrop-filter: blur(2px);
+      }
     }
     @media (max-width: 360px) {
-      .mat-list { gap: 5px; }
-      .matx-card { padding: 10px 7px; }
-      .matx-ico { width: 34px; height: 34px; font-size: .95rem; }
-      .matx-name { font-size: .7rem; }
+      .mat-list { gap: 6px; }
+      .matx-card { padding: 10px 7px; gap: 8px; }
+      .matx-ico { width: 42px; height: 42px; font-size: 1.1rem; border-radius: 13px; }
+      .matx-name { font-size: .73rem; }
+      .matx-flag { width: 17px; height: 17px; font-size: .64rem; }
+      .matx-del { width: 22px; height: 22px; }
     }
     @keyframes matUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
@@ -185,6 +195,16 @@
     .mat-modal-ov.open .mat-modal { transform: none; }
     .mat-modal-head, .mat-modal-foot { flex-shrink: 0; }
     .mat-modal-body { flex: 1; overflow-y: auto; }
+    /* Variante centralizada (confirmações, ex.: excluir matéria) */
+    .mat-modal-ov.center { align-items: center; justify-content: center; padding: 20px; }
+    .mat-modal.center {
+      width: min(400px, 100%); max-width: none; height: auto; max-height: 86vh;
+      border-radius: 18px; border-left: none;
+      box-shadow: 0 30px 80px -24px rgba(13,21,38,.5);
+      transform: translateY(14px) scale(.97); opacity: 0;
+      transition: transform .26s cubic-bezier(.22,1,.36,1), opacity .2s ease;
+    }
+    .mat-modal-ov.center.open .mat-modal.center { transform: none; opacity: 1; }
     .mat-modal-head {
       display: flex; align-items: center; gap: 12px;
       padding: 18px 20px; border-bottom: 1px solid var(--border); background: var(--surface-2);

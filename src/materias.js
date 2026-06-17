@@ -484,9 +484,9 @@ function abrirModalMateria(mat, profs, c = MAT_PALETTE[0]) {
 // ── Confirmar exclusão (modal inline) ────────────────────────────────────────
 function confirmarExcluir(id, nome) {
   const ov = document.createElement("div");
-  ov.className = "mat-modal-ov";
+  ov.className = "mat-modal-ov center";
   ov.innerHTML = `
-    <div class="mat-modal" style="max-width:400px">
+    <div class="mat-modal center">
       <div class="mat-modal-head">
         <div class="mat-modal-icon" style="background:#fef2f2;color:#dc2626">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
