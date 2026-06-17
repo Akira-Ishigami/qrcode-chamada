@@ -94,6 +94,24 @@ function abrirModalNova() {
         <label class="mat-label">Nome</label>
         <input id="modal-input" class="mat-input" type="text" placeholder="Ex: Matemática, Português, Ciências…" maxlength="80" autofocus />
         <div id="modal-err" class="mat-modal-err"></div>
+
+        <div class="matd-section-title" style="margin-top:10px">Frequência do semestre</div>
+        <div class="mat-faltas-box">
+          <div class="mat-faltas-title-row">
+            <div class="mat-faltas-hint">Defina o total de aulas e o limite de faltas em %. O sistema calcula quantas faltas isso representa. Pode deixar vazio e configurar depois.</div>
+          </div>
+          <div class="mat-faltas-fields">
+            <div class="mat-faltas-field">
+              <label>Aulas no semestre</label>
+              <input id="new-aulas" class="mat-input" type="number" min="0" max="999" placeholder="—" style="text-align:center" />
+            </div>
+            <div class="mat-faltas-field">
+              <label>Faltas permitidas (%)</label>
+              <input id="new-faltas" class="mat-input" type="number" min="0" max="100" placeholder="%" style="text-align:center" />
+            </div>
+          </div>
+          <div id="new-faltas-resumo" class="mat-faltas-resumo"></div>
+        </div>
       </div>
       <div class="mat-modal-foot">
         <button class="mat-btn-ghost" id="modal-cancel">Cancelar</button>
@@ -119,16 +137,51 @@ function abrirModalNova() {
   const input = ov.querySelector("#modal-input");
   const err   = ov.querySelector("#modal-err");
   const btn   = ov.querySelector("#modal-criar");
+  const elAulas  = ov.querySelector("#new-aulas");
+  const elFaltas = ov.querySelector("#new-faltas");
+  const resumo   = ov.querySelector("#new-faltas-resumo");
+
+  const parseOpt   = (raw) => {
+    raw = (raw || "").trim();
+    if (raw === "") return { ok: true, val: null };
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) return { ok: false };
+    return { ok: true, val: n };
+  };
+  const calcLimite = (aulas, pct) => (aulas != null && pct != null) ? Math.floor(aulas * pct / 100) : null;
+
+  const atualizarResumo = () => {
+    const a = parseOpt(elAulas.value);
+    const f = parseOpt(elFaltas.value);
+    if (a.ok && f.ok && a.val != null && f.val != null && a.val > 0 && f.val <= 100) {
+      const limite  = calcLimite(a.val, f.val);
+      const presPct = Math.round((a.val - limite) / a.val * 100);
+      resumo.textContent = `Máx. ${limite} falta${limite !== 1 ? "s" : ""} (${f.val}%) · presença mínima ${presPct}% de ${a.val} aulas.`;
+      resumo.style.display = "";
+    } else {
+      resumo.style.display = "none";
+    }
+  };
+  elAulas.addEventListener("input", atualizarResumo);
+  elFaltas.addEventListener("input", atualizarResumo);
+  atualizarResumo();
 
   const criar = async () => {
     const nome = input.value.trim();
     err.textContent = "";
     if (!nome) { err.textContent = "Digite o nome da matéria."; return; }
 
+    const a = parseOpt(elAulas.value);
+    const f = parseOpt(elFaltas.value);
+    if (!a.ok || !f.ok)                       { err.textContent = "Informe números válidos na frequência."; return; }
+    if (f.val != null && f.val > 100)         { err.textContent = "A porcentagem de faltas não pode passar de 100%."; return; }
+    if (f.val != null && a.val == null)       { err.textContent = "Informe o total de aulas para calcular as faltas."; return; }
+    const limite = calcLimite(a.val, f.val);
+
     btn.disabled = true; btn.textContent = "Criando…";
 
     const { error } = await supabaseAdmin
-      .from("materias").insert({ nome, instituicao_id: _instId });
+      .from("materias").insert({ nome, instituicao_id: _instId, aulas_semestre: a.val, limite_faltas: limite });
 
     btn.disabled = false;
     btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Criar matéria`;
