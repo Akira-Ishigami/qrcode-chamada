@@ -266,6 +266,8 @@
   transition: transform .34s cubic-bezier(.22,1,.36,1);
 }
 .prof-modal-bg.side.open .prof-modal-box.side { transform: none; }
+/* No modal lateral a lista pega tudo; o proprio box rola */
+.prof-modal-box.side .tc-item-grid { max-height: none; overflow: visible; }
 @media (max-width: 520px) {
   .prof-modal-box.side { width: min(440px, 100vw); border-radius: 18px; max-height: calc(100dvh - 24px); }
 }
