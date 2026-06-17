@@ -247,13 +247,28 @@
 .prof-modal-bg.center { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .prof-modal-box.center {
   position: relative; top: auto; right: auto;
-  height: auto; max-height: 86vh; width: min(380px, 100%);
+  height: auto; max-height: 86vh; width: min(420px, 100%);
   border-radius: 16px; padding: 22px 22px 20px;
   box-shadow: 0 30px 80px -24px rgba(13,21,38,.55);
   transform: translateY(14px) scale(.97); opacity: 0;
   transition: transform .28s cubic-bezier(.22,1,.36,1), opacity .22s ease;
 }
 .prof-modal-bg.center.open .prof-modal-box.center { transform: none; opacity: 1; }
+
+/* Variante lateral ajustada ao conteudo (ex.: Turmas / Materias) — sem espaco em branco */
+.prof-modal-bg.side { display: flex; align-items: center; justify-content: flex-end; }
+.prof-modal-box.side {
+  position: relative; top: auto; right: auto;
+  height: auto; max-height: calc(100dvh - 28px); width: min(440px, 100vw);
+  border-radius: 18px 0 0 18px; overflow-y: auto;
+  box-shadow: -24px 0 70px -24px rgba(13,21,38,.55);
+  transform: translateX(100%);
+  transition: transform .34s cubic-bezier(.22,1,.36,1);
+}
+.prof-modal-bg.side.open .prof-modal-box.side { transform: none; }
+@media (max-width: 520px) {
+  .prof-modal-box.side { width: min(440px, 100vw); border-radius: 18px; max-height: calc(100dvh - 24px); }
+}
 
 .modal-title {
   font-family: 'Outfit', system-ui, sans-serif;

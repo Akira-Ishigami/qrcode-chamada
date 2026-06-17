@@ -28,8 +28,9 @@ let modalEl = null;
 function openModal(html, onMounted, opts = {}) {
   if (modalEl) modalEl.remove();
   modalEl = document.createElement("div");
-  modalEl.className = "prof-modal-bg" + (opts.center ? " center" : "");
-  modalEl.innerHTML = `<div class="prof-modal-box${opts.center ? " center" : ""}">${html}</div>`;
+  const variant = opts.center ? " center" : opts.side ? " side" : "";
+  modalEl.className = "prof-modal-bg" + variant;
+  modalEl.innerHTML = `<div class="prof-modal-box${variant}">${html}</div>`;
   document.body.appendChild(modalEl);
   requestAnimationFrame(() => modalEl.classList.add("open"));
   modalEl.addEventListener("click", (e) => {
@@ -606,7 +607,7 @@ async function modalTurmas(p) {
       showToast("Turmas atualizadas!", "success");
       closeModal();
     });
-  });
+  }, { side: true });
 }
 
 // ─── Modal: Excluir ───────────────────────────────────────────────────────────
@@ -725,7 +726,7 @@ async function modalMaterias(p, onSave = null) {
       closeModal();
       if (onSave) setTimeout(() => onSave(), 200);
     });
-  });
+  }, { side: true });
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
