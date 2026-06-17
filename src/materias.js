@@ -64,7 +64,7 @@ async function renderPage() {
       </div>
       <button class="mat-btn-nova" id="btn-nova-mat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nova matéria
+        <span class="mbn-lbl">Nova matéria</span>
       </button>
     </div>
     <div id="mat-list" class="mat-list"></div>
