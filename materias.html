@@ -289,9 +289,8 @@
     .matx-avs:hover .matx-av:hover { transform: translateY(-3px) scale(1.08); z-index: 2; }
     .matx-noprof { font-size: .78rem; color: #b0b9c9; font-style: italic; }
 
-    .matx-freq { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 11px 13px; }
-    .matx-freq.nodef { display: flex; align-items: center; justify-content: center; padding: 13px; }
-    .matx-freq.nodef span { font-size: .74rem; color: #94a3b8; font-weight: 600; }
+    /* A barra de presença não aparece no card; só fica no drawer da matéria */
+    .matx-freq { display: none; }
     /* Bolinha "!" no canto quando não há frequência configurada */
     .matx-flag {
       position: absolute; top: 11px; left: 11px; z-index: 3;
