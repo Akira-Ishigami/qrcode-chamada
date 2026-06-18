@@ -331,6 +331,11 @@
     .rel-aluno-table tr:last-child td { border-bottom: none; }
     .rel-aluno-table tr:hover td { background: var(--surface); }
 
+    /* Versão compacta — usada nos modais (mais colunas, menos espaço) */
+    .rel-aluno-table.compact { font-size: .74rem; }
+    .rel-aluno-table.compact th,
+    .rel-aluno-table.compact td { padding: 7px 9px; white-space: nowrap; }
+
     .rel-st-pres  { font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; background: #dcfce7; color: #14532d; }
     .rel-st-atraso { font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; background: #fff7ed; color: #c2410c; }
     .rel-st-aus   { font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; background: #fee2e2; color: #991b1b; }

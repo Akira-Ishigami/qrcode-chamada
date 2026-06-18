@@ -590,8 +590,8 @@ function abrirModalProfessor(p) {
         <div class="rel-resumo-stat"><div class="rel-resumo-num ${clrPct(freqN)}">${freqN}%</div><div class="rel-resumo-lbl">frequência</div></div>
       </div>
       <div style="overflow-x:auto">
-        <table class="rel-aluno-table">
-          <thead><tr><th>Data</th><th>Turma</th><th>Duração</th><th>Presentes</th><th>Ausentes</th><th>Freq</th></tr></thead>
+        <table class="rel-aluno-table compact">
+          <thead><tr><th>Data</th><th>Turma</th><th>Dur.</th><th>Pres.</th><th>Aus.</th><th>Freq</th></tr></thead>
           <tbody>
             ${p.chamadas.slice().sort((a, b) => b.data.localeCompare(a.data)).map(c => `
               <tr data-cid="${c.id}" style="cursor:pointer" title="Ver detalhe da chamada">
@@ -607,7 +607,7 @@ function abrirModalProfessor(p) {
       </div>
     </div>`;
 
-  const overlay = abrirModalGenerico(esc(p.nome), body);
+  const overlay = abrirModalGenerico(esc(p.nome), body, 640);
   overlay.querySelectorAll("tr[data-cid]").forEach(tr => {
     tr.addEventListener("click", () => {
       const c = p.chamadas.find(x => x.id === tr.dataset.cid);
