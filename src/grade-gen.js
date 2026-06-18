@@ -114,9 +114,10 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
         if (profBusy.has(`${u.professor_id}|${s.dia}|${s.ini - passo}`)) score += 10;
         if (profBusy.has(`${u.professor_id}|${s.dia}|${s.ini + passo}`)) score += 10;
       }
-      score -= (matDia.get(matKey) || 0) * 6;       // espalha a matéria nos dias
+      score -= (matDia.get(matKey) || 0) * 200;     // não repete a matéria no mesmo dia (só se não houver outra opção)
       score -= (matHorario.get(matHorarioKey) || 0) * 8; // evita repetir o mesmo horário do dia em dias seguidos
       score -= s.ini / 600;                       // empacota mais cedo
+      score += Math.random() * 4;                 // ruído — evita que a mesma grade saia sempre igual
 
       if (score > melhorScore) { melhorScore = score; melhor = s; }
     }
