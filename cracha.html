@@ -93,21 +93,23 @@
     }
 
     /* Ocupa todo o espaço restante (abaixo da barra) — a cena centraliza o crachá
-       e os controles de visualização ficam ancorados no rodapé, sem depender
-       da altura do conteúdo. */
-    .cs-canvas-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+       e os controles de visualização ficam ancorados no rodapé. */
+    .cs-canvas-body {
+      flex: 1; min-height: 0; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
     .cs-canvas-scene {
-      position: absolute; inset: 0;
+      flex: 1; min-height: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px 24px 120px;
+      padding: 24px;
       overflow: hidden;
       gap: 0;
     }
     .cs-canvas-bottom {
-      position: absolute; left: 0; right: 0; bottom: 0;
+      flex-shrink: 0;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     }
@@ -670,7 +672,7 @@
     /* ── Tela menor (≤ 1050px): drawer um pouco mais estreito ─── */
     @media (max-width: 1050px) {
       .cs-canvas-bar { padding: 10px 16px; }
-      .cs-canvas-scene { padding: 16px 12px 120px; }
+      .cs-canvas-scene { padding: 16px 12px 8px; }
       #preview-canvas-wrap img { max-width: min(100%, 640px); border-radius: 8px; }
       .cs-tabs-row { padding: 0 0 8px; }
       .cs-canvas-caption { padding: 6px 16px 10px; }
@@ -693,7 +695,7 @@
     @media (max-width: 640px) {
       .cs-edit-btn { display: none; }
       .cs-controls, .cs-drawer-backdrop { display: none !important; }
-      .cs-canvas-scene { padding: 16px 16px 130px; }
+      .cs-canvas-scene { padding: 16px 16px 8px; }
       .cs-card-float { animation: none; }
       #preview-canvas-wrap img { max-width: 100%; border-radius: 8px; }
 
@@ -709,7 +711,7 @@
 
     /* ── Mobile (≤ 540px) ─────────────────────────────── */
     @media (max-width: 540px) {
-      .cs-canvas-scene { padding: 12px 8px 120px; }
+      .cs-canvas-scene { padding: 12px 8px 4px; }
       #preview-canvas-wrap img { border-radius: 7px; }
 
       /* Chips: 2+3 */
