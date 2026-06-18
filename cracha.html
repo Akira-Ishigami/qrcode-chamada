@@ -661,6 +661,19 @@
       .cs-font-header { margin-bottom: 10px; }
     }
 
+    /* ── Celular: só visualizar, sem editar (edição é coisa de computador) ── */
+    .cs-mobile-note { display: none; }
+    @media (max-width: 640px) {
+      .cs-controls { display: none; }
+      .cs-mobile-note {
+        display: flex; align-items: center; gap: 10px;
+        margin: 0 16px 16px; padding: 12px 14px;
+        background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px;
+        color: #92400e; font-size: .8rem; font-weight: 600; line-height: 1.4;
+      }
+      .cs-mobile-note svg { flex-shrink: 0; opacity: .8; }
+    }
+
     /* ── Mobile (≤ 540px) ─────────────────────────────── */
     @media (max-width: 540px) {
       .cs-canvas-scene { padding: 12px 8px 4px; }
@@ -845,6 +858,12 @@
             </div>
           </div>
           <div class="cs-canvas-caption">dados fictícios — crachá real gerado na tela de alunos</div>
+        </div>
+
+        <!-- Aviso mobile: edição só no computador -->
+        <div class="cs-mobile-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Para editar o crachá, acesse pelo computador. Aqui você só pode visualizar.
         </div>
 
         <!-- Controls -->
