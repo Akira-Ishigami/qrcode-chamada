@@ -234,10 +234,10 @@ async function renderChat(ticket) {
 
       <div class="chat-messages" id="chat-messages">
         ${temRelato ? `
-          <div class="chat-original">
-            <div class="chat-original-label">Relato original${fotoRelato ? " · 📷" : ""}</div>
-            <div class="chat-original-text">${ticket.descricao ? esc(ticket.descricao) : "Imagem anexada — clique para ver"}</div>
-          </div>
+          <button class="chat-original-btn" id="chat-original-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L13 13l-3.5 1 1-3.5z"/></svg>
+            Relatório
+          </button>
         ` : ""}
         <div id="chat-bubbles"></div>
         ${feedMsgs.length === 0 && !temRelato ? `
@@ -277,7 +277,7 @@ async function renderChat(ticket) {
   document.getElementById("chat-back").addEventListener("click", renderList);
 
   // Relato original — clicar abre os detalhes num modal, com a foto (se houver) expansível
-  document.querySelector(".chat-original")?.addEventListener("click", () => abrirModalRelato(ticket, fotoRelato));
+  document.getElementById("chat-original-btn")?.addEventListener("click", () => abrirModalRelato(ticket, fotoRelato));
 
   // Renderiza só as mensagens da conversa (sem a foto do relato, que já fica no card acima)
   const bubblesEl = document.getElementById("chat-bubbles");
