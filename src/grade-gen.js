@@ -50,6 +50,13 @@ function profIndisponivel(idx, profId, s) {
   return blocos.some(b => b.dia === s.dia && s.ini < b.fim && s.fim > b.ini);
 }
 
+// Posição do dia dentro dos dias letivos configurados (0 = primeiro dia letivo).
+// Usado pra preencher os primeiros dias por completo antes de deixar lacuna nos últimos.
+function diaOrdem(dia, diasSemana) {
+  const i = diasSemana.indexOf(dia);
+  return i === -1 ? 0 : i;
+}
+
 function embaralhar(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -122,6 +129,7 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
       score -= (matDia.get(matKey) || 0) * 200;     // não repete a matéria no mesmo dia (só se não houver outra opção)
       score -= (matHorario.get(matHorarioKey) || 0) * 8; // evita repetir o mesmo horário do dia em dias seguidos
       score -= s.ini / 600;                       // empacota mais cedo
+      score -= diaOrdem(s.dia, config.dias_semana) * 3; // preenche os primeiros dias letivos antes de sobrar lacuna nos últimos
       score += Math.random() * 4;                 // ruído — evita que a mesma grade saia sempre igual
 
       if (score > melhorScore) { melhorScore = score; melhor = s; }
