@@ -208,6 +208,7 @@
       transform: translateX(100%);
       transition: transform .3s cubic-bezier(.22,1,.36,1);
       z-index: 1001;
+      overflow-x: hidden;
     }
     .cs-controls.open { transform: translateX(0); }
     .cs-controls::-webkit-scrollbar { width: 5px; }
@@ -289,6 +290,7 @@
       cursor: pointer;
       transition: all .18s cubic-bezier(.22,1,.36,1);
       position: relative;
+      min-width: 0; /* deixa o item encolher dentro da grid em vez de vazar (causava scroll lateral) */
     }
     .cs-chip::before {
       content: '';
@@ -325,10 +327,12 @@
     .cs-chip-name {
       font-size: .73rem; font-weight: 700; letter-spacing: -.01em;
       color: var(--pnl-text); line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .cs-chip-hex {
       font-family: 'JetBrains Mono', monospace;
       font-size: .59rem; color: var(--pnl-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .cs-chip-hint {
       font-size: .56rem; color: var(--pnl-muted);
@@ -678,6 +682,16 @@
     @media (max-width: 640px) {
       .cs-edit-btn { display: none; }
       .cs-controls, .cs-drawer-backdrop { display: none !important; }
+
+      /* Sem o painel lateral, o canvas vira conteúdo normal de página (altura própria, sem scroll travado) */
+      #page-root { flex-direction: column !important; overflow-y: auto !important; height: auto !important; min-height: 0 !important; }
+      .main-content { overflow: auto !important; }
+      .cs-studio { flex-direction: column; height: auto; overflow: visible; }
+      .cs-canvas { flex: none; min-height: 0; overflow: visible; }
+      .cs-canvas-scene { padding: 16px 12px 8px; }
+      .cs-card-float { animation: none; }
+      #preview-canvas-wrap img { max-width: 100%; border-radius: 8px; }
+
       .cs-mobile-note {
         display: flex; align-items: center; gap: 10px;
         margin: 0 16px 16px; padding: 12px 14px;
