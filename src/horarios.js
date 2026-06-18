@@ -810,7 +810,9 @@ async function iniciarGeracao() {
   ]);
 
   if (!demanda?.length) { showToast("Cadastre a grade curricular (📚) antes de gerar.", "error"); return; }
-  const turmaSemHorario = (turmas ?? []).find(t => !t.hora_inicio || !t.hora_fim);
+
+  const turmaIdsComDemanda = new Set(demanda.map(d => d.turma_id));
+  const turmaSemHorario = (turmas ?? []).find(t => turmaIdsComDemanda.has(t.id) && (!t.hora_inicio || !t.hora_fim));
   if (turmaSemHorario) {
     showToast(`Defina o horário de funcionamento da turma "${turmaSemHorario.nome}" antes de gerar.`, "error"); return;
   }
