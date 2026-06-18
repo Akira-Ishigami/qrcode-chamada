@@ -830,6 +830,8 @@ async function iniciarGeracao() {
   mostrarPreview(res);
 }
 
+let _naoAlocadas = [];
+
 function mostrarPreview(res) {
   // Garante uma turma selecionada para visualizar
   if (!_turmaId && _turmas[0]) {
@@ -841,6 +843,7 @@ function mostrarPreview(res) {
   previewParaTurma(_turmaId);
   renderGrid();
 
+  _naoAlocadas = res.naoAlocadas;
   const naoAloc = res.naoAlocadas.reduce((s, x) => s + x.faltam, 0);
   document.getElementById("preview-banner")?.remove();
   const banner = document.createElement("div");
@@ -849,7 +852,7 @@ function mostrarPreview(res) {
   banner.innerHTML = `
     <div class="pv-info">
       <strong>⚡ Prévia da grade gerada</strong>
-      <span>${res.horarios.length} aulas alocadas${naoAloc ? ` · <b style="color:#fca5a5">${naoAloc} não couberam</b>` : ""}. Troque a turma no seletor para ver cada uma.</span>
+      <span>${res.horarios.length} aulas alocadas${naoAloc ? ` · <b style="color:#fca5a5;cursor:pointer;text-decoration:underline" id="pv-ver-faltas">${naoAloc} não couberam</b>` : ""}. Troque a turma no seletor para ver cada uma.</span>
     </div>
     <div class="pv-acts">
       <button id="pv-refazer">↻ Refazer</button>
@@ -861,6 +864,30 @@ function mostrarPreview(res) {
   document.getElementById("pv-refazer").addEventListener("click", iniciarGeracao);
   document.getElementById("pv-cancelar").addEventListener("click", cancelarPreview);
   document.getElementById("pv-aplicar").addEventListener("click", () => aplicarPreview());
+  document.getElementById("pv-ver-faltas")?.addEventListener("click", mostrarNaoAlocadas);
+}
+
+// ── Detalhe das aulas que não couberam na geração ──────────────────────────────
+function mostrarNaoAlocadas() {
+  const linhas = _naoAlocadas.map(n => {
+    const turma  = _turmas.find(t => t.id === n.turma_id)?.nome ?? "—";
+    const materia = _materias.find(m => m.id === n.materia_id)?.nome ?? "—";
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border,#eef1f6)">
+        <div>
+          <strong style="font-size:.86rem">${esc(turma)}</strong>
+          <span style="font-size:.8rem;color:var(--text-3,#94a3b8)"> — ${esc(materia)}</span>
+        </div>
+        <span style="font-size:.76rem;font-weight:700;color:#b91c1c">faltam ${n.faltam}</span>
+      </div>`;
+  }).join("");
+
+  modalHor(
+    "Aulas que não couberam",
+    "Não há horário/professor disponível para encaixar estas aulas — ajuste a carga, o professor ou o horário da turma.",
+    linhas || `<div style="font-size:.85rem;color:var(--text-3,#94a3b8)">Tudo alocado!</div>`,
+    `<button class="hor-btn-cancel" data-close>Fechar</button>`
+  );
 }
 
 function cancelarPreview() {
