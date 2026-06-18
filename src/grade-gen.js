@@ -76,8 +76,9 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
   const passo = config.aula_min + (config.intervalo_min || 0);
   const turmaBusy = new Set();
   const profBusy  = new Set();
-  const matDia    = new Map();
-  const turmaDia  = new Map(); // total de aulas (qualquer matéria) já alocadas na turma naquele dia
+  const matDia     = new Map();
+  const turmaDia   = new Map(); // total de aulas (qualquer matéria) já alocadas na turma naquele dia
+  const matHorario = new Map(); // quantos dias a matéria já caiu nesse mesmo horário do dia (evita repetir)
 
   const ocupar = (turma, prof, mat, dia, ini) => {
     turmaBusy.add(`${turma}|${dia}|${ini}`);
@@ -86,6 +87,8 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
     matDia.set(k, (matDia.get(k) || 0) + 1);
     const td = `${turma}|${dia}`;
     turmaDia.set(td, (turmaDia.get(td) || 0) + 1);
+    const mh = `${turma}|${mat}|${ini}`;
+    matHorario.set(mh, (matHorario.get(mh) || 0) + 1);
   };
 
   // Aulas travadas ocupam slots de antemão
@@ -105,12 +108,14 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
 
       // Score: adjacência do professor (evita janelas) + mais cedo + espalhar matéria
       const matKey = `${u.turma_id}|${u.materia_id}|${s.dia}`;
+      const matHorarioKey = `${u.turma_id}|${u.materia_id}|${s.ini}`;
       let score = 0;
       if (u.professor_id) {
         if (profBusy.has(`${u.professor_id}|${s.dia}|${s.ini - passo}`)) score += 10;
         if (profBusy.has(`${u.professor_id}|${s.dia}|${s.ini + passo}`)) score += 10;
       }
-      score -= (matDia.get(matKey) || 0) * 6;   // espalha a matéria nos dias
+      score -= (matDia.get(matKey) || 0) * 6;       // espalha a matéria nos dias
+      score -= (matHorario.get(matHorarioKey) || 0) * 8; // evita repetir o mesmo horário do dia em dias seguidos
       score -= s.ini / 600;                       // empacota mais cedo
 
       if (score > melhorScore) { melhorScore = score; melhor = s; }
