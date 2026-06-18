@@ -290,10 +290,11 @@
 
     .rel-aluno-avatar {
       width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-      background: #eff6ff; color: var(--acc);
+      background: #eff6ff; color: var(--acc); overflow: hidden;
       display: flex; align-items: center; justify-content: center;
       font-family: 'Outfit', system-ui, sans-serif; font-weight: 800; font-size: .85rem;
     }
+    .rel-aluno-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .rel-aluno-info { flex: 1; min-width: 0; }
     .rel-aluno-nome { font-weight: 700; font-size: .875rem; color: var(--text); }
     .rel-aluno-meta { font-size: .7rem; color: var(--text-3); margin-top: 1px; }

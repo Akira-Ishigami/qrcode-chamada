@@ -186,7 +186,7 @@ async function loadAll() {
   if (_profile?.role === "professor") {
     // Professor: parte das chamadas que ELE abriu (independe do vínculo da turma)
     const { data } = await supabaseAdmin
-      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
+      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome, foto_url)")
       .eq("professor_id", _profile.id).order("data", { ascending: false });
     allChamadas = data ?? [];
     turmaIds = [...new Set(allChamadas.map(c => c.turma_id))];
@@ -205,7 +205,7 @@ async function loadAll() {
     // Instituição: todas as chamadas das turmas da instituição
     turmaIds = _turmas.map(t => t.id);
     const { data } = await supabaseAdmin
-      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome)")
+      .from("chamadas").select("id, turma_id, data, aberta, duracao_seg, professor_id, profiles(nome, foto_url)")
       .in("turma_id", turmaIds).order("data", { ascending: false });
     allChamadas = data ?? [];
   }
@@ -216,7 +216,7 @@ async function loadAll() {
     chamadaIds.length
       ? supabaseAdmin.from("presencas").select("chamada_id, aluno_id, atrasado, registrado_em").in("chamada_id", chamadaIds)
       : { data: [] },
-    supabaseAdmin.from("alunos").select("id, nome, matricula, turma_id").in("turma_id", turmaIds).order("nome"),
+    supabaseAdmin.from("alunos").select("id, nome, matricula, turma_id, foto_url").in("turma_id", turmaIds).order("nome"),
   ]);
 
   _presencas = presRes.data ?? [];
@@ -239,8 +239,9 @@ async function loadAll() {
     const totalAlunos = totalPorTurma[c.turma_id] ?? 0;
     return {
       ...c,
-      turma:     _turmaMap[c.turma_id],
-      professor: c.profiles?.nome ?? "",
+      turma:        _turmaMap[c.turma_id],
+      professor:    c.profiles?.nome ?? "",
+      professorFoto: c.profiles?.foto_url ?? null,
       presentes: totalP,
       atrasados: totalAt,
       ausentes:  totalAlunos - totalP,
@@ -440,7 +441,7 @@ function renderPorProfessor(f) {
   const porProf = {};
   filtered.forEach(c => {
     const key = c.professor_id || c.professor || "—";
-    if (!porProf[key]) porProf[key] = { nome: c.professor || "Sem professor", chamadas: [] };
+    if (!porProf[key]) porProf[key] = { nome: c.professor || "Sem professor", foto: c.professorFoto, chamadas: [] };
     porProf[key].chamadas.push(c);
   });
   const profsSorted = Object.values(porProf).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -463,7 +464,7 @@ function renderPorProfessor(f) {
     card.style.animationDelay = `${idx * .025}s`;
     card.innerHTML = `
       <div class="rel-aluno-card-head" tabindex="0">
-        <div class="rel-aluno-avatar">${esc(ini || "?")}</div>
+        <div class="rel-aluno-avatar">${p.foto ? `<img src="${esc(p.foto)}" alt="" />` : esc(ini || "?")}</div>
         <div class="rel-aluno-info">
           <div class="rel-aluno-nome">${esc(p.nome)}</div>
           <div class="rel-aluno-meta">${turmasSet.size} turma${turmasSet.size !== 1 ? "s" : ""} · ${totalCh} chamada${totalCh !== 1 ? "s" : ""}</div>
@@ -724,7 +725,7 @@ function renderPorAluno(f) {
     card.style.animationDelay = `${idx * .025}s`;
     card.innerHTML = `
       <div class="rel-aluno-card-head" tabindex="0">
-        <div class="rel-aluno-avatar">${esc(ini)}</div>
+        <div class="rel-aluno-avatar">${aluno.foto_url ? `<img src="${esc(aluno.foto_url)}" alt="" />` : esc(ini)}</div>
         <div class="rel-aluno-info">
           <div class="rel-aluno-nome">${esc(aluno.nome)}</div>
           <div class="rel-aluno-meta">${esc(turma?.nome || "")}${aluno.matricula ? ` · ${esc(aluno.matricula)}` : ""}</div>
