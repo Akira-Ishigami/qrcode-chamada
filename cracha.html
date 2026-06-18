@@ -92,15 +92,24 @@
       letter-spacing: .05em;
     }
 
+    /* Ocupa todo o espaço restante (abaixo da barra) — a cena centraliza o crachá
+       e os controles de visualização ficam ancorados no rodapé, sem depender
+       da altura do conteúdo. */
+    .cs-canvas-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
     .cs-canvas-scene {
-      flex: 1;
+      position: absolute; inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 24px 16px;
+      padding: 24px 24px 120px;
       overflow: hidden;
       gap: 0;
+    }
+    .cs-canvas-bottom {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      display: flex; flex-direction: column; align-items: center;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     }
 
     .cs-card-float {
@@ -147,7 +156,7 @@
     .cs-tabs-row {
       display: flex;
       justify-content: center;
-      padding: 16px 0 12px;
+      padding: 0 0 12px;
       flex-shrink: 0;
     }
     .cs-view-tabs {
@@ -661,9 +670,9 @@
     /* ── Tela menor (≤ 1050px): drawer um pouco mais estreito ─── */
     @media (max-width: 1050px) {
       .cs-canvas-bar { padding: 10px 16px; }
-      .cs-canvas-scene { padding: 16px 12px 8px; }
+      .cs-canvas-scene { padding: 16px 12px 120px; }
       #preview-canvas-wrap img { max-width: min(100%, 640px); border-radius: 8px; }
-      .cs-tabs-row { padding: 10px 0 8px; }
+      .cs-tabs-row { padding: 0 0 8px; }
       .cs-canvas-caption { padding: 6px 16px 10px; }
 
       .cs-ctrl-head { padding: 20px 20px 16px; }
@@ -677,33 +686,30 @@
       .cs-font-header { margin-bottom: 10px; }
     }
 
-    /* ── Celular: só visualizar, sem editar (edição é coisa de computador) ── */
+    /* ── Celular: só visualizar, sem editar (edição é coisa de computador) ──
+       O crachá continua ocupando a tela toda (mesma estrutura do desktop);
+       só escondemos o botão/painel de edição e mostramos o aviso no rodapé. */
     .cs-mobile-note { display: none; }
     @media (max-width: 640px) {
       .cs-edit-btn { display: none; }
       .cs-controls, .cs-drawer-backdrop { display: none !important; }
-
-      /* Sem o painel lateral, o canvas vira conteúdo normal de página (altura própria, sem scroll travado) */
-      #page-root { flex-direction: column !important; overflow-y: auto !important; height: auto !important; min-height: 0 !important; }
-      .main-content { overflow: auto !important; }
-      .cs-studio { flex-direction: column; height: auto; overflow: visible; }
-      .cs-canvas { flex: none; min-height: 0; overflow: visible; }
-      .cs-canvas-scene { padding: 16px 12px 8px; }
+      .cs-canvas-scene { padding: 16px 16px 130px; }
       .cs-card-float { animation: none; }
       #preview-canvas-wrap img { max-width: 100%; border-radius: 8px; }
 
       .cs-mobile-note {
         display: flex; align-items: center; gap: 10px;
-        margin: 0 16px 16px; padding: 12px 14px;
+        width: calc(100% - 32px); margin: 0 16px 12px; padding: 12px 14px;
         background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px;
         color: #92400e; font-size: .8rem; font-weight: 600; line-height: 1.4;
+        box-sizing: border-box;
       }
       .cs-mobile-note svg { flex-shrink: 0; opacity: .8; }
     }
 
     /* ── Mobile (≤ 540px) ─────────────────────────────── */
     @media (max-width: 540px) {
-      .cs-canvas-scene { padding: 12px 8px 4px; }
+      .cs-canvas-scene { padding: 12px 8px 120px; }
       #preview-canvas-wrap img { border-radius: 7px; }
 
       /* Chips: 2+3 */
@@ -867,36 +873,40 @@
               </button>
             </div>
           </div>
-          <div class="cs-canvas-scene">
-            <div class="cs-card-float">
-              <div id="preview-canvas-wrap">
-                <div class="cs-preview-loading">Gerando prévia…</div>
+          <div class="cs-canvas-body">
+            <div class="cs-canvas-scene">
+              <div class="cs-card-float">
+                <div id="preview-canvas-wrap">
+                  <div class="cs-preview-loading">Gerando prévia…</div>
+                </div>
+              </div>
+            </div>
+            <div class="cs-canvas-bottom">
+              <div class="cs-tabs-row">
+                <div class="cs-view-tabs">
+                  <button class="cs-vtab active" data-view="ambos">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="7" width="9" height="12" rx="1"/><rect x="13" y="7" width="9" height="12" rx="1"/></svg>
+                    Ambos
+                  </button>
+                  <button class="cs-vtab" data-view="frente">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h3"/></svg>
+                    Frente
+                  </button>
+                  <button class="cs-vtab" data-view="verso">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9h6M3 13h4"/><rect x="13" y="8" width="6" height="6" rx="1"/></svg>
+                    Verso
+                  </button>
+                </div>
+              </div>
+              <div class="cs-canvas-caption">dados fictícios — crachá real gerado na tela de alunos</div>
+
+              <!-- Aviso mobile: edição só no computador -->
+              <div class="cs-mobile-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Para editar o crachá, acesse pelo computador. Aqui você só pode visualizar.
               </div>
             </div>
           </div>
-          <div class="cs-tabs-row">
-            <div class="cs-view-tabs">
-              <button class="cs-vtab active" data-view="ambos">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="7" width="9" height="12" rx="1"/><rect x="13" y="7" width="9" height="12" rx="1"/></svg>
-                Ambos
-              </button>
-              <button class="cs-vtab" data-view="frente">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h3"/></svg>
-                Frente
-              </button>
-              <button class="cs-vtab" data-view="verso">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9h6M3 13h4"/><rect x="13" y="8" width="6" height="6" rx="1"/></svg>
-                Verso
-              </button>
-            </div>
-          </div>
-          <div class="cs-canvas-caption">dados fictícios — crachá real gerado na tela de alunos</div>
-        </div>
-
-        <!-- Aviso mobile: edição só no computador -->
-        <div class="cs-mobile-note">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          Para editar o crachá, acesse pelo computador. Aqui você só pode visualizar.
         </div>
 
         <!-- Modal lateral de edição -->
