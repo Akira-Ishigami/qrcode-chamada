@@ -566,6 +566,28 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Lightbox: foto expandida do chat ── */
+    .sp-lightbox {
+      position: fixed; inset: 0; background: rgba(10,12,18,.88);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000; opacity: 0; pointer-events: none;
+      transition: opacity .2s; padding: 24px;
+    }
+    .sp-lightbox.open { opacity: 1; pointer-events: all; }
+    .sp-lightbox img {
+      max-width: 100%; max-height: 100%; border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      transform: scale(.96); transition: transform .22s cubic-bezier(.22,1,.36,1);
+    }
+    .sp-lightbox.open img { transform: none; }
+    .sp-lightbox-close {
+      position: absolute; top: 18px; right: 18px; width: 38px; height: 38px;
+      border-radius: 50%; border: none; background: rgba(255,255,255,.12);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .14s;
+    }
+    .sp-lightbox-close:hover { background: rgba(255,255,255,.22); }
   </style>
 </head>
 <body>
@@ -642,7 +664,7 @@
         Suporte
       </a>
       <a href="relatorio-dia.html" class="sidebar-link" data-role="instituicao professor">
-        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <div class="sidebar-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L13 13l-3.5 1 1-3.5z"/></svg></div>
         Relatório
       </a>
     </nav>

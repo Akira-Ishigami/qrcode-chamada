@@ -398,13 +398,35 @@ async function renderChat(ticket) {
     .subscribe();
 }
 
+// ── Lightbox: expandir foto enviada no chat ────────────────────────────────────
+window.__abrirFotoSuporte = function (src) {
+  let ov = document.getElementById("sp-lightbox");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "sp-lightbox";
+    ov.className = "sp-lightbox";
+    ov.innerHTML = `
+      <button class="sp-lightbox-close" id="sp-lightbox-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img id="sp-lightbox-img" src="" alt="imagem ampliada">`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.classList.remove("open");
+    ov.querySelector("#sp-lightbox-close").addEventListener("click", fechar);
+    ov.addEventListener("click", e => { if (e.target === ov) fechar(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") fechar(); });
+  }
+  ov.querySelector("#sp-lightbox-img").src = src;
+  requestAnimationFrame(() => ov.classList.add("open"));
+};
+
 function buildBubble(msg) {
   const isMine = msg.autor_role === "instituicao";
   const wrap = document.createElement("div");
   wrap.className = `chat-bubble-wrap ${isMine ? "mine" : "theirs"}`;
 
   const conteudo = [
-    msg.imagem_base64 ? `<img class="chat-bubble-img" src="${msg.imagem_base64}" alt="imagem" style="cursor:zoom-in" onclick="this.requestFullscreen?.()">` : "",
+    msg.imagem_base64 ? `<img class="chat-bubble-img" src="${msg.imagem_base64}" alt="imagem" style="cursor:zoom-in" onclick="window.__abrirFotoSuporte('${msg.imagem_base64}')">` : "",
     msg.texto ? `<span>${esc(msg.texto).replace(/\n/g, "<br>")}</span>` : "",
   ].filter(Boolean).join("");
 
