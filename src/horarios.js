@@ -1,7 +1,7 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
-import { gerarGrade }    from "./grade-gen.js";
+import { gerarGrade, construirSlots } from "./grade-gen.js";
 
 // Estado da grade automática
 let _gradeConfig = null;
@@ -827,10 +827,37 @@ async function iniciarGeracao() {
 
   const res = gerarGrade({ turmas: turmas ?? [], config: _gradeConfig, demanda, indisponibilidade: indisp, travados: [] });
   _previewHorarios = res.horarios;
+  _profSobrecarga = calcularSobrecargaProfessores(turmas ?? [], demanda);
   mostrarPreview(res);
 }
 
+// Quanto cada professor precisa lecionar por semana x quantos horários distintos
+// existem nas turmas em que ele dá aula (um professor só pode estar em 1 sala por vez,
+// então a capacidade real é a união dos horários das turmas que ele atende — não a soma).
+function calcularSobrecargaProfessores(turmas, demanda) {
+  const demandaPorProf = {};
+  const turmasPorProf  = {};
+  demanda.forEach(d => {
+    if (!d.professor_id || !d.aulas_semana) return;
+    demandaPorProf[d.professor_id] = (demandaPorProf[d.professor_id] || 0) + d.aulas_semana;
+    (turmasPorProf[d.professor_id] ??= new Set()).add(d.turma_id);
+  });
+
+  return Object.entries(demandaPorProf).map(([profId, demandaSem]) => {
+    const slotKeys = new Set();
+    turmasPorProf[profId].forEach(turmaId => {
+      const turma = turmas.find(t => t.id === turmaId);
+      if (!turma) return;
+      construirSlots(turma, _gradeConfig).forEach(s => slotKeys.add(`${s.dia}|${s.ini}`));
+    });
+    const capacidade = slotKeys.size;
+    const profNome = _pms.find(p => p.professor_id === profId)?.profiles?.nome ?? "—";
+    return { profId, profNome, demandaSem, capacidade, deficit: Math.max(0, demandaSem - capacidade) };
+  }).filter(p => p.deficit > 0);
+}
+
 let _naoAlocadas = [];
+let _profSobrecarga = [];
 
 function mostrarPreview(res) {
   // Garante uma turma selecionada para visualizar
@@ -869,6 +896,22 @@ function mostrarPreview(res) {
 
 // ── Detalhe das aulas que não couberam na geração ──────────────────────────────
 function mostrarNaoAlocadas() {
+  const sobrecargaHtml = _profSobrecarga.length ? `
+    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#b91c1c;margin-bottom:6px">
+      Professores sobrecarregados
+    </div>
+    ${_profSobrecarga.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border,#eef1f6)">
+        <div>
+          <strong style="font-size:.86rem">${esc(p.profNome)}</strong>
+          <span style="font-size:.78rem;color:var(--text-3,#94a3b8)"> — precisa de ${p.demandaSem}/sem, só há ${p.capacidade} horário${p.capacidade !== 1 ? "s" : ""} possívei${p.capacidade !== 1 ? "s" : "l"}</span>
+        </div>
+        <span style="font-size:.76rem;font-weight:700;color:#b91c1c">faltam ${p.deficit}</span>
+      </div>`).join("")}
+    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3,#94a3b8);margin:16px 0 6px">
+      Aulas que não couberam
+    </div>` : "";
+
   const linhas = _naoAlocadas.map(n => {
     const turma  = _turmas.find(t => t.id === n.turma_id)?.nome ?? "—";
     const materia = _materias.find(m => m.id === n.materia_id)?.nome ?? "—";
@@ -884,8 +927,10 @@ function mostrarNaoAlocadas() {
 
   modalHor(
     "Aulas que não couberam",
-    "Não há horário/professor disponível para encaixar estas aulas — ajuste a carga, o professor ou o horário da turma.",
-    linhas || `<div style="font-size:.85rem;color:var(--text-3,#94a3b8)">Tudo alocado!</div>`,
+    _profSobrecarga.length
+      ? "Um professor não pode dar aula em duas turmas no mesmo horário — distribua as matérias entre mais professores ou reduza a carga."
+      : "Não há horário disponível para encaixar estas aulas — ajuste a carga ou o horário da turma.",
+    sobrecargaHtml + (linhas || `<div style="font-size:.85rem;color:var(--text-3,#94a3b8)">Tudo alocado!</div>`),
     `<button class="hor-btn-cancel" data-close>Fechar</button>`
   );
 }

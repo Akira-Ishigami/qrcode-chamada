@@ -12,7 +12,7 @@
 const T = (t) => { const [h, m] = String(t).split(":"); return (+h) * 60 + (+m); };
 const toHHMM = (min) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
-function construirSlots(turma, config) {
+export function construirSlots(turma, config) {
   // Janela própria da turma tem prioridade; senão usa a janela da config.
   const ini = T(turma.hora_inicio || config.hora_inicio || "07:00");
   const fim = T(turma.hora_fim    || config.hora_fim    || "12:00");
