@@ -31,6 +31,13 @@ function fmtDataCurta(iso) {
     day:"2-digit", month:"2-digit", year:"numeric"
   });
 }
+function fmtDuracao(seg) {
+  if (!seg) return "—";
+  const h = Math.floor(seg / 3600);
+  const m = Math.round((seg % 3600) / 60);
+  if (h > 0) return `${h}h${m > 0 ? ` ${m}min` : ""}`;
+  return `${m}min`;
+}
 // Dropdown custom para o <select> nativo (mesmo padrão usado em horários/calendário)
 function enhanceSelect(sel) {
   if (!sel || sel.dataset.cdd === "1") return;
@@ -161,7 +168,12 @@ async function refreshDados() {
   const elF = document.getElementById("stat-freq");
   if (elC) elC.textContent = totalCham;
   if (elP) elP.textContent = totalPres;
-  if (elF) { elF.textContent = `${mediaFreq}%`; elF.className = `hist-stat-num ${clrPct(mediaFreq)}`; }
+  if (elF) {
+    elF.textContent = `${mediaFreq}%`;
+    elF.className = `hist-stat-num ${clrPct(mediaFreq)}`;
+    const elFIcon = elF.closest(".hist-stat-pill")?.querySelector(".hist-stat-icon");
+    if (elFIcon) elFIcon.className = `hist-stat-icon ${clrPct(mediaFreq)}`;
+  }
 
   if (document.getElementById("rel-content")) renderContent();
 }
@@ -247,6 +259,9 @@ function renderShell() {
 
   root.innerHTML = `
     <div class="hist-header">
+      <div class="hist-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M3 3v18h18"/><path d="M18.7 8 13 13.7l-3-3L7 13.7"/></svg>
+      </div>
       <div>
         <div class="hist-eyebrow">Relatório</div>
         <div class="hist-title">Histórico de Chamadas</div>
@@ -256,18 +271,33 @@ function renderShell() {
 
     <div class="hist-stats-bar">
       <div class="hist-stat-pill">
-        <span class="hist-stat-num" id="stat-cham">${totalCham}</span>
-        <span class="hist-stat-lbl">chamadas</span>
+        <div class="hist-stat-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="hist-stat-text">
+          <span class="hist-stat-num" id="stat-cham">${totalCham}</span>
+          <span class="hist-stat-lbl">chamadas</span>
+        </div>
       </div>
       <div class="hist-stat-sep"></div>
       <div class="hist-stat-pill">
-        <span class="hist-stat-num green" id="stat-pres">${totalPres}</span>
-        <span class="hist-stat-lbl">presenças totais</span>
+        <div class="hist-stat-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="hist-stat-text">
+          <span class="hist-stat-num green" id="stat-pres">${totalPres}</span>
+          <span class="hist-stat-lbl">presenças totais</span>
+        </div>
       </div>
       <div class="hist-stat-sep"></div>
       <div class="hist-stat-pill">
-        <span class="hist-stat-num ${clrPct(mediaFreq)}" id="stat-freq">${mediaFreq}%</span>
-        <span class="hist-stat-lbl">frequência média</span>
+        <div class="hist-stat-icon ${clrPct(mediaFreq)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="hist-stat-text">
+          <span class="hist-stat-num ${clrPct(mediaFreq)}" id="stat-freq">${mediaFreq}%</span>
+          <span class="hist-stat-lbl">frequência média</span>
+        </div>
       </div>
     </div>
 
@@ -447,33 +477,11 @@ function renderPorProfessor(f) {
         <div class="hist-row-chevron">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-      </div>
-      <div class="rel-aluno-detail">
-        <table class="rel-aluno-table">
-          <thead><tr><th>Data</th><th>Turma</th><th>Presentes</th><th>Ausentes</th><th>Freq</th></tr></thead>
-          <tbody>
-            ${p.chamadas.slice().sort((a, b) => b.data.localeCompare(a.data)).map(c => `
-              <tr data-cid="${c.id}" style="cursor:pointer" title="Ver detalhe da chamada">
-                <td>${fmtDataCurta(c.data)}</td>
-                <td>${esc(c.turma?.nome || "—")}</td>
-                <td>${c.presentes}</td>
-                <td>${Math.max(0, c.ausentes)}</td>
-                <td><span class="${c.freq >= 75 ? "rel-st-pres" : c.freq >= 50 ? "rel-st-atraso" : "rel-st-aus"}">${c.freq}%</span></td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
       </div>`;
 
     const head = card.querySelector(".rel-aluno-card-head");
-    head.addEventListener("click",   () => card.classList.toggle("open"));
-    head.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") card.classList.toggle("open"); });
-    card.querySelectorAll("tr[data-cid]").forEach(tr => {
-      tr.addEventListener("click", e => {
-        e.stopPropagation();
-        const c = p.chamadas.find(x => x.id === tr.dataset.cid);
-        if (c) abrirModalChamadaDetalhe(c);
-      });
-    });
+    head.addEventListener("click",   () => abrirModalProfessor(p));
+    head.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") abrirModalProfessor(p); });
     grid.appendChild(card);
   });
 }
@@ -534,15 +542,22 @@ function montarDetalheChamadaHtml(c) {
 }
 
 function abrirModalChamadaDetalhe(c) {
+  abrirModalGenerico(`${esc(c.turma?.nome || "—")} — ${fmtData(c.data)}`, montarDetalheChamadaHtml(c));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal genérico (reaproveitado por chamada/professor/aluno)
+// ─────────────────────────────────────────────────────────────────────────────
+function abrirModalGenerico(titulo, bodyHtml, maxWidth = 560) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay open";
   overlay.innerHTML = `
-    <div class="modal" style="max-width:560px;max-height:84vh;display:flex;flex-direction:column;">
+    <div class="modal" style="max-width:${maxWidth}px;max-height:84vh;display:flex;flex-direction:column;">
       <div class="modal-header">
-        <h2>${esc(c.turma?.nome || "—")} — ${fmtData(c.data)}</h2>
+        <h2>${titulo}</h2>
         <button class="close-btn" id="rel-modal-close">✕</button>
       </div>
-      <div style="overflow-y:auto;flex:1">${montarDetalheChamadaHtml(c)}</div>
+      <div style="overflow:auto;flex:1">${bodyHtml}</div>
     </div>`;
   document.body.appendChild(overlay);
 
@@ -552,6 +567,97 @@ function abrirModalChamadaDetalhe(c) {
   document.addEventListener("keydown", function onEsc(e) {
     if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
   });
+  return overlay;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: detalhe de um professor (chamadas dadas no período)
+// ─────────────────────────────────────────────────────────────────────────────
+function abrirModalProfessor(p) {
+  const totalCh = p.chamadas.length;
+  const presN   = p.chamadas.reduce((s, c) => s + c.presentes, 0);
+  const atrasN  = p.chamadas.reduce((s, c) => s + c.atrasados, 0);
+  const alunosN = p.chamadas.reduce((s, c) => s + c.total, 0);
+  const ausN    = Math.max(0, alunosN - presN);
+  const freqN   = pct(presN, alunosN);
+  const turmasSet = new Set(p.chamadas.map(c => c.turma?.nome || "—"));
+
+  const body = `
+    <div style="padding:16px">
+      <div class="rel-resumo-header" style="margin-bottom:14px">
+        <div class="rel-resumo-stat"><div class="rel-resumo-num">${turmasSet.size}</div><div class="rel-resumo-lbl">turmas</div></div>
+        <div class="rel-resumo-stat"><div class="rel-resumo-num">${totalCh}</div><div class="rel-resumo-lbl">chamadas</div></div>
+        <div class="rel-resumo-stat"><div class="rel-resumo-num ${clrPct(freqN)}">${freqN}%</div><div class="rel-resumo-lbl">frequência</div></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="rel-aluno-table">
+          <thead><tr><th>Data</th><th>Turma</th><th>Duração</th><th>Presentes</th><th>Ausentes</th><th>Freq</th></tr></thead>
+          <tbody>
+            ${p.chamadas.slice().sort((a, b) => b.data.localeCompare(a.data)).map(c => `
+              <tr data-cid="${c.id}" style="cursor:pointer" title="Ver detalhe da chamada">
+                <td>${fmtDataCurta(c.data)}</td>
+                <td>${esc(c.turma?.nome || "—")}</td>
+                <td>${fmtDuracao(c.duracao_seg)}</td>
+                <td>${c.presentes}</td>
+                <td>${Math.max(0, c.ausentes)}</td>
+                <td><span class="${c.freq >= 75 ? "rel-st-pres" : c.freq >= 50 ? "rel-st-atraso" : "rel-st-aus"}">${c.freq}%</span></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const overlay = abrirModalGenerico(esc(p.nome), body);
+  overlay.querySelectorAll("tr[data-cid]").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const c = p.chamadas.find(x => x.id === tr.dataset.cid);
+      if (c) abrirModalChamadaDetalhe(c);
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: detalhe de um aluno (chamadas da turma no período)
+// ─────────────────────────────────────────────────────────────────────────────
+function abrirModalAluno(aluno, turma, chamadasDaTurma, presMap, atrasMap) {
+  const totalCh = chamadasDaTurma.length;
+  const presN   = presMap[aluno.id]?.size ?? 0;
+  const atrasN  = atrasMap[aluno.id]?.size ?? 0;
+  const ausN    = Math.max(0, totalCh - presN);
+  const freqN   = pct(presN, totalCh);
+
+  const body = `
+    <div style="padding:16px">
+      <div class="rel-resumo-header" style="margin-bottom:14px">
+        <div class="rel-resumo-stat"><div class="rel-resumo-num">${totalCh}</div><div class="rel-resumo-lbl">chamadas</div></div>
+        <div class="rel-resumo-stat"><div class="rel-resumo-num" style="color:#16a34a">${presN}</div><div class="rel-resumo-lbl">presentes</div></div>
+        <div class="rel-resumo-stat"><div class="rel-resumo-num" style="color:#dc2626">${ausN}</div><div class="rel-resumo-lbl">ausentes</div></div>
+        <div class="rel-resumo-stat"><div class="rel-resumo-num ${clrPct(freqN)}">${freqN}%</div><div class="rel-resumo-lbl">frequência</div></div>
+      </div>
+      ${totalCh === 0
+        ? `<div class="hist-detail-empty">Nenhuma chamada no período.</div>`
+        : `<table class="rel-aluno-table">
+            <thead><tr><th>Data</th><th>Turma</th><th>Hora</th><th>Status</th></tr></thead>
+            <tbody>
+              ${chamadasDaTurma.map(c => {
+                const isP = presMap[aluno.id]?.has(c.id);
+                const isA = atrasMap[aluno.id]?.has(c.id);
+                const cls = isA ? "rel-st-atraso" : isP ? "rel-st-pres" : "rel-st-aus";
+                const lbl = isA ? "Atrasado" : isP ? "Presente" : "Ausente";
+                const scan = _presencas.find(x => x.chamada_id === c.id && x.aluno_id === aluno.id)?.registrado_em;
+                const hora = scan ? new Date(scan).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—";
+                return `<tr>
+                  <td>${fmtDataCurta(c.data)}</td>
+                  <td>${esc(c.turma?.nome || "—")}</td>
+                  <td>${hora}</td>
+                  <td><span class="${cls}">${lbl}</span></td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>`}
+    </div>`;
+
+  abrirModalGenerico(`${esc(aluno.nome)}${turma?.nome ? ` — ${esc(turma.nome)}` : ""}`, body);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -633,36 +739,11 @@ function renderPorAluno(f) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
       </div>
-      <div class="rel-aluno-detail">
-        ${totalCh === 0
-          ? `<div class="hist-detail-empty">Nenhuma chamada no período.</div>`
-          : `<div class="rel-aluno-freq-bar-wrap">
-              <div class="rel-aluno-freq-bar" style="width:${freqN}%;background:${freqN >= 75 ? "#16a34a" : freqN >= 50 ? "#ea580c" : "#dc2626"}"></div>
-            </div>
-            <table class="rel-aluno-table">
-              <thead><tr><th>Data</th><th>Turma</th><th>Status</th></tr></thead>
-              <tbody>
-                ${chamadasDaTurma.map(c => {
-                  const isP = presMap[aluno.id]?.has(c.id);
-                  const isA = atrasMap[aluno.id]?.has(c.id);
-                  const st  = isA ? "atrasado" : isP ? "presente" : "ausente";
-                  const cls = isA ? "rel-st-atraso" : isP ? "rel-st-pres" : "rel-st-aus";
-                  const lbl = isA ? "Atrasado" : isP ? "Presente" : "Ausente";
-                  return `<tr>
-                    <td>${fmtDataCurta(c.data)}</td>
-                    <td>${esc(c.turma?.nome || "—")}</td>
-                    <td><span class="${cls}">${lbl}</span></td>
-                  </tr>`;
-                }).join("")}
-              </tbody>
-            </table>`}
-      </div>
     `;
 
-    const head   = card.querySelector(".rel-aluno-card-head");
-    const detail = card.querySelector(".rel-aluno-detail");
-    head.addEventListener("click",    () => card.classList.toggle("open"));
-    head.addEventListener("keydown",  e => { if (e.key === "Enter" || e.key === " ") card.classList.toggle("open"); });
+    const head = card.querySelector(".rel-aluno-card-head");
+    head.addEventListener("click",   () => abrirModalAluno(aluno, turma, chamadasDaTurma, presMap, atrasMap));
+    head.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") abrirModalAluno(aluno, turma, chamadasDaTurma, presMap, atrasMap); });
     grid.appendChild(card);
   });
 }
