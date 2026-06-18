@@ -1,7 +1,6 @@
 import { supabase }      from "./supabase.js";
 import { supabaseAdmin } from "./supabaseAdmin.js";
 import { applyNavRole }  from "./nav-role.js";
-import { hojeLocal }     from "./date-utils.js";
 import * as XLSX         from "xlsx";
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -12,7 +11,7 @@ let _presencas = []; // {chamada_id, aluno_id, atrasado}
 let _alunos   = []; // {id, nome, matricula, turma_id}
 let _profile  = null;
 let _instNome = "";
-let _tab      = "chamadas"; // "chamadas" | "alunos" | "resumo"
+let _tab      = "professores"; // "professores" | "alunos" | "turmas" | "resumo"
 let _relChannel = null;
 
 const root = document.getElementById("page-root");
@@ -32,6 +31,42 @@ function fmtDataCurta(iso) {
     day:"2-digit", month:"2-digit", year:"numeric"
   });
 }
+// Dropdown custom para o <select> nativo (mesmo padrão usado em horários/calendário)
+function enhanceSelect(sel) {
+  if (!sel || sel.dataset.cdd === "1") return;
+  sel.dataset.cdd = "1";
+  sel.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "cdd";
+  sel.insertAdjacentElement("afterend", wrap);
+  wrap.innerHTML = `
+    <button type="button" class="cdd-trigger">
+      <span class="cdd-val"></span>
+      <svg class="cdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="cdd-panel" role="listbox"></div>`;
+  const trigger = wrap.querySelector(".cdd-trigger");
+  const panel   = wrap.querySelector(".cdd-panel");
+  const valEl   = wrap.querySelector(".cdd-val");
+  const close = () => wrap.classList.remove("open");
+  const rebuild = () => {
+    valEl.textContent = sel.options[sel.selectedIndex]?.textContent || "";
+    panel.innerHTML = [...sel.options].map(o => `
+      <button type="button" class="cdd-opt${o.value === sel.value ? " on" : ""}" data-v="${esc(o.value)}">
+        <span class="cdd-opt-txt">${esc(o.textContent)}</span>
+        <svg class="cdd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>`).join("");
+    panel.querySelectorAll(".cdd-opt").forEach(b => b.addEventListener("click", () => {
+      sel.value = b.dataset.v; rebuild(); close();
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }));
+  };
+  trigger.addEventListener("click", () => wrap.classList.toggle("open"));
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  sel.cddRebuild = rebuild;
+  rebuild();
+}
+
 function showToast(msg, type = "") {
   const t = document.getElementById("toast");
   if (!t) return;
@@ -238,13 +273,17 @@ function renderShell() {
 
     <!-- Tabs -->
     <div class="rel-tabs">
-      <button class="rel-tab active" data-tab="chamadas">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Por Chamada
+      <button class="rel-tab active" data-tab="professores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Por Professor
       </button>
       <button class="rel-tab" data-tab="alunos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Por Aluno
+      </button>
+      <button class="rel-tab" data-tab="turmas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Por Turma
       </button>
       <button class="rel-tab" data-tab="resumo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
@@ -299,6 +338,9 @@ function renderShell() {
     });
   });
 
+  // Dropdown custom pra turma
+  enhanceSelect(document.getElementById("filt-turma"));
+
   // Eventos filtros
   ["filt-turma","filt-de","filt-ate","filt-aluno"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", renderContent);
@@ -310,6 +352,7 @@ function renderShell() {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+    document.getElementById("filt-turma")?.cddRebuild?.();
     renderContent();
   });
 
@@ -340,168 +383,174 @@ function chamadasFiltradas(f) {
 // ── Render dispatcher ─────────────────────────────────────────────────────────
 function renderContent() {
   const f = getFiltros();
-  if (_tab === "chamadas") renderPorChamada(f);
+  if (_tab === "professores") renderPorProfessor(f);
   else if (_tab === "alunos") renderPorAluno(f);
-  else renderResumo(f);
+  else if (_tab === "turmas") renderPorTurma(f);
+  else renderResumoGeral(f);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 1: POR CHAMADA
+// TAB 1: POR PROFESSOR
 // ─────────────────────────────────────────────────────────────────────────────
-function renderPorChamada(f) {
-  const content = document.getElementById("rel-content");
+function renderPorProfessor(f) {
+  const content  = document.getElementById("rel-content");
   const filtered = chamadasFiltradas(f);
 
   if (!filtered.length) {
     content.innerHTML = `
       <div class="hist-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" width="44" height="44" style="opacity:.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" width="44" height="44" style="opacity:.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <p>Nenhuma chamada encontrada.</p>
       </div>`;
     return;
   }
 
-  // Agrupa por data
-  const byDate = {};
-  filtered.forEach(c => { (byDate[c.data] ??= []).push(c); });
-  const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
-  const hoje  = hojeLocal();
+  const porProf = {};
+  filtered.forEach(c => {
+    const key = c.professor_id || c.professor || "—";
+    if (!porProf[key]) porProf[key] = { nome: c.professor || "Sem professor", chamadas: [] };
+    porProf[key].chamadas.push(c);
+  });
+  const profsSorted = Object.values(porProf).sort((a, b) => a.nome.localeCompare(b.nome));
 
-  content.innerHTML = "";
-  dates.forEach((date, di) => {
-    const items = byDate[date];
-    const dPres = items.reduce((s, c) => s + c.presentes, 0);
-    const dAlun = items.reduce((s, c) => s + c.total, 0);
-    const dFreq = pct(dPres, dAlun);
+  content.innerHTML = `<div class="rel-aluno-grid" id="prof-grid"></div>`;
+  const grid = document.getElementById("prof-grid");
 
-    const group = document.createElement("div");
-    group.className = "hist-group";
-    group.style.animationDelay = `${di * .04}s`;
+  profsSorted.forEach((p, idx) => {
+    const totalCh   = p.chamadas.length;
+    const presN     = p.chamadas.reduce((s, c) => s + c.presentes, 0);
+    const atrasN    = p.chamadas.reduce((s, c) => s + c.atrasados, 0);
+    const alunosN   = p.chamadas.reduce((s, c) => s + c.total, 0);
+    const ausN      = Math.max(0, alunosN - presN);
+    const freqN     = pct(presN, alunosN);
+    const turmasSet = new Set(p.chamadas.map(c => c.turma?.nome || "—"));
+    const ini       = p.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
 
-    group.innerHTML = `
-      <div class="hist-date-sep">
-        <span class="hist-date-label">
-          ${date === hoje ? '<span class="hist-hoje-badge">Hoje</span>' : ""}
-          ${fmtData(date)}
-        </span>
-        <span class="hist-date-meta">${items.length} chamada${items.length !== 1 ? "s" : ""} · ${dFreq}% frequência</span>
-      </div>
-      <div class="hist-day-rows"></div>
-    `;
-
-    const rowsWrap = group.querySelector(".hist-day-rows");
-    items.forEach((c, ci) => {
-      const p   = c.freq;
-      const ini = (c.turma?.nome || "?")[0].toUpperCase();
-      const row = document.createElement("div");
-      row.className = "hist-row";
-      row.style.animationDelay = `${(di * 5 + ci) * .03}s`;
-      row.innerHTML = `
-        <div class="hist-row-main" tabindex="0">
-          <div class="hist-row-avatar">${esc(ini)}</div>
-          <div class="hist-row-info">
-            <div class="hist-row-turma">${esc(c.turma?.nome || "—")}</div>
-            ${c.professor ? `<div class="hist-row-materia">${esc(c.professor)}</div>` : ""}
-          </div>
-          <div class="hist-row-chips">
-            <span class="hist-chip green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>
-              ${c.presentes}
-            </span>
-            ${c.atrasados > 0 ? `<span class="hist-chip orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ${c.atrasados}
-            </span>` : ""}
-            <span class="hist-chip red">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              ${c.ausentes < 0 ? 0 : c.ausentes}
-            </span>
-          </div>
-          <div class="hist-row-freq ${clrPct(p)}">${p}%</div>
-          <div class="hist-row-status">
-            ${c.aberta
-              ? `<span class="hist-badge aberta">Aberta</span>`
-              : `<span class="hist-badge encerrada">Encerrada</span>`}
-          </div>
-          <div class="hist-row-chevron">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+    const card = document.createElement("div");
+    card.className = "rel-aluno-card";
+    card.style.animationDelay = `${idx * .025}s`;
+    card.innerHTML = `
+      <div class="rel-aluno-card-head" tabindex="0">
+        <div class="rel-aluno-avatar">${esc(ini || "?")}</div>
+        <div class="rel-aluno-info">
+          <div class="rel-aluno-nome">${esc(p.nome)}</div>
+          <div class="rel-aluno-meta">${turmasSet.size} turma${turmasSet.size !== 1 ? "s" : ""} · ${totalCh} chamada${totalCh !== 1 ? "s" : ""}</div>
+        </div>
+        <div class="rel-aluno-stats">
+          <div class="rel-aluno-freq ${clrPct(freqN)}">${freqN}%</div>
+          <div class="rel-aluno-chips">
+            <span class="hist-chip green" title="Presentes">${presN}</span>
+            ${atrasN > 0 ? `<span class="hist-chip orange" title="Atrasados">${atrasN}</span>` : ""}
+            <span class="hist-chip red" title="Ausentes">${ausN}</span>
           </div>
         </div>
-        <div class="hist-row-detail"></div>
-      `;
+        <div class="hist-row-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+      <div class="rel-aluno-detail">
+        <table class="rel-aluno-table">
+          <thead><tr><th>Data</th><th>Turma</th><th>Presentes</th><th>Ausentes</th><th>Freq</th></tr></thead>
+          <tbody>
+            ${p.chamadas.slice().sort((a, b) => b.data.localeCompare(a.data)).map(c => `
+              <tr data-cid="${c.id}" style="cursor:pointer" title="Ver detalhe da chamada">
+                <td>${fmtDataCurta(c.data)}</td>
+                <td>${esc(c.turma?.nome || "—")}</td>
+                <td>${c.presentes}</td>
+                <td>${Math.max(0, c.ausentes)}</td>
+                <td><span class="${c.freq >= 75 ? "rel-st-pres" : c.freq >= 50 ? "rel-st-atraso" : "rel-st-aus"}">${c.freq}%</span></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
 
-      const main   = row.querySelector(".hist-row-main");
-      const detail = row.querySelector(".hist-row-detail");
-      let loaded = false;
-
-      const toggle = async () => {
-        if (row.classList.toggle("open") && !loaded) {
-          loaded = true;
-          detail.innerHTML = `<div class="hist-detail-loading">Carregando…</div>`;
-
-          const chamadaPresIds = new Set(
-            _presencas.filter(p => p.chamada_id === c.id).map(p => p.aluno_id)
-          );
-          const chamadaAtrasIds = new Set(
-            _presencas.filter(p => p.chamada_id === c.id && p.atrasado).map(p => p.aluno_id)
-          );
-          // Hora em que cada aluno passou o crachá nesta chamada
-          const horaScan = {};
-          _presencas
-            .filter(p => p.chamada_id === c.id)
-            .forEach(p => { horaScan[p.aluno_id] = p.registrado_em; });
-          const fmtHora = (ts) => ts
-            ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-            : "";
-
-          const turmaAlunos = _alunos.filter(a => a.turma_id === c.turma_id);
-          const presLista   = turmaAlunos.filter(a => chamadaPresIds.has(a.id) && !chamadaAtrasIds.has(a.id));
-          const atrasLista  = turmaAlunos.filter(a => chamadaAtrasIds.has(a.id));
-          const ausLista    = turmaAlunos.filter(a => !chamadaPresIds.has(a.id));
-
-          const alunoRow = (a, i, tipo) => {
-            const hora = fmtHora(horaScan[a.id]);
-            return `
-            <div class="hist-detail-aluno" style="animation-delay:${i*.02}s">
-              <span class="hist-detail-num">${i+1}</span>
-              <span class="hist-detail-nome">${esc(a.nome)}</span>
-              ${a.matricula ? `<span class="hist-detail-mat">${esc(a.matricula)}</span>` : ""}
-              ${hora ? `<span style="font-size:.58rem;font-weight:600;color:#64748b;margin-left:auto">🕐 ${hora}</span>` : ""}
-              ${tipo === "atrasado" ? `<span style="font-size:.58rem;font-weight:700;background:#fff7ed;color:#c2410c;border-radius:20px;padding:2px 7px;border:1px solid #fed7aa">Atrasado</span>` : ""}
-            </div>`;
-          };
-
-          detail.innerHTML = `
-            <div class="hist-detail-inner">
-              <div class="hist-detail-col">
-                <div class="hist-detail-col-head green">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
-                  Presentes (${presLista.length + atrasLista.length})
-                </div>
-                ${!presLista.length && !atrasLista.length
-                  ? `<div class="hist-detail-none">Nenhum presente</div>`
-                  : [...presLista.map((a, i) => alunoRow(a, i, "presente")),
-                     ...atrasLista.map((a, i) => alunoRow(a, presLista.length + i, "atrasado"))].join("")}
-              </div>
-              <div class="hist-detail-col">
-                <div class="hist-detail-col-head red">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  Ausentes (${ausLista.length})
-                </div>
-                ${!ausLista.length
-                  ? `<div class="hist-detail-none">Nenhum ausente</div>`
-                  : ausLista.map((a, i) => alunoRow(a, i, "ausente")).join("")}
-              </div>
-            </div>`;
-        }
-      };
-
-      main.addEventListener("click", toggle);
-      main.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") toggle(); });
-      rowsWrap.appendChild(row);
+    const head = card.querySelector(".rel-aluno-card-head");
+    head.addEventListener("click",   () => card.classList.toggle("open"));
+    head.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") card.classList.toggle("open"); });
+    card.querySelectorAll("tr[data-cid]").forEach(tr => {
+      tr.addEventListener("click", e => {
+        e.stopPropagation();
+        const c = p.chamadas.find(x => x.id === tr.dataset.cid);
+        if (c) abrirModalChamadaDetalhe(c);
+      });
     });
+    grid.appendChild(card);
+  });
+}
 
-    content.appendChild(group);
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: detalhe de uma chamada (presentes × ausentes, com horário de scan)
+// ─────────────────────────────────────────────────────────────────────────────
+function montarDetalheChamadaHtml(c) {
+  const chamadaPresIds = new Set(
+    _presencas.filter(p => p.chamada_id === c.id).map(p => p.aluno_id)
+  );
+  const chamadaAtrasIds = new Set(
+    _presencas.filter(p => p.chamada_id === c.id && p.atrasado).map(p => p.aluno_id)
+  );
+  const horaScan = {};
+  _presencas.filter(p => p.chamada_id === c.id).forEach(p => { horaScan[p.aluno_id] = p.registrado_em; });
+  const fmtHora = (ts) => ts ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+
+  const turmaAlunos = _alunos.filter(a => a.turma_id === c.turma_id);
+  const presLista   = turmaAlunos.filter(a => chamadaPresIds.has(a.id) && !chamadaAtrasIds.has(a.id));
+  const atrasLista  = turmaAlunos.filter(a => chamadaAtrasIds.has(a.id));
+  const ausLista    = turmaAlunos.filter(a => !chamadaPresIds.has(a.id));
+
+  const alunoRow = (a, i, tipo) => {
+    const hora = fmtHora(horaScan[a.id]);
+    return `
+    <div class="hist-detail-aluno" style="animation-delay:${i * .02}s">
+      <span class="hist-detail-num">${i + 1}</span>
+      <span class="hist-detail-nome">${esc(a.nome)}</span>
+      ${a.matricula ? `<span class="hist-detail-mat">${esc(a.matricula)}</span>` : ""}
+      ${hora ? `<span style="font-size:.58rem;font-weight:600;color:#64748b;margin-left:auto">🕐 ${hora}</span>` : ""}
+      ${tipo === "atrasado" ? `<span style="font-size:.58rem;font-weight:700;background:#fff7ed;color:#c2410c;border-radius:20px;padding:2px 7px;border:1px solid #fed7aa">Atrasado</span>` : ""}
+    </div>`;
+  };
+
+  return `
+    <div class="hist-detail-inner">
+      <div class="hist-detail-col">
+        <div class="hist-detail-col-head green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+          Presentes (${presLista.length + atrasLista.length})
+        </div>
+        ${!presLista.length && !atrasLista.length
+          ? `<div class="hist-detail-none">Nenhum presente</div>`
+          : [...presLista.map((a, i) => alunoRow(a, i, "presente")),
+             ...atrasLista.map((a, i) => alunoRow(a, presLista.length + i, "atrasado"))].join("")}
+      </div>
+      <div class="hist-detail-col">
+        <div class="hist-detail-col-head red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Ausentes (${ausLista.length})
+        </div>
+        ${!ausLista.length
+          ? `<div class="hist-detail-none">Nenhum ausente</div>`
+          : ausLista.map((a, i) => alunoRow(a, i, "ausente")).join("")}
+      </div>
+    </div>`;
+}
+
+function abrirModalChamadaDetalhe(c) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay open";
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:560px;max-height:84vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <h2>${esc(c.turma?.nome || "—")} — ${fmtData(c.data)}</h2>
+        <button class="close-btn" id="rel-modal-close">✕</button>
+      </div>
+      <div style="overflow-y:auto;flex:1">${montarDetalheChamadaHtml(c)}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector("#rel-modal-close").addEventListener("click", fechar);
+  overlay.addEventListener("click", e => { if (e.target === overlay) fechar(); });
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") { fechar(); document.removeEventListener("keydown", onEsc); }
   });
 }
 
@@ -619,9 +668,9 @@ function renderPorAluno(f) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 3: RESUMO
+// TAB 3: POR TURMA
 // ─────────────────────────────────────────────────────────────────────────────
-function renderResumo(f) {
+function renderPorTurma(f) {
   const content  = document.getElementById("rel-content");
   const filtered = chamadasFiltradas(f);
 
@@ -699,39 +748,115 @@ function renderResumo(f) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TAB 4: RESUMO (visão geral, sem expandir — só números e ranking)
+// ─────────────────────────────────────────────────────────────────────────────
+function renderResumoGeral(f) {
+  const content  = document.getElementById("rel-content");
+  const filtered = chamadasFiltradas(f);
+
+  if (!filtered.length) {
+    content.innerHTML = `
+      <div class="hist-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" width="44" height="44" style="opacity:.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <p>Nenhuma chamada no período selecionado.</p>
+      </div>`;
+    return;
+  }
+
+  const porTurma = {};
+  filtered.forEach(c => {
+    const tid = c.turma_id;
+    if (!porTurma[tid]) porTurma[tid] = { turma: c.turma, chamadas: 0, presTotal: 0, atrasTotal: 0, alunosTotal: c.total };
+    porTurma[tid].chamadas++;
+    porTurma[tid].presTotal += c.presentes;
+    porTurma[tid].atrasTotal += c.atrasados;
+  });
+  const turmasSorted = Object.values(porTurma).sort((a, b) =>
+    pct(b.presTotal, b.chamadas * b.alunosTotal) - pct(a.presTotal, a.chamadas * a.alunosTotal)
+  );
+
+  const totalGeral  = filtered.length;
+  const presGeral   = filtered.reduce((s, c) => s + c.presentes, 0);
+  const alunosGeral = filtered.reduce((s, c) => s + c.total, 0);
+  const freqGeral   = pct(presGeral, alunosGeral);
+
+  content.innerHTML = `
+    <div class="rel-resumo-header">
+      <div class="rel-resumo-stat">
+        <div class="rel-resumo-num">${turmasSorted.length}</div>
+        <div class="rel-resumo-lbl">turmas</div>
+      </div>
+      <div class="rel-resumo-stat">
+        <div class="rel-resumo-num">${totalGeral}</div>
+        <div class="rel-resumo-lbl">chamadas</div>
+      </div>
+      <div class="rel-resumo-stat">
+        <div class="rel-resumo-num ${clrPct(freqGeral)}">${freqGeral}%</div>
+        <div class="rel-resumo-lbl">freq. geral</div>
+      </div>
+    </div>
+    <div class="rel-aluno-card">
+      <table class="rel-aluno-table">
+        <thead><tr><th>Turma</th><th>Professor</th><th>Chamadas</th><th>Presentes</th><th>Atrasados</th><th>Freq</th></tr></thead>
+        <tbody>
+          ${turmasSorted.map(r => {
+            const fr = pct(r.presTotal, r.chamadas * r.alunosTotal);
+            return `<tr>
+              <td>${esc(r.turma?.nome || "—")}</td>
+              <td>${esc(r.turma?.professor || "—")}</td>
+              <td>${r.chamadas}</td>
+              <td>${r.presTotal}</td>
+              <td>${r.atrasTotal}</td>
+              <td><span class="${fr >= 75 ? "rel-st-pres" : fr >= 50 ? "rel-st-atraso" : "rel-st-aus"}">${fr}%</span></td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // XLSX DOWNLOADS
 // ─────────────────────────────────────────────────────────────────────────────
 function baixar() {
-  if (_tab === "chamadas") baixarPorChamada();
+  if (_tab === "professores") baixarPorProfessor();
   else if (_tab === "alunos") baixarPorAluno();
-  else baixarResumo();
+  else baixarPorTurma(); // "turmas" e "resumo" exportam a mesma planilha por turma
 }
 
-function baixarPorChamada() {
+function baixarPorProfessor() {
   const f        = getFiltros();
   const filtered = chamadasFiltradas(f);
   if (!filtered.length) { showToast("Nenhum dado para exportar.", "error"); return; }
 
-  const linhas = [
-    ["Data","Turma","Professor","Matéria","Presentes","Atrasados","Ausentes","Total","Freq %","Status"],
-  ];
-
+  const porProf = {};
   filtered.forEach(c => {
-    linhas.push([
-      fmtDataCurta(c.data),
-      c.turma?.nome ?? "—",
-      c.turma?.professor ?? "",
-      c.turma?.materia ?? "",
-      c.presentes,
-      c.atrasados,
-      Math.max(0, c.ausentes),
-      c.total,
-      c.freq + "%",
-      c.aberta ? "Aberta" : "Encerrada",
-    ]);
+    const key = c.professor_id || c.professor || "—";
+    if (!porProf[key]) porProf[key] = { nome: c.professor || "Sem professor", chamadas: [] };
+    porProf[key].chamadas.push(c);
   });
 
-  exportXlsx([{ nome: "Chamadas", linhas }], `Relatorio_Chamadas_${hoje()}.xlsx`);
+  const resumo  = [["Professor","Turmas","Chamadas","Presentes","Atrasados","Ausentes","Frequência %"]];
+  const detalhe = [["Professor","Data","Turma","Presentes","Ausentes","Freq %"]];
+
+  Object.values(porProf).forEach(p => {
+    const totalCh = p.chamadas.length;
+    const presN   = p.chamadas.reduce((s, c) => s + c.presentes, 0);
+    const atrasN  = p.chamadas.reduce((s, c) => s + c.atrasados, 0);
+    const alunosN = p.chamadas.reduce((s, c) => s + c.total, 0);
+    const ausN    = Math.max(0, alunosN - presN);
+    const freqN   = pct(presN, alunosN);
+    const turmasSet = new Set(p.chamadas.map(c => c.turma?.nome || "—"));
+    resumo.push([p.nome, turmasSet.size, totalCh, presN, atrasN, ausN, freqN + "%"]);
+    p.chamadas.forEach(c => {
+      detalhe.push([p.nome, fmtDataCurta(c.data), c.turma?.nome ?? "—", c.presentes, Math.max(0, c.ausentes), c.freq + "%"]);
+    });
+  });
+
+  exportXlsx([
+    { nome: "Resumo por Professor", linhas: resumo },
+    { nome: "Detalhe por Chamada", linhas: detalhe },
+  ], `Relatorio_Professores_${hoje()}.xlsx`);
   showToast("Relatório exportado!", "success");
 }
 
@@ -782,7 +907,7 @@ function baixarPorAluno() {
   showToast("Relatório exportado!", "success");
 }
 
-function baixarResumo() {
+function baixarPorTurma() {
   const f        = getFiltros();
   const filtered = chamadasFiltradas(f);
   if (!filtered.length) { showToast("Nenhum dado para exportar.", "error"); return; }
