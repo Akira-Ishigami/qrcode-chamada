@@ -691,10 +691,7 @@ async function abrirModalConfig() {
   ).join("");
 
   const { ov, close } = modalHor("Configuração da grade", "Parâmetros usados na geração automática — o início e fim do dia vêm do horário de funcionamento de cada turma", `
-    <div class="hor-field-row">
-      <div class="hor-field"><label>Duração da aula (min)</label><input id="cf-aula" type="number" min="10" max="180" value="${c.aula_min}"></div>
-      <div class="hor-field"><label>Intervalo entre aulas (min)</label><input id="cf-int" type="number" min="0" max="60" value="${c.intervalo_min}"></div>
-    </div>
+    <div class="hor-field"><label>Duração da aula (min)</label><input id="cf-aula" type="number" min="10" max="180" value="${c.aula_min}"></div>
     <div class="hor-field"><label>Dias letivos</label><div class="hor-dias">${diasHtml}</div></div>
     <div class="hor-field-row">
       <div class="hor-field"><label>Recreio — início</label><input id="cf-rec-ini" type="time" value="${c.recreio_inicio ? c.recreio_inicio.slice(0,5) : ""}"></div>
@@ -714,7 +711,7 @@ async function abrirModalConfig() {
     const payload = {
       instituicao_id: _instId,
       aula_min: parseInt(ov.querySelector("#cf-aula").value, 10) || 50,
-      intervalo_min: parseInt(ov.querySelector("#cf-int").value, 10) || 0,
+      intervalo_min: 0,
       recreio_inicio: ov.querySelector("#cf-rec-ini").value || null,
       recreio_fim: ov.querySelector("#cf-rec-fim").value || null,
       dias_semana: diasSel.sort((a,b)=>a-b),

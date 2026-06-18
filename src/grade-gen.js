@@ -22,11 +22,16 @@ export function construirSlots(turma, config) {
 
   const slots = [];
   for (const dia of config.dias_semana) {
-    for (let t = ini; t + config.aula_min <= fim; t += passo) {
+    let t = ini;
+    while (t + config.aula_min <= fim) {
       const a = t, b = t + config.aula_min;
-      // pula se invade o recreio
-      if (recIni != null && recFim != null && a < recFim && b > recIni) continue;
+      // se a aula invadiria o recreio, pula direto pro fim do recreio (não perde a vaga)
+      if (recIni != null && recFim != null && a < recFim && b > recIni) {
+        t = recFim;
+        continue;
+      }
       slots.push({ dia, ini: a, fim: b });
+      t += passo;
     }
   }
   return slots;
