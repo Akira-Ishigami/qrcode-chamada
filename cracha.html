@@ -195,17 +195,47 @@
       letter-spacing: .06em;
     }
 
-    /* ── Control panel (right) ──────────────────────── */
+    /* ── Control panel — modal lateral (drawer), aberto pelo botão Editar ── */
     .cs-controls {
+      position: fixed; top: 0; right: 0; height: 100vh;
       width: clamp(300px, 30vw, 388px); flex-shrink: 0;
       background: var(--pnl-bg);
       border-left: 1px solid var(--pnl-border);
+      box-shadow: -16px 0 48px rgba(0,0,0,.18);
       overflow-y: auto; display: flex; flex-direction: column;
       scrollbar-width: thin;
       scrollbar-color: #d6d0c4 transparent;
+      transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.22,1,.36,1);
+      z-index: 1001;
     }
+    .cs-controls.open { transform: translateX(0); }
     .cs-controls::-webkit-scrollbar { width: 5px; }
     .cs-controls::-webkit-scrollbar-thumb { background: #d6d0c4; border-radius: 3px; }
+
+    .cs-drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(15,15,15,.45);
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+      z-index: 1000;
+    }
+    .cs-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .cs-bar-right { display: flex; align-items: center; gap: 14px; }
+    .cs-edit-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 99px; border: none;
+      background: var(--ink); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: filter .15s, transform .15s;
+    }
+    .cs-edit-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .cs-ctrl-close {
+      width: 30px; height: 30px; border-radius: 50%; border: none;
+      background: var(--pnl-bg2, #f1f0ec); color: var(--pnl-muted);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .15s; flex-shrink: 0;
+    }
+    .cs-ctrl-close:hover { background: var(--pnl-border); color: var(--pnl-text); }
 
     /* Panel header */
     .cs-ctrl-head {
@@ -213,6 +243,7 @@
       border-bottom: 1px solid var(--pnl-border);
       flex-shrink: 0;
       background: linear-gradient(180deg, #fff 0%, var(--pnl-bg) 100%);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
     }
     .cs-eyebrow {
       font-family: 'JetBrains Mono', monospace;
@@ -623,33 +654,14 @@
       .cs-chip-hint { display: none; }
     }
 
-    /* ── Empilha (≤ 1050px): canvas no topo + painel abaixo ─── */
+    /* ── Tela menor (≤ 1050px): drawer um pouco mais estreito ─── */
     @media (max-width: 1050px) {
-      #page-root { flex-direction: column !important; overflow-y: auto !important; height: auto !important; min-height: 0 !important; }
-      .main-content { overflow: auto !important; }
-      .cs-studio { flex-direction: column; height: auto; overflow: visible; }
-
-      /* Canvas: preview compacto fixo no topo */
-      .cs-canvas {
-        flex: none;
-        min-height: 0;
-        overflow: visible;
-        position: sticky; top: 0; z-index: 10;
-        box-shadow: 0 4px 20px rgba(0,0,0,.12);
-      }
       .cs-canvas-bar { padding: 10px 16px; }
       .cs-canvas-scene { padding: 16px 12px 8px; }
-      .cs-card-float { animation: none; }
       #preview-canvas-wrap img { max-width: min(100%, 640px); border-radius: 8px; }
       .cs-tabs-row { padding: 10px 0 8px; }
       .cs-canvas-caption { padding: 6px 16px 10px; }
 
-      /* Painel: largura total, scroll vertical normal */
-      .cs-controls {
-        width: 100%; border-left: none;
-        border-top: 1px solid var(--pnl-border);
-        overflow-y: visible; height: auto;
-      }
       .cs-ctrl-head { padding: 20px 20px 16px; }
       .cs-title { font-size: 2rem; }
       .cs-section { padding: 14px 20px; }
@@ -664,7 +676,8 @@
     /* ── Celular: só visualizar, sem editar (edição é coisa de computador) ── */
     .cs-mobile-note { display: none; }
     @media (max-width: 640px) {
-      .cs-controls { display: none; }
+      .cs-edit-btn { display: none; }
+      .cs-controls, .cs-drawer-backdrop { display: none !important; }
       .cs-mobile-note {
         display: flex; align-items: center; gap: 10px;
         margin: 0 16px 16px; padding: 12px 14px;
@@ -832,7 +845,13 @@
               <span class="cs-live-pip"></span>
               <span class="cs-bar-brand">Card Studio</span>
             </div>
-            <span class="cs-bar-hint">clique para ampliar</span>
+            <div class="cs-bar-right">
+              <span class="cs-bar-hint">clique para ampliar</span>
+              <button class="cs-edit-btn" id="btn-abrir-editor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="13" height="13"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                Editar
+              </button>
+            </div>
           </div>
           <div class="cs-canvas-scene">
             <div class="cs-card-float">
@@ -866,11 +885,19 @@
           Para editar o crachá, acesse pelo computador. Aqui você só pode visualizar.
         </div>
 
+        <!-- Modal lateral de edição -->
+        <div class="cs-drawer-backdrop" id="cs-drawer-backdrop"></div>
+
         <!-- Controls -->
         <div class="cs-controls">
           <div class="cs-ctrl-head">
-            <div class="cs-eyebrow">Identidade Visual</div>
-            <div class="cs-title">Crachá</div>
+            <div>
+              <div class="cs-eyebrow">Identidade Visual</div>
+              <div class="cs-title">Crachá</div>
+            </div>
+            <button class="cs-ctrl-close" id="btn-fechar-editor" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
 
           <!-- Cores -->

@@ -77,6 +77,16 @@ async function init() {
     });
   });
   document.getElementById("btn-salvar").addEventListener("click", salvar);
+
+  // Modal lateral de edição (drawer)
+  const drawer   = document.querySelector(".cs-controls");
+  const backdrop = document.getElementById("cs-drawer-backdrop");
+  const abrirEditor  = () => { drawer?.classList.add("open"); backdrop?.classList.add("open"); };
+  const fecharEditor = () => { drawer?.classList.remove("open"); backdrop?.classList.remove("open"); };
+  document.getElementById("btn-abrir-editor")?.addEventListener("click", abrirEditor);
+  document.getElementById("btn-fechar-editor")?.addEventListener("click", fecharEditor);
+  backdrop?.addEventListener("click", fecharEditor);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") fecharEditor(); });
   document.addEventListener("cracha-preview", agendarPreview);
   document.getElementById("logo-upload").addEventListener("change", handleLogoUpload);
   document.getElementById("btn-remover-logo").addEventListener("click", removerLogo);
