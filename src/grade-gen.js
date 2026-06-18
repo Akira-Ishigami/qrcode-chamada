@@ -72,7 +72,7 @@ function contarJanelas(placed, passo) {
   return gaps;
 }
 
-function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
+function encaixar(unidades, slotsByTurma, indispIdx, config, travados, maxMateriaDiaByTurma) {
   const passo = config.aula_min + (config.intervalo_min || 0);
   const turmaBusy = new Set();
   const profBusy  = new Set();
@@ -91,6 +91,7 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
   const placed = [], unplaced = [];
   for (const u of unidades) {
     const slots = slotsByTurma[u.turma_id] || [];
+    const maxMateriaDia = maxMateriaDiaByTurma[u.turma_id] || 2;
     let melhor = null, melhorScore = -Infinity;
 
     for (const s of slots) {
@@ -98,7 +99,7 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
       if (u.professor_id && profBusy.has(`${u.professor_id}|${s.dia}|${s.ini}`)) continue;
       if (u.professor_id && profIndisponivel(indispIdx, u.professor_id, s)) continue;
       const matKey = `${u.turma_id}|${u.materia_id}|${s.dia}`;
-      if ((matDia.get(matKey) || 0) >= config.max_materia_dia) continue;
+      if ((matDia.get(matKey) || 0) >= maxMateriaDia) continue;
 
       // Score: adjacência do professor (evita janelas) + mais cedo + espalhar matéria
       let score = 0;
@@ -123,12 +124,28 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
   return { placed, unplaced, gaps: contarJanelas(placed, passo) };
 }
 
+// Quantas aulas da mesma matéria cabem por dia, em média, dada a capacidade diária da turma
+// (duração + intervalo + recreio definem a capacidade; divide pelas matérias distintas da turma).
+function calcularMaxMateriaDia(slots, config, numMaterias) {
+  const diasCount = (config.dias_semana || []).length || 1;
+  const capacidadeDia = slots.length / diasCount;
+  return Math.max(1, Math.round(capacidadeDia / Math.max(1, numMaterias)));
+}
+
 // API principal
 // { turmas:[{id,hora_inicio,hora_fim}], config, demanda:[{turma_id,materia_id,professor_id,aulas_semana}],
 //   indisponibilidade:[...], travados:[horarios] }
 export function gerarGrade({ turmas, config, demanda, indisponibilidade = [], travados = [] }) {
   const slotsByTurma = {};
-  turmas.forEach(t => { slotsByTurma[t.id] = construirSlots(t, config); });
+  const maxMateriaDiaByTurma = {};
+  turmas.forEach(t => {
+    const slots = construirSlots(t, config);
+    slotsByTurma[t.id] = slots;
+    const numMaterias = new Set(
+      demanda.filter(d => d.turma_id === t.id && d.aulas_semana > 0).map(d => d.materia_id)
+    ).size;
+    maxMateriaDiaByTurma[t.id] = calcularMaxMateriaDia(slots, config, numMaterias);
+  });
   const indispIdx = indexIndisp(indisponibilidade);
 
   // Expande a demanda em unidades de aula
@@ -148,7 +165,7 @@ export function gerarGrade({ turmas, config, demanda, indisponibilidade = [], tr
   const RESTARTS = 60;
   for (let r = 0; r < RESTARTS; r++) {
     const ordem = r === 0 ? base : embaralhar(base);
-    const res = encaixar(ordem, slotsByTurma, indispIdx, config, travados);
+    const res = encaixar(ordem, slotsByTurma, indispIdx, config, travados, maxMateriaDiaByTurma);
     if (!best
         || res.unplaced.length < best.unplaced.length
         || (res.unplaced.length === best.unplaced.length && res.gaps < best.gaps)) {

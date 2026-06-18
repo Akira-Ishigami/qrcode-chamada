@@ -677,8 +677,7 @@ async function carregarConfig() {
   const { data } = await supabaseAdmin.from("grade_config").select("*").eq("instituicao_id", _instId).maybeSingle();
   _gradeConfig = data || {
     instituicao_id: _instId, aula_min: 50, intervalo_min: 0,
-    hora_inicio: "07:00", hora_fim: "12:00",
-    recreio_inicio: null, recreio_fim: null, dias_semana: [1,2,3,4,5], max_materia_dia: 2,
+    recreio_inicio: null, recreio_fim: null, dias_semana: [1,2,3,4,5],
   };
   return _gradeConfig;
 }
@@ -691,11 +690,7 @@ async function abrirModalConfig() {
     `<button type="button" class="hor-dia-chip${dias.has(v) ? " on" : ""}" data-dia="${v}">${l}</button>`
   ).join("");
 
-  const { ov, close } = modalHor("Configuração da grade", "Parâmetros usados na geração automática", `
-    <div class="hor-field-row">
-      <div class="hor-field"><label>Início do dia</label><input id="cf-ini" type="time" value="${(c.hora_inicio || '07:00').slice(0,5)}"></div>
-      <div class="hor-field"><label>Fim do dia</label><input id="cf-fim" type="time" value="${(c.hora_fim || '12:00').slice(0,5)}"></div>
-    </div>
+  const { ov, close } = modalHor("Configuração da grade", "Parâmetros usados na geração automática — o início e fim do dia vêm do horário de funcionamento de cada turma", `
     <div class="hor-field-row">
       <div class="hor-field"><label>Duração da aula (min)</label><input id="cf-aula" type="number" min="10" max="180" value="${c.aula_min}"></div>
       <div class="hor-field"><label>Intervalo entre aulas (min)</label><input id="cf-int" type="number" min="0" max="60" value="${c.intervalo_min}"></div>
@@ -705,7 +700,7 @@ async function abrirModalConfig() {
       <div class="hor-field"><label>Recreio — início</label><input id="cf-rec-ini" type="time" value="${c.recreio_inicio ? c.recreio_inicio.slice(0,5) : ""}"></div>
       <div class="hor-field"><label>Recreio — fim</label><input id="cf-rec-fim" type="time" value="${c.recreio_fim ? c.recreio_fim.slice(0,5) : ""}"></div>
     </div>
-    <div class="hor-field"><label>Máx. da mesma matéria por dia</label><input id="cf-max" type="number" min="1" max="6" value="${c.max_materia_dia}"></div>
+    <small style="font-size:.7rem;color:var(--text-3);display:block">O máximo de aulas da mesma matéria por dia é calculado automaticamente a partir da duração, intervalo, recreio e do horário de funcionamento de cada turma.</small>
     <div class="hor-feedback" id="cf-fb"></div>
   `, `<button class="hor-btn-cancel" data-close>Cancelar</button><button class="hor-btn-save" id="cf-salvar">Salvar</button>`);
 
@@ -716,19 +711,13 @@ async function abrirModalConfig() {
   ov.querySelector("#cf-salvar").addEventListener("click", async () => {
     const diasSel = [...ov.querySelectorAll(".hor-dia-chip.on")].map(c => +c.dataset.dia);
     if (!diasSel.length) { ov.querySelector("#cf-fb").textContent = "Selecione ao menos um dia."; return; }
-    const horaIni = ov.querySelector("#cf-ini").value || "07:00";
-    const horaFim = ov.querySelector("#cf-fim").value || "12:00";
-    if (horaFim <= horaIni) { ov.querySelector("#cf-fb").textContent = "O fim do dia deve ser depois do início."; return; }
     const payload = {
       instituicao_id: _instId,
-      hora_inicio: horaIni,
-      hora_fim: horaFim,
       aula_min: parseInt(ov.querySelector("#cf-aula").value, 10) || 50,
       intervalo_min: parseInt(ov.querySelector("#cf-int").value, 10) || 0,
       recreio_inicio: ov.querySelector("#cf-rec-ini").value || null,
       recreio_fim: ov.querySelector("#cf-rec-fim").value || null,
       dias_semana: diasSel.sort((a,b)=>a-b),
-      max_materia_dia: parseInt(ov.querySelector("#cf-max").value, 10) || 2,
     };
     const { error } = await supabaseAdmin.from("grade_config").upsert(payload, { onConflict: "instituicao_id" });
     if (error) { ov.querySelector("#cf-fb").textContent = "Erro: " + error.message; return; }
@@ -820,8 +809,9 @@ async function iniciarGeracao() {
   ]);
 
   if (!demanda?.length) { showToast("Cadastre a grade curricular (📚) antes de gerar.", "error"); return; }
-  if (!_gradeConfig.hora_inicio || !_gradeConfig.hora_fim) {
-    showToast("Configure o início/fim do dia em ⚙️ Configurar.", "error"); return;
+  const turmaSemHorario = (turmas ?? []).find(t => !t.hora_inicio || !t.hora_fim);
+  if (turmaSemHorario) {
+    showToast(`Defina o horário de funcionamento da turma "${turmaSemHorario.nome}" antes de gerar.`, "error"); return;
   }
 
   const profIds = [...new Set(demanda.map(d => d.professor_id).filter(Boolean))];
