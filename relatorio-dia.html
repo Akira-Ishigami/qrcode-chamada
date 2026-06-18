@@ -199,6 +199,7 @@
       border-radius: 14px; padding: 14px 16px;
     }
     .rel-filter-left { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
+    .rel-filter-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .rel-filter-group { display: flex; flex-direction: column; gap: 4px; }
     .rel-filter-label { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--text-3); }
     .rel-select, .rel-input {
@@ -390,21 +391,23 @@
       .rel-tab { flex: 1; justify-content: center; padding: 9px 6px; font-size: .8rem; min-height: 40px; }
       .rel-tab svg { display: none; }
 
-      /* Filtros — Turma/De/Até numa linha só; Limpar/Baixar embaixo */
-      .rel-filter-bar { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+      /* Filtros — Turma/De/Até numa linha; Buscar aluno ponta a ponta; Limpar+Baixar lado a lado */
+      .rel-filter-bar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
       .rel-filter-left {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+        display: grid; grid-template-columns: repeat(3, 1fr);
         gap: 6px; width: 100%;
       }
       .rel-filter-group { flex-direction: column; align-items: stretch; gap: 3px; width: 100%; min-width: 0; }
+      #fg-aluno { grid-column: 1 / -1; }
       .rel-filter-label { min-width: unset; font-size: .56rem; }
       .rel-select, .rel-input {
         width: 100%; min-width: 0; height: 40px; font-size: .76rem; padding: 6px 7px;
       }
       .cdd { width: 100%; min-width: 0; }
       .cdd-trigger { height: 40px; font-size: .76rem; padding: 0 7px; gap: 4px; }
-      .rel-btn-clear { grid-column: 1 / -1; width: 100%; justify-content: center; height: 38px; }
-      .rel-btn-download { width: 100%; justify-content: center; height: 46px; font-size: .9rem; }
+      .rel-filter-actions { width: 100%; gap: 8px; }
+      .rel-btn-clear { flex: 1; justify-content: center; height: 42px; }
+      .rel-btn-download { flex: 1; justify-content: center; height: 42px; font-size: .82rem; padding: 0 10px; }
 
       /* Stats */
       .hist-stat-sep { display: none; }

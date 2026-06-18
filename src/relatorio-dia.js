@@ -343,15 +343,17 @@ function renderShell() {
           <label class="rel-filter-label">Buscar aluno</label>
           <input type="search" class="rel-input" id="filt-aluno" placeholder="Nome ou matrícula…" style="min-width:180px" />
         </div>
+      </div>
+      <div class="rel-filter-actions">
         <button class="rel-btn-clear" id="btn-clear">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Limpar
         </button>
+        <button class="rel-btn-download" id="btn-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar .xlsx
+        </button>
       </div>
-      <button class="rel-btn-download" id="btn-download">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Baixar .xlsx
-      </button>
     </div>
 
     <div id="rel-content"></div>
