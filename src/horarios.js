@@ -296,12 +296,17 @@ async function selecionarTurma(id) {
   renderGrid();
 }
 
-// Cada aula recebe uma cor própria, distribuída pela ordem (dia → hora).
+// Cada matéria sempre usa a mesma cor, em qualquer turma/horário/dia.
+function corDaMateria(materiaId) {
+  const mat = _materias.find(m => m.id === materiaId);
+  if (mat) return mat.colorIdx;
+  let hash = 0;
+  for (const ch of String(materiaId)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return hash % MAT_COLORS.length;
+}
+
 function recolorHorarios() {
-  _horarios
-    .slice()
-    .sort((a, b) => (a.dia_semana - b.dia_semana) || String(a.hora_inicio).localeCompare(String(b.hora_inicio)))
-    .forEach((h, i) => { h.colorIdx = i % MAT_COLORS.length; });
+  _horarios.forEach(h => { h.colorIdx = corDaMateria(h.materia_id); });
 }
 
 // ── Render da grade semanal ───────────────────────────────────────────────────
@@ -329,6 +334,12 @@ function renderGrid() {
   const nowTop   = (nowFloat - _gridStart) * CELL_H;
   const nowLabel = `${String(agora.getHours()).padStart(2,"0")}:${String(agora.getMinutes()).padStart(2,"0")}`;
 
+  // Linha marcando o fim do turno da turma (ex: 11:50), quando não cai numa hora cheia
+  const fimFloat = turmaAtual?.hora_fim ? timeToFloat(turmaAtual.hora_fim) : null;
+  const showFim  = fimFloat != null && fimFloat % 1 !== 0 && fimFloat > _gridStart && fimFloat <= _gridEnd;
+  const fimTop   = fimFloat != null ? (fimFloat - _gridStart) * CELL_H : 0;
+  const fimLabel = turmaAtual?.hora_fim ? turmaAtual.hora_fim.slice(0, 5) : "";
+
   // Coluna de horas
   let html = `
     <div class="cal-time-col">
@@ -339,7 +350,7 @@ function renderGrid() {
     </div>`;
 
   // Colunas dos dias
-  SHOW_DIAS.forEach(dia => {
+  SHOW_DIAS.forEach((dia, idx) => {
     const isHoje = dia === hoje;
     const hors   = _horarios.filter(h => h.dia_semana === dia);
 
@@ -354,6 +365,7 @@ function renderGrid() {
           `).join("")}
           ${hors.map(h => renderBlock(h)).join("")}
           ${isHoje && showNow ? `<div class="cal-now-line" style="top:${nowTop}px"><span class="cal-now-dot" data-time="${nowLabel}"></span></div>` : ""}
+          ${showFim ? `<div class="cal-end-line" style="top:${fimTop}px">${idx === 0 ? `<span class="cal-end-dot" data-time="${fimLabel}"></span>` : ""}</div>` : ""}
         </div>
       </div>`;
   });

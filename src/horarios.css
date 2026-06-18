@@ -263,6 +263,31 @@
   transform: translateY(-50%);
   box-shadow: 0 0 0 3px rgba(239,68,68,.18);
 }
+.cal-end-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 0;
+  border-top: 2px dashed #cbd5e1;
+  z-index: 4;
+  pointer-events: none;
+}
+.cal-end-dot {
+  position: absolute;
+  left: -3px; top: 50%;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transform: translateY(-50%);
+}
+.cal-end-dot::after {
+  content: attr(data-time);
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  font-size: .58rem; font-weight: 800; color: #64748b;
+  background: #fff; padding: 1px 5px; border-radius: 4px;
+  white-space: nowrap; box-shadow: 0 1px 3px rgba(15,23,42,.12);
+}
 .cal-now-dot::after {
   content: attr(data-time);
   position: absolute;
