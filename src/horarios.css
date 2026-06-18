@@ -550,6 +550,38 @@
   box-shadow: 0 0 0 3px rgba(37,99,235,.12);
 }
 
+/* ── Dropdown custom (mesmo padrão usado no calendário) ── */
+.cdd { position: relative; width: 100%; }
+.cdd-trigger {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 13px 16px; border: 2px solid #e2e8f0; border-radius: 14px;
+  background: #f8fafc; color: #0f172a; cursor: pointer;
+  font-family: 'Outfit', system-ui, sans-serif; font-size: .95rem; font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.cdd-trigger:hover { border-color: #cbd5e1; }
+.cdd.open .cdd-trigger { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); background: #fff; }
+.cdd-val { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-chev { color: #2563eb; flex-shrink: 0; transition: transform .2s cubic-bezier(.22,1,.36,1); }
+.cdd.open .cdd-chev { transform: rotate(180deg); }
+.cdd-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 50;
+  background: #fff; border: 1px solid #e7ebf2; border-radius: 12px;
+  box-shadow: 0 16px 40px -12px rgba(15,23,42,.3); padding: 5px; max-height: 240px; overflow-y: auto;
+  opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .15s, transform .15s;
+}
+.cdd.open .cdd-panel { opacity: 1; transform: none; pointer-events: auto; }
+.cdd-opt {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px; border: none; background: none; border-radius: 8px;
+  font-family: inherit; font-size: .875rem; font-weight: 600; color: #475569; cursor: pointer; text-align: left;
+}
+.cdd-opt-txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-opt:hover { background: #f1f5f9; color: #0f172a; }
+.cdd-opt.on { background: rgba(37,99,235,.1); color: #2563eb; }
+.cdd-check { flex-shrink: 0; opacity: 0; color: #2563eb; transition: opacity .12s; }
+.cdd-opt.on .cdd-check { opacity: 1; }
+
 /* ── Agenda view ─────────────────────────────── */
 .agenda-days-bar {
   display: flex;

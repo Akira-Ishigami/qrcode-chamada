@@ -40,6 +40,42 @@ let _profUserId   = null;
 const root = document.getElementById("page-root");
 const esc  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+// Dropdown custom para o <select> nativo (mesmo padrão usado no calendário)
+function enhanceSelect(sel) {
+  if (!sel || sel.dataset.cdd === "1") return;
+  sel.dataset.cdd = "1";
+  sel.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "cdd";
+  sel.insertAdjacentElement("afterend", wrap);
+  wrap.innerHTML = `
+    <button type="button" class="cdd-trigger">
+      <span class="cdd-val"></span>
+      <svg class="cdd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="cdd-panel" role="listbox"></div>`;
+  const trigger = wrap.querySelector(".cdd-trigger");
+  const panel   = wrap.querySelector(".cdd-panel");
+  const valEl   = wrap.querySelector(".cdd-val");
+  const close = () => wrap.classList.remove("open");
+  const rebuild = () => {
+    valEl.textContent = sel.options[sel.selectedIndex]?.textContent || "";
+    panel.innerHTML = [...sel.options].map(o => `
+      <button type="button" class="cdd-opt${o.value === sel.value ? " on" : ""}" data-v="${esc(o.value)}">
+        <span class="cdd-opt-txt">${esc(o.textContent)}</span>
+        <svg class="cdd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>`).join("");
+    panel.querySelectorAll(".cdd-opt").forEach(b => b.addEventListener("click", () => {
+      sel.value = b.dataset.v; rebuild(); close();
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }));
+  };
+  trigger.addEventListener("click", () => wrap.classList.toggle("open"));
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+  sel.cddRebuild = rebuild;
+  rebuild();
+}
+
 function showToast(msg, type = "") {
   const t = document.getElementById("toast");
   if (!t) return;
@@ -191,11 +227,13 @@ function renderShell() {
   const isMobile = () => window.innerWidth <= 640;
 
   if (!_isProfessor) {
+    enhanceSelect(document.getElementById("sel-turma-mobile"));
+
     // Desktop select
     document.getElementById("sel-turma")?.addEventListener("change", e => {
       const id = e.target.value;
       const mob = document.getElementById("sel-turma-mobile");
-      if (mob) mob.value = id;
+      if (mob) { mob.value = id; mob.cddRebuild?.(); }
       if (id) selecionarTurma(id);
       else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
     });
@@ -944,7 +982,7 @@ function mostrarPreview(res) {
   if (!_turmaId && _turmas[0]) {
     _turmaId = _turmas[0].id;
     const sel = document.getElementById("sel-turma"); if (sel) sel.value = _turmaId;
-    const selM = document.getElementById("sel-turma-mobile"); if (selM) selM.value = _turmaId;
+    const selM = document.getElementById("sel-turma-mobile"); if (selM) { selM.value = _turmaId; selM.cddRebuild?.(); }
     document.getElementById("cal-overlay")?.remove();
   }
   previewParaTurma(_turmaId);
