@@ -209,6 +209,13 @@ async function renderChat(ticket) {
 
   const isBug = ticket.tipo === "bug";
 
+  // A primeira mensagem, se for só uma imagem (sem texto), é a foto anexada na
+  // abertura do chamado — faz parte do relato, não aparece solta na conversa.
+  const primeiraMsg = msgs?.[0] || null;
+  const fotoRelato  = (primeiraMsg && primeiraMsg.imagem_base64 && !primeiraMsg.texto) ? primeiraMsg.imagem_base64 : null;
+  const feedMsgs    = fotoRelato ? msgs.slice(1) : msgs;
+  const temRelato   = !!(ticket.descricao || fotoRelato);
+
   root.innerHTML = `
     <div class="chat-wrap">
       <div class="chat-header">
@@ -226,14 +233,14 @@ async function renderChat(ticket) {
       </div>
 
       <div class="chat-messages" id="chat-messages">
-        ${ticket.descricao ? `
+        ${temRelato ? `
           <div class="chat-original">
-            <div class="chat-original-label">Relato original</div>
-            <div class="chat-original-text">${esc(ticket.descricao)}</div>
+            <div class="chat-original-label">Relato original${fotoRelato ? " · 📷" : ""}</div>
+            <div class="chat-original-text">${ticket.descricao ? esc(ticket.descricao) : "Imagem anexada — clique para ver"}</div>
           </div>
         ` : ""}
         <div id="chat-bubbles"></div>
-        ${msgs.length === 0 && !ticket.descricao ? `
+        ${feedMsgs.length === 0 && !temRelato ? `
           <div class="chat-no-msgs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:.2;margin-bottom:8px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <p>Nenhuma mensagem ainda.<br>Envie uma mensagem para a equipe.</p>
@@ -270,12 +277,11 @@ async function renderChat(ticket) {
   document.getElementById("chat-back").addEventListener("click", renderList);
 
   // Relato original — clicar abre os detalhes num modal, com a foto (se houver) expansível
-  const fotoRelato = (msgs ?? []).find(m => m.imagem_base64)?.imagem_base64 || null;
   document.querySelector(".chat-original")?.addEventListener("click", () => abrirModalRelato(ticket, fotoRelato));
 
-  // Renderiza mensagens existentes
+  // Renderiza só as mensagens da conversa (sem a foto do relato, que já fica no card acima)
   const bubblesEl = document.getElementById("chat-bubbles");
-  (msgs ?? []).forEach(m => bubblesEl.appendChild(buildBubble(m)));
+  feedMsgs.forEach(m => bubblesEl.appendChild(buildBubble(m)));
   scrollBottom();
 
   // ── Input de texto ──────────────────────────────────────────────────────────
