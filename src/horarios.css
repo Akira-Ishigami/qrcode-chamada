@@ -225,6 +225,7 @@
   display: flex;
   min-width: 480px;
   border-top: 1px solid #f1f3f8;
+  user-select: none; /* evita selecionar texto ao arrastar uma aula */
 }
 
 /* Time column */
@@ -402,6 +403,13 @@
   transform: translateY(-1px) scale(1.015);
   filter: saturate(1.08);
   z-index: 4;
+}
+.cal-block[draggable="true"] { cursor: grab; }
+.cal-block.dragging { opacity: .35; cursor: grabbing; }
+.cal-block.drag-over {
+  outline: 2px dashed #2563eb; outline-offset: 2px;
+  filter: saturate(1.15) brightness(1.03);
+  z-index: 5;
 }
 .cal-block-nome {
   font-size: .68rem; font-weight: 800;

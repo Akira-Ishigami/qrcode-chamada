@@ -382,7 +382,7 @@ function renderGrid() {
     });
   }
 
-  // Bind blocks — professor: só leitura; instituição: abre popover
+  // Bind blocks — professor: só leitura; instituição: abre popover + arrastar para trocar
   if (_turmaId || _isProfessor) {
     grid.querySelectorAll(".cal-block").forEach(block => {
       if (_isProfessor) return; // sem ação no bloco para professor
@@ -390,8 +390,49 @@ function renderGrid() {
         e.stopPropagation();
         mostrarPopover(block, block.dataset.id);
       });
+
+      if (block.draggable) {
+        block.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text/plain", block.dataset.id);
+          e.dataTransfer.effectAllowed = "move";
+          block.classList.add("dragging");
+        });
+        block.addEventListener("dragend", () => block.classList.remove("dragging"));
+        block.addEventListener("dragover", e => { e.preventDefault(); block.classList.add("drag-over"); });
+        block.addEventListener("dragleave", () => block.classList.remove("drag-over"));
+        block.addEventListener("drop", e => {
+          e.preventDefault();
+          block.classList.remove("drag-over");
+          const fromId = e.dataTransfer.getData("text/plain");
+          const toId   = block.dataset.id;
+          if (fromId && toId && fromId !== toId) trocarHorarios(fromId, toId);
+        });
+      }
     });
   }
+}
+
+// ── Troca os horários (dia/hora) de duas aulas ao arrastar uma sobre a outra ──
+async function trocarHorarios(fromId, toId) {
+  const a = _horarios.find(h => h.id === fromId);
+  const b = _horarios.find(h => h.id === toId);
+  if (!a || !b) return;
+
+  const aDia = a.dia_semana, aIni = a.hora_inicio, aFim = a.hora_fim;
+  a.dia_semana = b.dia_semana; a.hora_inicio = b.hora_inicio; a.hora_fim = b.hora_fim;
+  b.dia_semana = aDia; b.hora_inicio = aIni; b.hora_fim = aFim;
+  renderGrid();
+
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabaseAdmin.from("horarios").update({ dia_semana: a.dia_semana, hora_inicio: a.hora_inicio, hora_fim: a.hora_fim }).eq("id", a.id),
+    supabaseAdmin.from("horarios").update({ dia_semana: b.dia_semana, hora_inicio: b.hora_inicio, hora_fim: b.hora_fim }).eq("id", b.id),
+  ]);
+  if (e1 || e2) {
+    showToast("Erro ao trocar horários: " + (e1 || e2).message, "error");
+    if (_turmaId) selecionarTurma(_turmaId);
+    return;
+  }
+  showToast("Horários trocados!", "success");
 }
 
 // ── Bloco de horário no calendário ────────────────────────────────────────────
@@ -406,9 +447,10 @@ function renderBlock(h) {
 
   const c      = MAT_COLORS[h.colorIdx];
   const sub    = _isProfessor ? (h.turmaNome ?? "—") : (h.profiles?.nome || h.profiles?.email || "");
+  const arrastavel = !_isProfessor && window.innerWidth > 640;
 
   return `
-    <div class="cal-block${_isProfessor ? " prof-view" : ""}" data-id="${h.id}"
+    <div class="cal-block${_isProfessor ? " prof-view" : ""}" data-id="${h.id}"${arrastavel ? ` draggable="true"` : ""}
       style="top:${top}px;height:${height}px;background:${c.bg};border-left-color:${c.border};color:${c.text}">
       <div class="cal-block-nome">${esc(h.matNome)}</div>
       ${sub && height > 40 ? `<div class="cal-block-sub">${esc(sub)}</div>` : ""}
