@@ -607,7 +607,7 @@ function abrirModalProfessor(p) {
       </div>
     </div>`;
 
-  const overlay = abrirModalGenerico(esc(p.nome), body, 760);
+  const overlay = abrirModalGenerico(esc(p.nome), body, 1000);
   overlay.querySelectorAll("tr[data-cid]").forEach(tr => {
     tr.addEventListener("click", () => {
       const c = p.chamadas.find(x => x.id === tr.dataset.cid);
