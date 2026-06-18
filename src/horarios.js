@@ -393,14 +393,14 @@ function renderBlock(h) {
   const height = Math.max((endF - startF) * CELL_H - 2, 20);
 
   const c      = MAT_COLORS[h.colorIdx];
-  const subInst = h.profiles?.nome || h.profiles?.email || `${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}${h.sala ? " · "+h.sala : ""}`;
+  const sub    = _isProfessor ? (h.turmaNome ?? "—") : (h.profiles?.nome || h.profiles?.email || "");
 
   return `
     <div class="cal-block${_isProfessor ? " prof-view" : ""}" data-id="${h.id}"
       style="top:${top}px;height:${height}px;background:${c.bg};border-left-color:${c.border};color:${c.text}">
       <div class="cal-block-nome">${esc(h.matNome)}</div>
-      ${height > 40 ? `<div class="cal-block-sub">${_isProfessor ? esc(h.turmaNome ?? "—") : esc(subInst)}</div>` : ""}
-      ${_isProfessor && height > 56 ? `<div class="cal-block-time">${h.hora_inicio.slice(0,5)}–${h.hora_fim.slice(0,5)}</div>` : ""}
+      ${sub && height > 40 ? `<div class="cal-block-sub">${esc(sub)}</div>` : ""}
+      ${height > 30 ? `<div class="cal-block-time">${h.hora_inicio.slice(0,5)}<span class="cal-block-time-sep">–</span>${h.hora_fim.slice(0,5)}</div>` : ""}
     </div>`;
 }
 

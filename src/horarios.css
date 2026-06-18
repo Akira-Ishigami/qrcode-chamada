@@ -389,9 +389,11 @@
   margin-top: 1px;
 }
 .cal-block-time {
-  font-size: .55rem; opacity: .55; margin-top: 2px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .55rem; font-weight: 700; opacity: .65; margin-top: 2px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 3px;
+  line-height: 1.25; white-space: normal;
 }
+.cal-block-time-sep { opacity: .5; }
 
 /* ─── POPOVER ───────────────────────────────── */
 .cal-popover {
@@ -585,6 +587,7 @@
   .cal-day-head  { font-size: .54rem; padding: 7px 2px; letter-spacing: 0; }
   .cal-block-nome { font-size: .58rem; }
   .cal-block-sub  { font-size: .5rem; }
+  .cal-block-time { font-size: .48rem; }
 
   /* Chips de turma */
   .hor-turma-chip { font-size: .7rem; padding: 3px 10px; }
