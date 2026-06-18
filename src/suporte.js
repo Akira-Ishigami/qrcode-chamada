@@ -269,6 +269,10 @@ async function renderChat(ticket) {
 
   document.getElementById("chat-back").addEventListener("click", renderList);
 
+  // Relato original — clicar abre os detalhes num modal, com a foto (se houver) expansível
+  const fotoRelato = (msgs ?? []).find(m => m.imagem_base64)?.imagem_base64 || null;
+  document.querySelector(".chat-original")?.addEventListener("click", () => abrirModalRelato(ticket, fotoRelato));
+
   // Renderiza mensagens existentes
   const bubblesEl = document.getElementById("chat-bubbles");
   (msgs ?? []).forEach(m => bubblesEl.appendChild(buildBubble(m)));
@@ -419,6 +423,36 @@ window.__abrirFotoSuporte = function (src) {
   ov.querySelector("#sp-lightbox-img").src = src;
   requestAnimationFrame(() => ov.classList.add("open"));
 };
+
+// ── Modal: detalhe do relato original (com a foto, se houver) ─────────────────
+function abrirModalRelato(ticket, foto) {
+  let ov = document.getElementById("sp-relato-modal");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "sp-relato-modal";
+    ov.className = "sp-lightbox sp-relato-overlay";
+    document.body.appendChild(ov);
+    ov.addEventListener("click", e => { if (e.target === ov) ov.classList.remove("open"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") ov.classList.remove("open"); });
+  }
+  const isBug = ticket.tipo === "bug";
+  ov.innerHTML = `
+    <div class="sp-relato-card">
+      <button class="sp-modal-close" id="sp-relato-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="sp-relato-eyebrow">Relato original</div>
+      <div class="sp-relato-title">${esc(ticket.titulo)}</div>
+      <div class="chat-header-chips" style="margin:8px 0 14px">
+        <span class="sp-chip ${ticket.tipo}">${isBug ? "Bug" : "Melhoria"}</span>
+        <span class="sp-chip ${ticket.status}">${statusLabel(ticket.status)}</span>
+      </div>
+      <div class="sp-relato-desc">${esc(ticket.descricao || "Sem descrição.")}</div>
+      ${foto ? `<img class="sp-relato-img" src="${foto}" alt="foto do relato" title="Clique para ampliar" onclick="window.__abrirFotoSuporte('${foto}')">` : ""}
+    </div>`;
+  ov.querySelector("#sp-relato-close").addEventListener("click", () => ov.classList.remove("open"));
+  requestAnimationFrame(() => ov.classList.add("open"));
+}
 
 function buildBubble(msg) {
   const isMine = msg.autor_role === "instituicao";
@@ -638,8 +672,7 @@ function abrirModalNovoRelato() {
 
     fechar();
     showToast("Chamado aberto!", "success");
-    // Abre direto o chat do novo ticket
-    await renderChat(newTicket);
+    await renderList();
   });
 }
 
