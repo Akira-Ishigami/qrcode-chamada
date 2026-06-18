@@ -677,7 +677,7 @@ async function carregarConfig() {
   const { data } = await supabaseAdmin.from("grade_config").select("*").eq("instituicao_id", _instId).maybeSingle();
   _gradeConfig = data || {
     instituicao_id: _instId, aula_min: 50, intervalo_min: 0,
-    recreio_inicio: null, recreio_fim: null, dias_semana: [1,2,3,4,5],
+    recreio_inicio: null, recreio_fim: null, dias_semana: [1,2,3,4,5], max_materia_dia: 2,
   };
   return _gradeConfig;
 }
@@ -700,7 +700,7 @@ async function abrirModalConfig() {
       <div class="hor-field"><label>Recreio — início</label><input id="cf-rec-ini" type="time" value="${c.recreio_inicio ? c.recreio_inicio.slice(0,5) : ""}"></div>
       <div class="hor-field"><label>Recreio — fim</label><input id="cf-rec-fim" type="time" value="${c.recreio_fim ? c.recreio_fim.slice(0,5) : ""}"></div>
     </div>
-    <small style="font-size:.7rem;color:var(--text-3);display:block">O máximo de aulas da mesma matéria por dia é calculado automaticamente a partir da duração, intervalo, recreio e do horário de funcionamento de cada turma.</small>
+    <div class="hor-field"><label>Máx. da mesma matéria por dia</label><input id="cf-max" type="number" min="1" max="6" value="${c.max_materia_dia}"></div>
     <div class="hor-feedback" id="cf-fb"></div>
   `, `<button class="hor-btn-cancel" data-close>Cancelar</button><button class="hor-btn-save" id="cf-salvar">Salvar</button>`);
 
@@ -718,6 +718,7 @@ async function abrirModalConfig() {
       recreio_inicio: ov.querySelector("#cf-rec-ini").value || null,
       recreio_fim: ov.querySelector("#cf-rec-fim").value || null,
       dias_semana: diasSel.sort((a,b)=>a-b),
+      max_materia_dia: parseInt(ov.querySelector("#cf-max").value, 10) || 2,
     };
     const { error } = await supabaseAdmin.from("grade_config").upsert(payload, { onConflict: "instituicao_id" });
     if (error) { ov.querySelector("#cf-fb").textContent = "Erro: " + error.message; return; }
