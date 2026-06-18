@@ -211,27 +211,6 @@
 }
 .cal-no-turma strong { color: #334155; font-size: .92rem; display: block; }
 
-/* ─── LEGEND ────────────────────────────────── */
-.cal-legend {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  padding: 7px 16px;
-  background: #fafbfc;
-  border-bottom: 1px solid #f1f3f8;
-  flex-shrink: 0;
-  min-height: 35px;
-  align-items: center;
-}
-.cal-legend-empty { font-size: .68rem; color: #cbd5e1; font-style: italic; }
-.cal-legend-item {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 9px; border-radius: 5px;
-  font-size: .6rem; font-weight: 700;
-  border: 1.5px solid;
-  letter-spacing: .04em;
-}
-
 /* ─── SCROLL ────────────────────────────────── */
 .cal-scroll {
   flex: 1; overflow: auto;

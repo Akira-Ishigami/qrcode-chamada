@@ -215,9 +215,6 @@ function renderShell() {
 
     <div class="cal-outer">
       ${overlayHtml}
-      <div class="cal-legend" id="cal-legend">
-        ${_isProfessor ? "" : `<span class="cal-legend-empty">Selecione uma turma</span>`}
-      </div>
       <div class="cal-scroll">
         <div class="cal-grid" id="cal-grid"></div>
       </div>
@@ -235,7 +232,7 @@ function renderShell() {
       const mob = document.getElementById("sel-turma-mobile");
       if (mob) { mob.value = id; mob.cddRebuild?.(); }
       if (id) selecionarTurma(id);
-      else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
+      else { _turmaId = null; _horarios = []; renderGrid(); }
     });
     // Mobile select
     document.getElementById("sel-turma-mobile")?.addEventListener("change", e => {
@@ -243,7 +240,7 @@ function renderShell() {
       const desk = document.getElementById("sel-turma");
       if (desk) desk.value = id;
       if (id) selecionarTurma(id);
-      else { _turmaId = null; _horarios = []; renderGrid(); renderLegend(); }
+      else { _turmaId = null; _horarios = []; renderGrid(); }
     });
   }
 
@@ -265,7 +262,6 @@ function renderShell() {
   document.getElementById("btn-disponibilidade")?.addEventListener("click", abrirModalDisponibilidade);
 
   renderGrid();
-  renderLegend();
   document.addEventListener("click", fecharPopover);
 }
 
@@ -278,7 +274,6 @@ async function selecionarTurma(id) {
   if (_previewHorarios) {
     previewParaTurma(id);
     renderGrid();
-    renderLegend();
     return;
   }
 
@@ -294,7 +289,6 @@ async function selecionarTurma(id) {
   recolorHorarios();
 
   renderGrid();
-  renderLegend();
 }
 
 // Cada aula recebe uma cor própria, distribuída pela ordem (dia → hora).
@@ -303,29 +297,6 @@ function recolorHorarios() {
     .slice()
     .sort((a, b) => (a.dia_semana - b.dia_semana) || String(a.hora_inicio).localeCompare(String(b.hora_inicio)))
     .forEach((h, i) => { h.colorIdx = i % MAT_COLORS.length; });
-}
-
-// ── Legenda — uma entrada por aula (dia + hora + matéria) ──────────────────────
-function renderLegend() {
-  const leg = document.getElementById("cal-legend");
-  if (!leg) return;
-
-  if (!_horarios.length) {
-    leg.innerHTML = `<span class="cal-legend-empty">Nenhuma aula cadastrada ainda — clique nas células para adicionar</span>`;
-    return;
-  }
-
-  const ordenadas = [..._horarios].sort(
-    (a, b) => (a.dia_semana - b.dia_semana) || String(a.hora_inicio).localeCompare(String(b.hora_inicio))
-  );
-
-  leg.innerHTML = ordenadas.map(h => {
-    const c = MAT_COLORS[h.colorIdx];
-    return `<span class="cal-legend-item" style="background:${c.bg};border-color:${c.border};color:${c.text}">
-      <span style="opacity:.7;font-weight:800">${DIAS_SHORT[h.dia_semana]} ${h.hora_inicio.slice(0,5)}</span>
-      ${esc(h.matNome)}
-    </span>`;
-  }).join("");
 }
 
 // ── Render da grade semanal ───────────────────────────────────────────────────
@@ -473,7 +444,6 @@ async function excluirHorario(id) {
   showToast("Horário removido.", "success");
   _horarios = _horarios.filter(h => h.id !== id);
   renderGrid();
-  renderLegend();
 }
 
 // ── Modal adicionar horário ───────────────────────────────────────────────────
@@ -641,7 +611,6 @@ function abrirModal(dia, horaInicio) {
 
     fechar();
     renderGrid();
-    renderLegend();
     showToast("Aula adicionada!", "success");
   });
 }
@@ -862,7 +831,7 @@ function mostrarPreview(res) {
     document.getElementById("cal-overlay")?.remove();
   }
   previewParaTurma(_turmaId);
-  renderGrid(); renderLegend();
+  renderGrid();
 
   const naoAloc = res.naoAlocadas.reduce((s, x) => s + x.faltam, 0);
   document.getElementById("preview-banner")?.remove();
@@ -890,7 +859,7 @@ function cancelarPreview() {
   _previewHorarios = null;
   document.getElementById("preview-banner")?.remove();
   if (_turmaId) selecionarTurma(_turmaId);
-  else { _horarios = []; renderGrid(); renderLegend(); }
+  else { _horarios = []; renderGrid(); }
 }
 
 function aplicarPreview() {
