@@ -678,7 +678,7 @@ function abrirModalNovoRelato() {
 
     fechar();
     showToast("Chamado aberto!", "success");
-    await renderList();
+    await renderChat(newTicket);
   });
 }
 
