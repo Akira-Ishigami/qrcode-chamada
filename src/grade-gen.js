@@ -77,12 +77,15 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
   const turmaBusy = new Set();
   const profBusy  = new Set();
   const matDia    = new Map();
+  const turmaDia  = new Map(); // total de aulas (qualquer matéria) já alocadas na turma naquele dia
 
   const ocupar = (turma, prof, mat, dia, ini) => {
     turmaBusy.add(`${turma}|${dia}|${ini}`);
     if (prof) profBusy.add(`${prof}|${dia}|${ini}`);
     const k = `${turma}|${mat}|${dia}`;
     matDia.set(k, (matDia.get(k) || 0) + 1);
+    const td = `${turma}|${dia}`;
+    turmaDia.set(td, (turmaDia.get(td) || 0) + 1);
   };
 
   // Aulas travadas ocupam slots de antemão
@@ -97,10 +100,11 @@ function encaixar(unidades, slotsByTurma, indispIdx, config, travados) {
       if (turmaBusy.has(`${u.turma_id}|${s.dia}|${s.ini}`)) continue;
       if (u.professor_id && profBusy.has(`${u.professor_id}|${s.dia}|${s.ini}`)) continue;
       if (u.professor_id && profIndisponivel(indispIdx, u.professor_id, s)) continue;
-      const matKey = `${u.turma_id}|${u.materia_id}|${s.dia}`;
-      if ((matDia.get(matKey) || 0) >= config.max_materia_dia) continue;
+      const turmaDiaKey = `${u.turma_id}|${s.dia}`;
+      if ((turmaDia.get(turmaDiaKey) || 0) >= config.max_materia_dia) continue;
 
       // Score: adjacência do professor (evita janelas) + mais cedo + espalhar matéria
+      const matKey = `${u.turma_id}|${u.materia_id}|${s.dia}`;
       let score = 0;
       if (u.professor_id) {
         if (profBusy.has(`${u.professor_id}|${s.dia}|${s.ini - passo}`)) score += 10;
