@@ -281,15 +281,15 @@ function abrirModal(tipo) {
           <input class="tv-input" id="mt-nome" placeholder="Ex: Turma A, 1º Ano Noturno" autocomplete="off" />
           <div style="display:flex;gap:10px;margin-top:12px">
             <div style="flex:1">
-              <label class="tv-label">Início</label>
+              <label class="tv-label">Início <span style="color:var(--red)">*</span></label>
               <input class="tv-input" id="mt-inicio" type="time" />
             </div>
             <div style="flex:1">
-              <label class="tv-label">Fim</label>
+              <label class="tv-label">Fim <span style="color:var(--red)">*</span></label>
               <input class="tv-input" id="mt-fim" type="time" />
             </div>
           </div>
-          <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma (opcional)</small>
+          <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma — define o intervalo exibido na grade de horários</small>
         `}
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
@@ -335,7 +335,8 @@ function abrirModal(tipo) {
       const hi   = document.getElementById("mt-inicio")?.value || null;
       const hf   = document.getElementById("mt-fim")?.value || null;
       if (!nome) { err.textContent = "Informe o nome da turma."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
-      if (hi && hf && hf <= hi) { err.textContent = "O fim deve ser depois do início."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
+      if (!hi || !hf) { err.textContent = "Informe o horário de início e fim da turma."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
+      if (hf <= hi) { err.textContent = "O fim deve ser depois do início."; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
       const { error } = await supabaseAdmin.from("turmas").insert({ nome, instituicao_id: instAtualId, hora_inicio: hi, hora_fim: hf });
       if (error) { err.textContent = "Erro: " + error.message; btn.disabled = false; btn.innerHTML = `${SVG_PLUS} Adicionar Turma`; return; }
       fechar();
@@ -382,15 +383,15 @@ function abrirModalEditar(t) {
         </div>
         <div style="display:flex;gap:10px;margin-top:12px">
           <div style="flex:1">
-            <label class="tv-label">Início</label>
+            <label class="tv-label">Início <span style="color:var(--red)">*</span></label>
             <input class="tv-input" id="me-inicio" type="time" value="${t.hora_inicio ? t.hora_inicio.slice(0,5) : ""}" />
           </div>
           <div style="flex:1">
-            <label class="tv-label">Fim</label>
+            <label class="tv-label">Fim <span style="color:var(--red)">*</span></label>
             <input class="tv-input" id="me-fim" type="time" value="${t.hora_fim ? t.hora_fim.slice(0,5) : ""}" />
           </div>
         </div>
-        <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma (opcional)</small>
+        <small style="font-size:.7rem;color:var(--text-3);display:block;margin-top:6px">Horário de funcionamento da turma — define o intervalo exibido na grade de horários</small>
         <div class="tv-modal-err" id="modal-err"></div>
       </div>
       <div class="tv-modal-foot">
@@ -419,7 +420,8 @@ function abrirModalEditar(t) {
     const hf   = document.getElementById("me-fim")?.value || null;
 
     if (!nome) { err.textContent = "Informe o nome da turma."; return; }
-    if (hi && hf && hf <= hi) { err.textContent = "O fim deve ser depois do início."; return; }
+    if (!hi || !hf) { err.textContent = "Informe o horário de início e fim da turma."; return; }
+    if (hf <= hi) { err.textContent = "O fim deve ser depois do início."; return; }
 
     const btn = document.getElementById("modal-ok");
     btn.disabled = true;

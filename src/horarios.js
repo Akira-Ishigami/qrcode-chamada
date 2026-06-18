@@ -11,6 +11,11 @@ let _previewHorarios = null; // quando != null, estamos vendo a prévia gerada
 const CAL_START = 5;   // 05:00
 const CAL_END   = 24;  // 00:00 (meia-noite)
 const CELL_H    = 64;  // px por hora
+const timeToFloat = (t) => { const [h, m] = t.split(":").map(Number); return h + m / 60; };
+
+// Faixa de horário exibida na grade — segue o horário de funcionamento da turma selecionada
+let _gridStart = CAL_START;
+let _gridEnd   = CAL_END;
 const DIAS_SHORT = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const DIAS_FULL  = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
 const SHOW_DIAS  = [1,2,3,4,5,6]; // Seg–Sáb (0=Dom)
@@ -139,7 +144,7 @@ async function carregarDados(profile) {
     lista.forEach(h => { if (h.turma_id && h.turmas) turmaMap[h.turma_id] = { id: h.turma_id, nome: h.turmas.nome }; });
     _turmas = Object.values(turmaMap).sort((a,b) => a.nome.localeCompare(b.nome));
   } else {
-    const { data: turmas } = await supabaseAdmin.from("turmas").select("id, nome").eq("instituicao_id", _instId).order("nome");
+    const { data: turmas } = await supabaseAdmin.from("turmas").select("id, nome, hora_inicio, hora_fim").eq("instituicao_id", _instId).order("nome");
     _turmas = turmas ?? [];
   }
 }
@@ -304,14 +309,24 @@ function renderGrid() {
   const grid = document.getElementById("cal-grid");
   if (!grid) return;
 
-  const hours = Array.from({ length: CAL_END - CAL_START }, (_, i) => CAL_START + i);
+  // Turma selecionada define a faixa de horário da grade (horário de funcionamento)
+  const turmaAtual = !_isProfessor ? _turmas.find(t => t.id === _turmaId) : null;
+  _gridStart = CAL_START;
+  _gridEnd   = CAL_END;
+  if (turmaAtual?.hora_inicio && turmaAtual?.hora_fim) {
+    const ini = Math.floor(timeToFloat(turmaAtual.hora_inicio));
+    const fim = Math.ceil(timeToFloat(turmaAtual.hora_fim));
+    if (fim > ini) { _gridStart = ini; _gridEnd = fim; }
+  }
+
+  const hours = Array.from({ length: _gridEnd - _gridStart }, (_, i) => _gridStart + i);
   const agora = new Date();
   const hoje  = agora.getDay(); // 0=Dom
 
   // Posição da linha de "agora"
   const nowFloat = agora.getHours() + agora.getMinutes() / 60;
-  const showNow  = nowFloat >= CAL_START && nowFloat < CAL_END;
-  const nowTop   = (nowFloat - CAL_START) * CELL_H;
+  const showNow  = nowFloat >= _gridStart && nowFloat < _gridEnd;
+  const nowTop   = (nowFloat - _gridStart) * CELL_H;
   const nowLabel = `${String(agora.getHours()).padStart(2,"0")}:${String(agora.getMinutes()).padStart(2,"0")}`;
 
   // Coluna de horas
@@ -374,7 +389,7 @@ function renderBlock(h) {
   const startF = startH + startM / 60;
   const endF   = endH   + endM   / 60;
 
-  const top    = (startF - CAL_START) * CELL_H;
+  const top    = (startF - _gridStart) * CELL_H;
   const height = Math.max((endF - startF) * CELL_H - 2, 20);
 
   const c      = MAT_COLORS[h.colorIdx];
