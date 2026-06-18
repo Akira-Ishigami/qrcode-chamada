@@ -196,27 +196,30 @@
     }
     .sp-empty-btn:hover { background: var(--acc-2); transform: translateY(-1px); }
 
-    /* ── Modal ── */
+    /* ── Modal lateral (drawer) ── */
     .sp-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.45);
-      display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0; background: rgba(15,23,42,.4);
       z-index: 600; opacity: 0; pointer-events: none;
-      transition: opacity .2s; backdrop-filter: blur(4px);
+      transition: opacity .22s; backdrop-filter: blur(2px);
     }
     .sp-modal-overlay.open { opacity: 1; pointer-events: all; }
 
     .sp-modal {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 18px; width: 480px; max-width: calc(100vw - 32px);
-      box-shadow: var(--shadow-xl); overflow: hidden;
-      transform: scale(.95) translateY(10px);
-      transition: transform .24s cubic-bezier(.175,.885,.32,1.275);
+      position: fixed; top: 0; right: 0; height: 100vh; height: 100dvh;
+      background: var(--surface); border-left: 1px solid var(--border);
+      width: clamp(340px, 92vw, 440px);
+      box-shadow: -16px 0 48px rgba(15,23,42,.18);
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.22,1,.36,1);
     }
-    .sp-modal-overlay.open .sp-modal { transform: none; }
+    .sp-modal-overlay.open .sp-modal { transform: translateX(0); }
 
     .sp-modal-head {
       padding: 20px 22px 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; background: var(--surface); position: sticky; top: 0; z-index: 1;
     }
     .sp-modal-title { font-family: 'Outfit', system-ui, sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
     .sp-modal-sub   { font-size: .78rem; color: var(--text-3); margin-top: 2px; }
@@ -267,9 +270,35 @@
     .sp-textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
     .sp-err { font-size: .73rem; color: var(--red); font-weight: 600; min-height: 14px; }
 
+    /* Anexo de imagem (upload ou Ctrl+V) */
+    .sp-img-drop {
+      display: flex; align-items: center; gap: 10px;
+      border: 1.5px dashed var(--border-2); border-radius: 11px;
+      padding: 12px 14px; cursor: pointer; transition: all .14s;
+      background: var(--surface-2); color: var(--text-3); font-size: .8rem; font-weight: 600;
+    }
+    .sp-img-drop:hover { border-color: var(--acc); background: #eff6ff; color: var(--acc); }
+    .sp-img-drop svg { flex-shrink: 0; opacity: .8; }
+    .sp-img-preview {
+      display: none; align-items: center; gap: 10px;
+      border: 1px solid var(--border); border-radius: 11px; padding: 8px 10px;
+      background: var(--surface-2);
+    }
+    .sp-img-preview img { max-height: 64px; max-width: 100px; border-radius: 8px; object-fit: cover; display: block; }
+    .sp-img-preview-name { flex: 1; font-size: .76rem; color: var(--text-3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sp-img-remove {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: var(--red-sub); color: var(--red); border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .13s;
+    }
+    .sp-img-remove:hover { background: #fecaca; }
+
     .sp-modal-foot {
       padding: 14px 22px 20px; border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      flex-shrink: 0; background: var(--surface); position: sticky; bottom: 0;
+      margin-top: auto;
     }
     .sp-btn-cancel {
       padding: 9px 16px; background: var(--surface-2);
@@ -298,9 +327,36 @@
 
     @media (max-width: 600px) {
       #page-root { padding: 18px 16px !important; }
-      .sp-stats { flex-direction: row; flex-wrap: wrap; }
-      .sp-stat  { min-width: calc(50% - 5px); }
       .sp-type-pick { grid-template-columns: 1fr; }
+
+      /* Stats: resumido numa única linha só */
+      .sp-stats { flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+      .sp-stat {
+        min-width: 0; flex: 1; padding: 9px 8px; gap: 7px;
+        flex-direction: column; align-items: flex-start;
+      }
+      .sp-stat-icon { width: 26px; height: 26px; border-radius: 7px; }
+      .sp-stat-icon svg { width: 13px; height: 13px; }
+      .sp-stat-num { font-size: 1.15rem; }
+      .sp-stat-lbl { font-size: .56rem; margin-top: 0; }
+
+      /* Lista de chamados: mais compacta */
+      .sp-list { gap: 6px; }
+      .sp-ticket-row { padding: 10px 12px; gap: 10px; }
+      .sp-tr-icon { width: 32px; height: 32px; border-radius: 9px; }
+      .sp-tr-icon svg { width: 15px; height: 15px; }
+      .sp-tr-title { font-size: .82rem; }
+      .sp-tr-preview { display: none; }
+      .sp-tr-top { margin-bottom: 2px; }
+      .sp-tr-time { font-size: .62rem; }
+      .sp-chip { font-size: .54rem; padding: 1px 6px; }
+
+      /* Botão "Novo Chamado" some o texto, fica só o "+" */
+      .sp-btn-new {
+        width: 40px; height: 40px; padding: 0;
+        border-radius: 50%; justify-content: center;
+      }
+      .sp-btn-new span { display: none; }
 
       /* Chat mobile */
       .chat-wrap { height: calc(100vh - 100px); }
@@ -314,8 +370,6 @@
       .sp-header { margin-bottom: 16px; }
       .sp-title { font-size: 1.35rem; }
       .sp-stats { margin-bottom: 16px; }
-      .sp-ticket-row { padding: 11px 12px; gap: 10px; }
-      .sp-tr-icon { width: 36px; height: 36px; }
       .chat-img-preview img { max-height: 64px; max-width: 110px; }
     }
 

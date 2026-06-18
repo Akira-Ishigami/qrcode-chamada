@@ -6,6 +6,7 @@ let _instId   = null;
 let _userId   = null;
 let _rtSub      = null;   // realtime mensagens do chat aberto
 let _statusSub  = null;   // realtime mudança de status do ticket aberto
+let _chatPasteHandler = null; // listener de Ctrl+V do chat aberto
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(s) {
@@ -102,7 +103,7 @@ async function renderList() {
       </div>
       <button class="sp-btn-new" id="btn-novo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo Chamado
+        <span>Novo Chamado</span>
       </button>
     </div>
 
@@ -291,10 +292,9 @@ async function renderChat(ticket) {
   const imgPreview = document.getElementById("chat-img-preview");
   const imgThumb   = document.getElementById("chat-img-thumb");
 
-  fileInput?.addEventListener("change", () => {
-    const file = fileInput.files[0];
+  function definirImagemChat(file) {
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) { showToast("Imagem muito grande. Máximo 3 MB.", "error"); fileInput.value = ""; return; }
+    if (file.size > 3 * 1024 * 1024) { showToast("Imagem muito grande. Máximo 3 MB.", "error"); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       _imgBase64 = e.target.result;
@@ -302,7 +302,19 @@ async function renderChat(ticket) {
       imgPreview.style.display = "flex";
     };
     reader.readAsDataURL(file);
-  });
+  }
+
+  fileInput?.addEventListener("change", () => definirImagemChat(fileInput.files[0]));
+
+  // Colar imagem com Ctrl+V em qualquer lugar do chat
+  if (_chatPasteHandler) document.removeEventListener("paste", _chatPasteHandler);
+  _chatPasteHandler = (e) => {
+    const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    definirImagemChat(item.getAsFile());
+  };
+  document.addEventListener("paste", _chatPasteHandler);
 
   document.getElementById("chat-img-remove")?.addEventListener("click", () => {
     _imgBase64 = null;
@@ -434,6 +446,7 @@ function scrollBottom() {
 function unsubscribeRealtime() {
   if (_rtSub)     { supabase.removeChannel(_rtSub);     _rtSub     = null; }
   if (_statusSub) { supabase.removeChannel(_statusSub); _statusSub = null; }
+  if (_chatPasteHandler) { document.removeEventListener("paste", _chatPasteHandler); _chatPasteHandler = null; }
 }
 
 // ─── Modal novo chamado ───────────────────────────────────────────────────────
@@ -479,7 +492,22 @@ function abrirModalNovoRelato() {
         </div>
         <div class="sp-field">
           <label class="sp-label" for="sp-desc">Detalhes <span style="color:var(--text-3);font-weight:500;text-transform:none;letter-spacing:0">(opcional)</span></label>
-          <textarea class="sp-textarea" id="sp-desc" placeholder="O que aconteceu? Como reproduzir?" rows="4"></textarea>
+          <textarea class="sp-textarea" id="sp-desc" placeholder="O que aconteceu? Como reproduzir? (dica: cole um print com Ctrl+V)" rows="4"></textarea>
+        </div>
+        <div class="sp-field">
+          <div class="sp-label">Imagem <span style="color:var(--text-3);font-weight:500;text-transform:none;letter-spacing:0">(opcional — cole com Ctrl+V ou envie um arquivo)</span></div>
+          <label class="sp-img-drop" id="sp-img-drop">
+            <input type="file" id="sp-img-input" accept="image/*" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Clique para enviar uma imagem, ou cole (Ctrl+V) em qualquer campo
+          </label>
+          <div class="sp-img-preview" id="sp-img-preview">
+            <img id="sp-img-thumb" src="" alt="preview">
+            <span class="sp-img-preview-name" id="sp-img-name"></span>
+            <button type="button" class="sp-img-remove" id="sp-img-remove" title="Remover imagem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
         <div class="sp-err" id="sp-err"></div>
       </div>
@@ -515,6 +543,45 @@ function abrirModalNovoRelato() {
     });
   });
 
+  // ── Anexo de imagem (upload ou colar com Ctrl+V) ──────────────────────────────
+  let _imgBase64 = null;
+  const imgInput   = overlayEl.querySelector("#sp-img-input");
+  const imgDrop    = overlayEl.querySelector("#sp-img-drop");
+  const imgPreview = overlayEl.querySelector("#sp-img-preview");
+  const imgThumb   = overlayEl.querySelector("#sp-img-thumb");
+  const imgName    = overlayEl.querySelector("#sp-img-name");
+
+  function definirImagem(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 3 * 1024 * 1024) { showToast("Imagem muito grande. Máximo 3 MB.", "error"); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _imgBase64 = e.target.result;
+      imgThumb.src = _imgBase64;
+      imgName.textContent = file.name || "Imagem colada";
+      imgDrop.style.display = "none";
+      imgPreview.style.display = "flex";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  imgInput.addEventListener("change", () => definirImagem(imgInput.files[0]));
+
+  overlayEl.querySelector("#sp-img-remove").addEventListener("click", () => {
+    _imgBase64 = null;
+    imgInput.value = "";
+    imgThumb.src = "";
+    imgPreview.style.display = "none";
+    imgDrop.style.display = "flex";
+  });
+
+  overlayEl.addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    definirImagem(item.getAsFile());
+  });
+
   overlayEl.querySelector("#sp-submit").addEventListener("click", async () => {
     const err    = overlayEl.querySelector("#sp-err");
     const btn    = overlayEl.querySelector("#sp-submit");
@@ -538,6 +605,13 @@ function abrirModalNovoRelato() {
       btn.disabled = false;
       btn.innerHTML = "Abrir Chamado";
       return;
+    }
+
+    if (_imgBase64) {
+      await supabase.from("suporte_mensagens").insert({
+        feedback_id: newTicket.id, autor_id: _userId, autor_role: "instituicao",
+        imagem_base64: _imgBase64,
+      });
     }
 
     fechar();
