@@ -552,7 +552,7 @@ function abrirModalGenerico(titulo, bodyHtml, maxWidth = 560) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay open";
   overlay.innerHTML = `
-    <div class="modal" style="max-width:${maxWidth}px;max-height:84vh;display:flex;flex-direction:column;">
+    <div class="modal" style="width:92vw;max-width:${maxWidth}px;max-height:84vh;display:flex;flex-direction:column;">
       <div class="modal-header">
         <h2>${titulo}</h2>
         <button class="close-btn" id="rel-modal-close">✕</button>
@@ -607,7 +607,7 @@ function abrirModalProfessor(p) {
       </div>
     </div>`;
 
-  const overlay = abrirModalGenerico(esc(p.nome), body, 1000);
+  const overlay = abrirModalGenerico(esc(p.nome), body, 1200);
   overlay.querySelectorAll("tr[data-cid]").forEach(tr => {
     tr.addEventListener("click", () => {
       const c = p.chamadas.find(x => x.id === tr.dataset.cid);
@@ -877,8 +877,9 @@ function renderResumoGeral(f) {
       </div>
     </div>
     <div class="rel-aluno-card">
-      <table class="rel-aluno-table">
-        <thead><tr><th>Turma</th><th>Professor</th><th>Chamadas</th><th>Presentes</th><th>Atrasados</th><th>Freq</th></tr></thead>
+      <div style="overflow-x:auto">
+      <table class="rel-aluno-table compact">
+        <thead><tr><th>Turma</th><th>Professor</th><th>Cham.</th><th>Pres.</th><th>Atr.</th><th>Freq</th></tr></thead>
         <tbody>
           ${turmasSorted.map(r => {
             const fr = pct(r.presTotal, r.chamadas * r.alunosTotal);
@@ -893,6 +894,7 @@ function renderResumoGeral(f) {
           }).join("")}
         </tbody>
       </table>
+      </div>
     </div>`;
 }
 
