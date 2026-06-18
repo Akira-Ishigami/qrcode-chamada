@@ -340,6 +340,10 @@ function renderShell() {
           <label class="rel-filter-label">Até</label>
           <input type="date" class="rel-input" id="filt-ate" />
         </div>
+        <div class="rel-filter-group" id="fg-prof" style="${_tab === "professores" ? "" : "display:none"}">
+          <label class="rel-filter-label">Buscar professor</label>
+          <input type="search" class="rel-input" id="filt-prof" placeholder="Nome do professor…" style="min-width:180px" />
+        </div>
         <div class="rel-filter-group" id="fg-aluno" style="display:none">
           <label class="rel-filter-label">Buscar aluno</label>
           <input type="search" class="rel-input" id="filt-aluno" placeholder="Nome ou matrícula…" style="min-width:180px" />
@@ -367,6 +371,7 @@ function renderShell() {
       btn.classList.add("active");
       _tab = btn.dataset.tab;
       document.getElementById("fg-aluno").style.display = _tab === "alunos" ? "" : "none";
+      document.getElementById("fg-prof").style.display  = _tab === "professores" ? "" : "none";
       renderContent();
     });
   });
@@ -375,13 +380,13 @@ function renderShell() {
   enhanceSelect(document.getElementById("filt-turma"));
 
   // Eventos filtros
-  ["filt-turma","filt-de","filt-ate","filt-aluno"].forEach(id => {
+  ["filt-turma","filt-de","filt-ate","filt-aluno","filt-prof"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", renderContent);
     document.getElementById(id)?.addEventListener("change", renderContent);
   });
 
   document.getElementById("btn-clear").addEventListener("click", () => {
-    ["filt-turma","filt-de","filt-ate","filt-aluno"].forEach(id => {
+    ["filt-turma","filt-de","filt-ate","filt-aluno","filt-prof"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -401,6 +406,7 @@ function getFiltros() {
     de:      document.getElementById("filt-de")?.value || "",
     ate:     document.getElementById("filt-ate")?.value || "",
     aluno:   document.getElementById("filt-aluno")?.value.toLowerCase().trim() || "",
+    prof:    document.getElementById("filt-prof")?.value.toLowerCase().trim() || "",
   };
 }
 
@@ -444,7 +450,17 @@ function renderPorProfessor(f) {
     if (!porProf[key]) porProf[key] = { nome: c.professor || "Sem professor", foto: c.professorFoto, chamadas: [] };
     porProf[key].chamadas.push(c);
   });
-  const profsSorted = Object.values(porProf).sort((a, b) => a.nome.localeCompare(b.nome));
+  let profsSorted = Object.values(porProf).sort((a, b) => a.nome.localeCompare(b.nome));
+  if (f.prof) profsSorted = profsSorted.filter(p => p.nome.toLowerCase().includes(f.prof));
+
+  if (!profsSorted.length) {
+    content.innerHTML = `
+      <div class="hist-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" width="44" height="44" style="opacity:.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <p>Nenhum professor encontrado.</p>
+      </div>`;
+    return;
+  }
 
   content.innerHTML = `<div class="rel-aluno-grid" id="prof-grid"></div>`;
   const grid = document.getElementById("prof-grid");
