@@ -264,9 +264,7 @@ function renderShell() {
   document.getElementById("btn-gerar")?.addEventListener("click", iniciarGeracao);
   document.getElementById("btn-disponibilidade")?.addEventListener("click", abrirModalDisponibilidade);
 
-  // Professor mobile → agenda direta; instituição → grid até selecionar turma
-  if (window.innerWidth <= 640 && _isProfessor) renderAgenda();
-  else renderGrid();
+  renderGrid();
   renderLegend();
   document.addEventListener("click", fecharPopover);
 }
@@ -295,8 +293,7 @@ async function selecionarTurma(id) {
   });
   recolorHorarios();
 
-  if (window.innerWidth <= 640) { renderAgenda(); }
-  else renderGrid();
+  renderGrid();
   renderLegend();
 }
 
@@ -329,92 +326,6 @@ function renderLegend() {
       ${esc(h.matNome)}
     </span>`;
   }).join("");
-}
-
-// ── Agenda mobile (lista por dia) ────────────────────────────────────────────
-let _agendaDay = new Date().getDay() || 1; // default: hoje (ou seg se domingo)
-
-function renderAgenda() {
-  const scroll = document.querySelector(".cal-scroll");
-  if (!scroll) return;
-
-  const diasFull = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-  const hoje = new Date().getDay();
-
-  // Dias que têm aula
-  const diasComAula = new Set(_horarios.map(h => h.dia_semana));
-
-  scroll.innerHTML = `
-    <div class="agenda-days-bar">
-      ${SHOW_DIAS.map(d => `
-        <button class="agenda-day-btn${_agendaDay === d ? " active" : ""}${diasComAula.has(d) ? " has-aula" : ""}"
-          data-day="${d}">
-          ${diasFull[d]}
-          ${diasComAula.has(d) ? `<span class="agenda-day-dot"></span>` : ""}
-        </button>`).join("")}
-    </div>
-    <div class="agenda-list" id="agenda-list"></div>`;
-
-  scroll.querySelectorAll(".agenda-day-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      _agendaDay = parseInt(btn.dataset.day);
-      renderAgenda();
-    });
-  });
-
-  renderAgendaDay();
-}
-
-function renderAgendaDay() {
-  const list = document.getElementById("agenda-list");
-  if (!list) return;
-
-  const aulas = _horarios.filter(h => h.dia_semana === _agendaDay)
-    .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
-
-  const addBtn = !_isProfessor
-    ? `<button class="agenda-add-btn" id="agenda-add-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Adicionar aula
-       </button>`
-    : "";
-
-  if (!aulas.length) {
-    list.innerHTML = `
-      <div class="agenda-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>Nenhuma aula neste dia</span>
-      </div>
-      ${addBtn}`;
-    document.getElementById("agenda-add-btn")?.addEventListener("click", () => abrirModal(_agendaDay, 8));
-    return;
-  }
-
-  list.innerHTML = aulas.map(h => {
-    const c    = MAT_COLORS[h.colorIdx];
-    const prof = h.profiles?.nome || h.profiles?.email || "";
-    return `
-      <div class="agenda-card${!_isProfessor ? " inst-edit" : ""}"
-           data-hid="${h.id}"
-           style="border-left-color:${c.border}">
-        <div class="agenda-card-time">${h.hora_inicio.slice(0,5)} – ${h.hora_fim.slice(0,5)}</div>
-        <div class="agenda-card-mat" style="color:${c.text}">${esc(h.matNome)}</div>
-        ${prof ? `<div class="agenda-card-prof">${esc(prof)}</div>` : ""}
-        ${h.sala ? `<div class="agenda-card-sala">${esc(h.sala)}</div>` : ""}
-        ${!_isProfessor ? `<div class="agenda-card-edit-hint">toque para editar</div>` : ""}
-      </div>`;
-  }).join("") + addBtn;
-
-  // Bind card click para instituição
-  if (!_isProfessor) {
-    list.querySelectorAll(".agenda-card.inst-edit").forEach(card => {
-      card.addEventListener("click", e => {
-        e.stopPropagation();
-        mostrarPopoverAgenda(card.dataset.hid);
-      });
-    });
-    document.getElementById("agenda-add-btn")?.addEventListener("click", () => abrirModal(_agendaDay, 8));
-  }
 }
 
 // ── Render da grade semanal ───────────────────────────────────────────────────
@@ -552,39 +463,6 @@ function fecharPopover() {
   if (_popover) { _popover.remove(); _popover = null; }
 }
 
-// Popover centralizado para agenda mobile
-function mostrarPopoverAgenda(horarioId) {
-  fecharPopover();
-  const h = _horarios.find(x => x.id === horarioId);
-  if (!h) return;
-
-  const pop = document.createElement("div");
-  pop.className = "cal-popover cal-popover-mobile";
-  pop.id = "cal-popover";
-
-  const prof = h.profiles?.nome || h.profiles?.email || "—";
-  const sala = h.sala ? ` · ${h.sala}` : "";
-
-  pop.innerHTML = `
-    <div class="cal-pop-header">${esc(DIAS_FULL[h.dia_semana])}</div>
-    <div class="cal-pop-info">${esc(h.matNome)}</div>
-    <div class="cal-pop-time">${h.hora_inicio.slice(0,5)} – ${h.hora_fim.slice(0,5)}${sala}</div>
-    <div class="cal-pop-time" style="margin-bottom:6px">${esc(prof)}</div>
-    <button class="cal-pop-del" id="pop-del">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-      Excluir horário
-    </button>
-  `;
-
-  document.body.appendChild(pop);
-  _popover = pop;
-
-  document.getElementById("pop-del").addEventListener("click", async e => {
-    e.stopPropagation();
-    fecharPopover();
-    await excluirHorario(horarioId);
-  });
-}
 
 // ── Excluir horário ───────────────────────────────────────────────────────────
 async function excluirHorario(id) {
@@ -594,8 +472,7 @@ async function excluirHorario(id) {
   if (error) { showToast("Erro ao excluir: " + error.message, "error"); return; }
   showToast("Horário removido.", "success");
   _horarios = _horarios.filter(h => h.id !== id);
-  if (window.innerWidth <= 640) renderAgenda();
-  else renderGrid();
+  renderGrid();
   renderLegend();
 }
 
@@ -763,8 +640,7 @@ function abrirModal(dia, horaInicio) {
     recolorHorarios();
 
     fechar();
-    if (window.innerWidth <= 640) renderAgenda();
-    else renderGrid();
+    renderGrid();
     renderLegend();
     showToast("Aula adicionada!", "success");
   });
